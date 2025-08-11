@@ -1,12 +1,12 @@
 "use client"
-import { useEffect, useMemo, useState, useTransition } from "react"
+import { useEffect, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import type { Database, Tables } from "@/types/database"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import Image from "next/image"
 
 export default function MyItemsPage() {
@@ -61,8 +61,8 @@ export default function MyItemsPage() {
           .order("created_at", { ascending: false })
         
         if (error) setError(error.message ? error.message : "Failed to load items")
-        setItems((data as any) || [])
-      } catch (err) {
+        setItems(data || [])
+      } catch {
         setError("Failed to load items")
       } finally {
         setIsFetching(false)
@@ -94,7 +94,7 @@ export default function MyItemsPage() {
 
       const { error } = await supabase
         .from("items")
-        .update(updatePayload as any)
+        .update(updatePayload)
         .eq("id", returningItemId)
         .eq("user_id", userId)
       if (error) {

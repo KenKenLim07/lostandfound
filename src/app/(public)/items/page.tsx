@@ -86,7 +86,7 @@ export default function AllItemsPage() {
     fetchPage({ append: false, cursor: null })
       .catch(() => {})
       .finally(() => setIsLoading(false))
-  }, [debouncedSearch, filter])
+  }, [debouncedSearch, filter, supabase])
 
   // Infinite scroll
   useEffect(() => {
