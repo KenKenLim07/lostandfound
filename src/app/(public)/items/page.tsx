@@ -1,6 +1,5 @@
 "use client"
 import { useEffect, useMemo, useRef, useState } from "react"
-import Link from "next/link"
 import { createClient } from "@supabase/supabase-js"
 import type { Database, Tables } from "@/types/database"
 import { Input } from "@/components/ui/input"

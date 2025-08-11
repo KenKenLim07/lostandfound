@@ -81,8 +81,7 @@ export default function PostItemPage() {
       const compressed = await compressImage(file, {
         maxWidth: 1200,
         maxHeight: 1200,
-        quality: 0.8,
-        maxSizeMB: 2
+        quality: 0.8
       })
 
       setCompressedFile(compressed.file)

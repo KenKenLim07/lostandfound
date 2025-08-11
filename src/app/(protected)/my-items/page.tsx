@@ -50,16 +50,26 @@ export default function MyItemsPage() {
     if (!userId) return
     setIsFetching(true)
     setError(null)
-    supabase
-      .from("items")
-      .select("id, title, name, type, status, image_url, created_at")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .then(({ data, error }) => {
-        if (error) setError(error.message)
+    
+    async function fetchItems() {
+      if (!userId) return
+      try {
+        const { data, error } = await supabase
+          .from("items")
+          .select("id, title, name, type, status, image_url, created_at")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+        
+        if (error) setError(error.message ? error.message : "Failed to load items")
         setItems((data as any) || [])
-      })
-      .finally(() => setIsFetching(false))
+      } catch (err) {
+        setError("Failed to load items")
+      } finally {
+        setIsFetching(false)
+      }
+    }
+    
+    fetchItems()
   }, [supabase, userId])
 
   function openReturnModal(itemId: string) {
@@ -79,10 +89,7 @@ export default function MyItemsPage() {
         status: "returned",
         returned_to: returnedTo || null,
         returned_year_section: returnedYearSection || null,
-      }
-      if (useCustomDate && returnedDate) {
-        // Only include custom date if explicitly set; otherwise DB default applies
-        ;(updatePayload as any).returned_at = returnedDate
+        returned_at: useCustomDate ? returnedDate : new Date().toISOString().slice(0, 10)
       }
 
       const { error } = await supabase
