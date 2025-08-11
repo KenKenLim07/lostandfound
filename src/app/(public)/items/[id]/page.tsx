@@ -29,6 +29,7 @@ export default async function ItemDetailsPage({ params }: { params: Promise<{ id
   if (error) throw new Error(getErrorMessage(error))
 
   const item = data as Tables<"items">
+  const isMockUrl = item.image_url?.includes("your-bucket-url.supabase.co") ?? false
 
   return (
     <main className="mx-auto max-w-3xl p-4 sm:p-6 space-y-4">
@@ -50,7 +51,14 @@ export default async function ItemDetailsPage({ params }: { params: Promise<{ id
 
       <div className="relative aspect-square w-full bg-muted rounded-lg overflow-hidden">
         {item.image_url ? (
-          <Image src={item.image_url} alt={item.title ?? item.name} fill className="object-cover" />
+          <Image
+            src={item.image_url}
+            alt={item.title ?? item.name}
+            fill
+            sizes="(min-width:1024px) 1024px, 100vw"
+            unoptimized={isMockUrl}
+            className="object-cover"
+          />
         ) : (
           <div className="absolute inset-0 grid place-items-center text-muted-foreground">No image</div>
         )}

@@ -55,11 +55,19 @@ export function ItemCard(props: ItemCardProps) {
 
   const typePillClasses = type === "lost" ? "bg-red-600 text-white" : "bg-green-600 text-white"
   const relativeTimeLabel = formatRelativeTime(createdAt ?? date)
+  const isMockUrl = imageUrl?.includes("your-bucket-url.supabase.co") ?? false
 
   const CardMedia = (
     <div className="relative aspect-square bg-muted">
       {imageUrl ? (
-        <Image src={imageUrl} alt={title ?? name} fill className="object-cover" />
+        <Image
+          src={imageUrl}
+          alt={title ?? name}
+          fill
+          sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 50vw"
+          unoptimized={isMockUrl}
+          className="object-cover"
+        />
       ) : (
         <div className="absolute inset-0 grid place-items-center text-muted-foreground">No image</div>
       )}

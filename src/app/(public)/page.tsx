@@ -1,12 +1,13 @@
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { createClient } from "@supabase/supabase-js"
 import type { Database, Tables } from "@/types/database"
 import { ItemCard } from "@/components/items/ItemCard"
 
 export const revalidate = 60
 
 export default async function PublicHomePage() {
-  const supabase = createServerComponentClient<Database>({ cookies })
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
 
   const { data, error } = await supabase
     .from("items")
