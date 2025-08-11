@@ -56,6 +56,12 @@ export default function RootLayout({
                   >
                     Hall of Fame
                   </Link>
+                  <Link 
+                    href="/my-items" 
+                    className="text-foreground/60 transition-colors hover:text-foreground"
+                  >
+                    My Items
+                  </Link>
                 </div>
               </div>
 
@@ -94,6 +100,14 @@ export default function RootLayout({
                               className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
                             >
                               Hall of Fame
+                            </Link>
+                          </SheetClose>
+                          <SheetClose asChild>
+                            <Link 
+                              href="/my-items" 
+                              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                            >
+                              My Items
                             </Link>
                           </SheetClose>
                         </div>
