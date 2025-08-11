@@ -1,0 +1,115 @@
+import Image from "next/image"
+import Link from "next/link"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+
+function formatRelativeTime(isoString: string | null | undefined): string {
+  if (!isoString) return ""
+  const now = Date.now()
+  const then = new Date(isoString).getTime()
+  const diffMs = Math.max(0, now - then)
+  const sec = Math.floor(diffMs / 1000)
+  if (sec < 5) return "just now"
+  if (sec < 60) return `${sec}s ago`
+  const min = Math.floor(sec / 60)
+  if (min < 60) return min === 1 ? "1 min ago" : `${min} mins ago`
+  const hr = Math.floor(min / 60)
+  if (hr < 24) return hr === 1 ? "1 hour ago" : `${hr} hours ago`
+  const day = Math.floor(hr / 24)
+  if (day < 7) return day === 1 ? "1 day ago" : `${day} days ago`
+  const week = Math.floor(day / 7)
+  return week === 1 ? "1 week ago" : `${week} weeks ago`
+}
+
+export type ItemCardProps = {
+  id: string
+  title?: string | null
+  name: string
+  type: "lost" | "found"
+  description: string | null
+  date: string
+  location: string | null
+  contactNumber: string | null
+  imageUrl: string | null
+  status: "active" | "returned" | null
+  createdAt?: string | null
+  href?: string
+  className?: string
+}
+
+export function ItemCard(props: ItemCardProps) {
+  const {
+    title,
+    name,
+    type,
+    // description,  // hidden on list
+    date,
+    // location,     // hidden on list
+    // contactNumber, // hidden on list
+    imageUrl,
+    status,
+    createdAt,
+    href,
+    className,
+  } = props
+
+  const typePillClasses = type === "lost" ? "bg-red-600 text-white" : "bg-green-600 text-white"
+  const relativeTimeLabel = formatRelativeTime(createdAt ?? date)
+
+  const CardMedia = (
+    <div className="relative aspect-square bg-muted">
+      {imageUrl ? (
+        <Image src={imageUrl} alt={title ?? name} fill className="object-cover" />
+      ) : (
+        <div className="absolute inset-0 grid place-items-center text-muted-foreground">No image</div>
+      )}
+      <div className="absolute right-2 top-2 inline-flex items-center gap-2 z-10">
+        <span className={cn("px-2 py-0.5 rounded text-[10px] font-semibold", typePillClasses)}>
+          {type.toUpperCase()}
+        </span>
+      </div>
+      {status === "returned" && (
+        <div className="absolute inset-0 grid place-items-center z-10">
+          <span className="px-3 py-1 rounded-md bg-blue-600/80 text-white text-xs sm:text-sm font-semibold tracking-wide">
+            RETURNED
+          </span>
+        </div>
+      )}
+    </div>
+  )
+
+  return (
+    <article className={cn("rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden", className)}>
+      {href ? (
+        <Link href={href} aria-label={`View details for ${title ?? name}`}>
+          {CardMedia}
+        </Link>
+      ) : (
+        CardMedia
+      )}
+      <div className="p-2 sm:p-3 space-y-1">
+        <div className="flex items-start justify-between gap-2">
+          {href ? (
+            <Link href={href} className="block min-w-0">
+              <h3 className="text-sm sm:text-base font-semibold leading-tight line-clamp-2">
+                {title ?? name}
+              </h3>
+            </Link>
+          ) : (
+            <h3 className="text-sm sm:text-base font-semibold leading-tight line-clamp-2 min-w-0">{title ?? name}</h3>
+          )}
+          {relativeTimeLabel && (
+            <span className="shrink-0 text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap">{relativeTimeLabel}</span>
+          )}
+        </div>
+        {href && (
+          <div className="pt-1">
+            <Button asChild size="sm" variant="outline">
+              <Link href={href}>View details</Link>
+            </Button>
+          </div>
+        )}
+      </div>
+    </article>
+  )
+} 
