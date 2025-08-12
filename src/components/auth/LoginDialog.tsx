@@ -9,11 +9,25 @@ import { Button } from "@/components/ui/button"
 import { FloatingLabelInput } from "@/components/ui/floating-label-input"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 
-export function LoginDialog() {
+export type LoginDialogProps = {
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  showTrigger?: boolean
+  initialMode?: "signin" | "signup"
+  note?: string
+}
+
+export function LoginDialog(props: LoginDialogProps = {}) {
+  const { open: controlledOpen, onOpenChange, showTrigger = true, initialMode = "signin", note } = props
   const supabase = createClientComponentClient<Database>()
   const router = useRouter()
-  const [open, setOpen] = useState(false)
-  const [mode, setMode] = useState<"signin" | "signup">("signin")
+  const [open, setOpen] = useState(controlledOpen ?? false)
+  const effectiveOpen = controlledOpen !== undefined ? controlledOpen : open
+  const setEffectiveOpen = (next: boolean) => {
+    if (onOpenChange) onOpenChange(next)
+    if (controlledOpen === undefined) setOpen(next)
+  }
+  const [mode, setMode] = useState<"signin" | "signup">(initialMode)
   
   // Form state
   const [email, setEmail] = useState("")
@@ -99,63 +113,39 @@ export function LoginDialog() {
     })
     setShowPassword(false)
     setShowConfirmPassword(false)
-    setMode(mode === "signin" ? "signup" : "signin")
+    setMode(prev => (prev === "signin" ? "signup" : "signin"))
   }
 
-  // Handle form submission
-  function handleAuth(e: React.FormEvent) {
+  // Handle auth
+  const handleAuth = (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setSuccess(null)
 
     if (!isFormValid()) {
-      // Mark all fields as touched to show validation errors
-      setTouched({
-        email: true,
-        password: true,
-        confirmPassword: true
-      })
+      setTouched({ email: true, password: true, confirmPassword: mode === "signup" })
       return
     }
 
     startTransition(async () => {
       try {
         if (mode === "signin") {
-          const { error } = await supabase.auth.signInWithPassword({ 
-            email: email.trim(), 
-            password 
-          })
-          
+          const { error } = await supabase.auth.signInWithPassword({ email, password })
           if (error) throw error
-          
-          setSuccess("Successfully logged in!")
+          setSuccess("Signed in successfully!")
           setTimeout(() => {
-            setOpen(false)
+            setEffectiveOpen(false)
             resetForm()
             router.refresh()
           }, 1000)
         } else {
-          const { data, error } = await supabase.auth.signUp({ 
-            email: email.trim(), 
-            password
-          })
-          
+          const { error } = await supabase.auth.signUp({ email, password })
           if (error) throw error
-          
-          if (data.session) {
-            setSuccess("Account created and logged in!")
-            setTimeout(() => {
-              setOpen(false)
-              resetForm()
-              router.refresh()
-            }, 1000)
-          } else {
-            setSuccess("Account created! Please check your email to confirm.")
-            setTimeout(() => {
-              setOpen(false)
-              resetForm()
-            }, 2000)
-          }
+          setSuccess("Account created! Please check your email to confirm.")
+          setTimeout(() => {
+            setEffectiveOpen(false)
+            resetForm()
+          }, 2000)
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred")
@@ -164,18 +154,20 @@ export function LoginDialog() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="default" size="sm" className="h-9 px-4">
-          {mode === "signin" ? "Sign In" : "Sign Up"}
-        </Button>
-      </DialogTrigger>
+    <Dialog open={effectiveOpen} onOpenChange={setEffectiveOpen}>
+      {showTrigger && (
+        <DialogTrigger asChild>
+          <Button variant="default" size="sm" className="h-9 px-4">
+            {mode === "signin" ? "Sign In" : "Sign Up"}
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent 
-        className="sm:max-w-md w-[calc(100vw-2rem)] max-w-none mx-4" 
+        className="sm:max-w-md" 
         autoFocus={false}
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <DialogHeader className="space-y-1">
+        <DialogHeader>
           <DialogTitle className="text-xl font-semibold text-center">
             {mode === "signin" ? "Welcome back" : "Create account"}
           </DialogTitle>
@@ -185,6 +177,9 @@ export function LoginDialog() {
               : "Fill in your details to create a new account"
             }
           </p>
+          {note && (
+            <p className="text-xs text-center text-foreground mt-1">{note}</p>
+          )}
         </DialogHeader>
         
         <form onSubmit={handleAuth} className="space-y-6 pt-2">
@@ -229,9 +224,9 @@ export function LoginDialog() {
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
                   <Eye className="h-4 w-4" />
+                ) : (
+                  <EyeOff className="h-4 w-4" />
                 )}
               </Button>
             </div>
@@ -264,9 +259,9 @@ export function LoginDialog() {
                   aria-label={showConfirmPassword ? "Hide password" : "Show password"}
                 >
                   {showConfirmPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
                     <Eye className="h-4 w-4" />
+                  ) : (
+                    <EyeOff className="h-4 w-4" />
                   )}
                 </Button>
               </div>
@@ -307,18 +302,12 @@ export function LoginDialog() {
 
           {/* Mode Switch */}
           <div className="text-center">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={handleModeSwitch}
-              className="text-sm text-muted-foreground hover:text-foreground"
-              disabled={isPending}
-            >
-              {mode === "signin" 
-                ? "Don't have an account? Sign up" 
-                : "Already have an account? Sign in"
-              }
-            </Button>
+            <p className="text-sm text-muted-foreground">
+              {mode === "signin" ? "Don't have an account? " : "Already have an account? "}
+              <button type="button" className="font-medium underline underline-offset-4" onClick={handleModeSwitch}>
+                {mode === "signin" ? "Sign up" : "Sign in"}
+              </button>
+            </p>
           </div>
         </form>
       </DialogContent>

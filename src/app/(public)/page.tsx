@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Search, Plus, Trophy } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import React from "react"
+import { LoginDialog } from "@/components/auth/LoginDialog"
 
 const HOME_CACHE_KEY = "home_items_v1"
 const HOME_CACHE_TTL_MS = 60_000
@@ -24,6 +25,9 @@ export default function PublicHomePage() {
   const [filter, setFilter] = useState<"all" | "lost" | "found" | "returned">("all")
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const filterRef = useRef<HTMLDivElement>(null)
+
+  // Login dialog control
+  const [loginOpen, setLoginOpen] = useState(false)
 
   // Hydrate from cache immediately to avoid flash when navigating back
   useEffect(() => {
@@ -121,6 +125,24 @@ export default function PublicHomePage() {
     })
   }, [items, searchTerm, filter])
 
+  async function handleReportClick() {
+    try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
+      const { data } = await supabase.auth.getSession()
+      if (data.session) {
+        // user is logged in → go to /post
+        window.location.href = "/post"
+      } else {
+        // not logged in → open login dialog
+        setLoginOpen(true)
+      }
+    } catch {
+      setLoginOpen(true)
+    }
+  }
+
   if (error) {
     return (
       <main className="container mx-auto px-4 sm:px-6 py-8">
@@ -146,11 +168,9 @@ export default function PublicHomePage() {
               Browse recently posted lost and found items.
             </p>
             <div className="flex flex-col sm:flex-row gap-2 justify-center items-center">
-              <Button asChild size="default" className="gap-2">
-                <Link href="/post">
-                  <Plus className="h-4 w-4" />
-                  Report Item
-                </Link>
+              <Button onClick={handleReportClick} size="default" className="gap-2">
+                <Plus className="h-4 w-4" />
+                Report Item
               </Button>
               <Button asChild variant="outline" size="default" className="gap-2">
                 <Link href="/hall-of-fame">
@@ -162,6 +182,15 @@ export default function PublicHomePage() {
           </div>
         </div>
       </section>
+
+      {/* Auth dialog (controlled) */}
+      <LoginDialog
+        open={loginOpen}
+        onOpenChange={setLoginOpen}
+        showTrigger={false}
+        initialMode="signin"
+        note="Please sign in or create an account to report a lost or found item."
+      />
 
       {/* Search & Filter Section */}
       <section className="container mx-auto px-2 sm:px-4 py-2 pb-5">

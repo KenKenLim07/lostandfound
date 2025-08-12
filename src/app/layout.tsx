@@ -3,6 +3,8 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
 import { AuthStatus } from "@/components/auth/AuthStatus";
+import { NavigationLinks } from "@/components/navigation/NavigationLinks";
+import { MobileNavigationLinks } from "@/components/navigation/MobileNavigationLinks";
 import { Sheet, SheetTrigger, SheetContent, SheetClose } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Menu, Search, X } from "lucide-react";
@@ -49,24 +51,7 @@ export default function RootLayout({
                 
                 {/* Desktop Navigation */}
                 <div className="hidden md:flex items-center gap-6 text-sm">
-                  <Link 
-                    href="/" 
-                    className="text-foreground/60 transition-colors hover:text-foreground"
-                  >
-                    Browse Items
-                  </Link>
-                  <Link 
-                    href="/hall-of-fame" 
-                    className="text-foreground/60 transition-colors hover:text-foreground"
-                  >
-                    Hall of Fame
-                  </Link>
-                  <Link 
-                    href="/my-items" 
-                    className="text-foreground/60 transition-colors hover:text-foreground"
-                  >
-                    Reports
-                  </Link>
+                  <NavigationLinks />
                 </div>
               </div>
 
@@ -95,30 +80,7 @@ export default function RootLayout({
                       </div>
                       <div className="flex flex-col gap-4 py-6">
                         <div className="flex flex-col gap-2">
-                          <SheetClose asChild>
-                            <Link 
-                              href="/" 
-                              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-                            >
-                              Home
-                            </Link>
-                          </SheetClose>
-                          <SheetClose asChild>
-                            <Link 
-                              href="/hall-of-fame" 
-                              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-                            >
-                              Hall of Fame
-                            </Link>
-                          </SheetClose>
-                          <SheetClose asChild>
-                            <Link 
-                              href="/my-items" 
-                              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:text-accent-foreground"
-                            >
-                              Reports
-                            </Link>
-                          </SheetClose>
+                          <MobileNavigationLinks />
                         </div>
                         <div className="border-t pt-4">
                           <AuthStatus />
