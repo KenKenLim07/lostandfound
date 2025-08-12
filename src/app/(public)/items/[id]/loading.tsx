@@ -25,7 +25,8 @@ export default function LoadingItemDetails() {
           <div className="space-y-3">
             <Skeleton className="h-4 w-24" /> {/* Section header */}
             <div className="space-y-3">
-              {[...Array(6)].map((_, i) => (
+              {/* 5 required items + 2 conditional items = 7 total */}
+              {[...Array(7)].map((_, i) => (
                 <div key={i} className="flex items-center gap-3">
                   <Skeleton className="h-4 w-4" /> {/* Icon */}
                   <Skeleton className="h-4 w-20" /> {/* Label */}
