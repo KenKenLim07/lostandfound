@@ -103,7 +103,7 @@ export default function AllItemsPage() {
     }, { rootMargin: "200px" })
     io.observe(el)
     return () => io.disconnect()
-  }, [observerRef.current, hasMore, isLoading, isLoadingMore, cursor, debouncedSearch, filter])
+  }, [hasMore, isLoading, isLoadingMore, cursor, debouncedSearch, filter, fetchPage])
 
   return (
     <main className="container mx-auto px-2 sm:px-4 py-4">

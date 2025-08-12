@@ -20,40 +20,28 @@ const FloatingLabelInput = React.forwardRef<HTMLInputElement, FloatingLabelInput
     const checkFocus = React.useCallback(() => {
       const isCurrentlyFocused = document.activeElement === inputRef.current
       if (isCurrentlyFocused !== isFocused) {
-        console.log(`Focus state changed for ${id}:`, isCurrentlyFocused)
         setIsFocused(isCurrentlyFocused)
       }
-    }, [isFocused, id])
+    }, [isFocused])
 
-    // Check focus state periodically and on focus/blur events
+    // Check focus state periodically
     React.useEffect(() => {
       const interval = setInterval(checkFocus, 100)
       return () => clearInterval(interval)
     }, [checkFocus])
 
     const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-      console.log('Focus event triggered for:', id)
       setIsFocused(true)
       props.onFocus?.(e)
     }
 
     const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-      console.log('Blur event triggered for:', id)
-      // Don't immediately set to false, let the interval check handle it
       props.onBlur?.(e)
     }
 
     // Check if we should show the floating label
     const hasValue = value && value.toString().trim().length > 0
     const shouldFloat = isFocused || hasValue
-
-    console.log('FloatingLabelInput Debug:', { 
-      id, 
-      value, 
-      hasValue, 
-      isFocused, 
-      shouldFloat 
-    })
 
     return (
       <div 

@@ -7,7 +7,7 @@ import type { Database } from "@/types/database"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { FloatingLabelInput } from "@/components/ui/floating-label-input"
-import { Eye, EyeOff, Mail, Lock, Loader2 } from "lucide-react"
+import { Eye, EyeOff, Loader2 } from "lucide-react"
 
 export function LoginDialog() {
   const supabase = createClientComponentClient<Database>()

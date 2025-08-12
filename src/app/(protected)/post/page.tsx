@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Progress } from "@/components/ui/progress"
 import { compressImage, formatFileSize } from "@/lib/image-utils"
 import { Upload, X, CheckCircle, AlertCircle, Image as ImageIcon } from "lucide-react"
+import Image from "next/image"
 
 export default function PostItemPage() {
   const supabase = createClientComponentClient<Database>()
@@ -315,11 +316,14 @@ export default function PostItemPage() {
             ) : (
               <div className="space-y-2">
                 <div className="relative">
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="w-full h-40 object-cover rounded-lg"
-                  />
+                                  <Image
+                  src={imagePreview}
+                  alt="Preview"
+                  width={400}
+                  height={160}
+                  className="w-full h-40 object-cover rounded-lg"
+                  unoptimized
+                />
                   <Button
                     type="button"
                     size="icon"

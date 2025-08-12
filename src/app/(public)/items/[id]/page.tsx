@@ -7,7 +7,7 @@ import Link from "next/link"
 import { X, Calendar, MapPin, Phone, CheckCircle, User, GraduationCap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 
 function getErrorMessage(err: unknown): string {

@@ -36,9 +36,9 @@ export default function MyItemsPage() {
   const [isLoadingUser, setIsLoadingUser] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
   const [items, setItems] = useState<Item[]>([])
-  const [error, setError] = useState<string | null>(null)
+  const [, setError] = useState<string | null>(null)
   const [isFetching, setIsFetching] = useState(false)
-  const [activeFilter, setActiveFilter] = useState<"all" | "active" | "returned">("all")
+  const [activeFilter] = useState<"all" | "active" | "returned">("all")
 
   // Returned modal state
   const [returnModalOpen, setReturnModalOpen] = useState(false)
@@ -162,8 +162,8 @@ export default function MyItemsPage() {
     return true
   })
 
-  // quick counts (optional)
-const stats = { total: items.length, active: items.filter(i=>i.status!=="returned").length, returned: items.filter(i=>i.status==="returned").length }
+  // quick counts (optional) - commented out to avoid unused variable warning
+  // const stats = { total: items.length, active: items.filter(i=>i.status!=="returned").length, returned: items.filter(i=>i.status==="returned").length }
 
   function formatDate(dateString: string | null) {
     if (!dateString) return "—"
@@ -228,7 +228,7 @@ const stats = { total: items.length, active: items.filter(i=>i.status!=="returne
               <Package className="h-8 w-8 text-muted-foreground" />
             </div>
             <h3 className="text-lg font-semibold mb-2">No reports found</h3>
-            <p className="text-muted-foreground mb-6">You haven't posted any reports yet.</p>
+            <p className="text-muted-foreground mb-6">You haven&apos;t posted any reports yet.</p>
             <Button asChild>
               <Link href="/post">Create report now?</Link>
             </Button>
