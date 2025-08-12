@@ -265,8 +265,7 @@ export default function PublicHomePage() {
       {/* Items Grid */}
       <section className="container mx-auto px-0.5 sm:px-4 pb-2">
         {isLoading ? (
-          <div className="space-y-4 bg-blue-100">
-            <div className="text-center text-blue-600 font-bold mb-4">DEBUG: HOME PAGE LOADING (2 cards)</div>
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
               <Skeleton className="h-5 w-24" />
               <Skeleton className="h-4 w-20" />
