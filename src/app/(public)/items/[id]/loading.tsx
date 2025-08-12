@@ -2,7 +2,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export default function LoadingItemDetails() {
   return (
-    <main className="mx-auto w-full md:max-w-3xl mx-2 px-3 sm:px-4 md:px-6 py-4 space-y-4">
+    <main className="mx-auto w-full md:max-w-3xl mx-2 px-3 sm:px-4 md:px-6 py-4 space-y-4 bg-green-100">
+      <div className="text-center text-green-600 font-bold mb-4">DEBUG: ITEM DETAILS LOADING</div>
       {/* Close button skeleton */}
       <div className="fixed right-2 top-2 z-10">
         <Skeleton className="h-9 w-9 rounded-full" />
