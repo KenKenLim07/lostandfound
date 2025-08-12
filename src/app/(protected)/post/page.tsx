@@ -11,6 +11,7 @@ import { Progress } from "@/components/ui/progress"
 import { compressImage, formatFileSize } from "@/lib/image-utils"
 import { Upload, X, CheckCircle, AlertCircle, Image as ImageIcon } from "lucide-react"
 import Image from "next/image"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export default function PostItemPage() {
   const supabase = createClientComponentClient<Database>()
@@ -30,6 +31,7 @@ export default function PostItemPage() {
   const [date, setDate] = useState("")
   const [location, setLocation] = useState("")
   const [contactNumber, setContactNumber] = useState("")
+  const [reporterYearSection, setReporterYearSection] = useState("")
 
   // Image state
   const [compressedFile, setCompressedFile] = useState<File | null>(null)
@@ -60,7 +62,7 @@ export default function PostItemPage() {
     return () => {
       isMounted = false
     }
-  }, [supabase, router])
+  }, [router, supabase])
 
   // Handle file selection and compression
   async function handleFileSelect(file: File) {
@@ -147,6 +149,7 @@ export default function PostItemPage() {
           date: date || new Date().toISOString().slice(0, 10),
           location: location || null,
           contact_number: contactNumber || null,
+          reporter_year_section: reporterYearSection || null,
           image_url,
           status: "active",
         }
@@ -175,11 +178,25 @@ export default function PostItemPage() {
 
   if (isLoadingUser) {
     return (
-      <main className="container mx-auto px-4 sm:px-6 py-8">
-        <div className="max-w-2xl mx-auto">
-          <div className="text-center">
-            <div className="mx-auto mb-4 h-8 w-8 rounded-full bg-muted" aria-hidden />
-            <p className="text-muted-foreground">Checking authentication...</p>
+      <main className="container mx-auto px-3 sm:px-6 py-4">
+        <div className="max-w-xl mx-auto">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Skeleton className="h-6 w-40" />
+              <Skeleton className="h-4 w-64" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <div className="border-2 border-dashed rounded-lg p-6">
+              <Skeleton className="h-32 w-full" />
+            </div>
+            <Skeleton className="h-10 w-full" />
           </div>
         </div>
       </main>
@@ -290,6 +307,18 @@ export default function PostItemPage() {
               value={contactNumber}
               onChange={(e) => setContactNumber(e.target.value)}
               placeholder="Your phone number for contact"
+              className="h-10 text-sm"
+            />
+          </div>
+
+          {/* Course/Year/Section */}
+          <div className="space-y-1.5">
+            <Label htmlFor="reporter_year_section" className="text-sm font-medium">Course / Year & Section</Label>
+            <Input
+              id="reporter_year_section"
+              value={reporterYearSection}
+              onChange={(e) => setReporterYearSection(e.target.value)}
+              placeholder="e.g., BSIT 3A, BSHM 2B"
               className="h-10 text-sm"
             />
           </div>

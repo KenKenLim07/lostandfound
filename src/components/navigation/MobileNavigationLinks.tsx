@@ -1,47 +1,72 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { createClient } from "@supabase/supabase-js"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import type { Database } from "@/types/database"
 import Link from "next/link"
 import { SheetClose } from "@/components/ui/sheet"
 
-export function MobileNavigationLinks() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+type Props = {
+  initialIsLoggedIn?: boolean
+  initialIsAdmin?: boolean
+}
+
+export function MobileNavigationLinks({ initialIsLoggedIn = false, initialIsAdmin = false }: Props) {
+  const supabase = createClientComponentClient<Database>()
+  const [isLoggedIn, setIsLoggedIn] = useState(initialIsLoggedIn)
+  const [isAdmin, setIsAdmin] = useState(initialIsAdmin)
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
-    async function checkAuth() {
+    let isMounted = true
+
+    async function loadRole(userId: string) {
       try {
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
-        const { data } = await supabase.auth.getSession()
-        setIsLoggedIn(!!data.session)
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", userId)
+          .single()
+        if (!isMounted) return
+        setIsAdmin(profile?.role === "admin")
       } catch {
-        setIsLoggedIn(false)
-      } finally {
-        setIsLoading(false)
+        if (!isMounted) return
+        setIsAdmin(false)
       }
     }
 
-    checkAuth()
+    async function init() {
+      try {
+        const { data } = await supabase.auth.getSession()
+        if (!isMounted) return
+        const session = data.session
+        setIsLoggedIn(!!session)
+        if (session?.user?.id) {
+          await loadRole(session.user.id)
+        } else {
+          setIsAdmin(false)
+        }
+      } finally {
+        if (isMounted) setIsLoading(false)
+      }
+    }
 
-    // Listen for auth changes
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    init()
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsLoggedIn(!!session)
+      if (session?.user?.id) {
+        loadRole(session.user.id)
+      } else {
+        setIsAdmin(false)
+      }
     })
 
-    return () => subscription.unsubscribe()
-  }, [])
-
-  if (isLoading) {
-    return null
-  }
+    return () => {
+      isMounted = false
+      sub.subscription.unsubscribe()
+    }
+  }, [supabase])
 
   return (
     <>
@@ -68,6 +93,16 @@ export function MobileNavigationLinks() {
             className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
           >
             Reports
+          </Link>
+        </SheetClose>
+      )}
+      {isAdmin && (
+        <SheetClose asChild>
+          <Link 
+            href="/dashboard" 
+            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            Admin
           </Link>
         </SheetClose>
       )}

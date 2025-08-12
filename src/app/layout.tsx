@@ -3,12 +3,17 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
 import { AuthStatus } from "@/components/auth/AuthStatus";
+import { MobileAuthStatus } from "@/components/auth/MobileAuthStatus";
 import { NavigationLinks } from "@/components/navigation/NavigationLinks";
 import { MobileNavigationLinks } from "@/components/navigation/MobileNavigationLinks";
-import { Sheet, SheetTrigger, SheetContent, SheetClose } from "@/components/ui/sheet";
+import { Sheet, SheetTrigger, SheetContent, SheetClose, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Menu, Search, X } from "lucide-react";
 import { TopLoader } from "@/components/system/TopLoader";
+import { AuthEventBanner } from "@/components/system/AuthEventBanner";
+import { cookies } from "next/headers";
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
+import type { Database } from "@/types/database";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -27,16 +32,34 @@ export const metadata: Metadata = {
   description: "Lost & Found app for Mosqueda Campus",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const supabase = createServerComponentClient<Database>({ cookies });
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  let initialIsAdmin = false;
+  if (session?.user?.id) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", session.user.id)
+      .single();
+    initialIsAdmin = profile?.role === "admin";
+  }
+  const initialIsLoggedIn = !!session;
+
   return (
     <html lang="en">
       <body className={`${inter.variable} ${jetbrainsMono.variable} antialiased min-h-screen flex flex-col`}>
         {/* Global top loading bar */}
         <TopLoader />
+        {/* Auth banners on sign in/out */}
+        <AuthEventBanner />
         <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="container mx-auto px-4 sm:px-6">
             <nav className="flex h-16 items-center justify-between">
@@ -51,7 +74,7 @@ export default function RootLayout({
                 
                 {/* Desktop Navigation */}
                 <div className="hidden md:flex items-center gap-6 text-sm">
-                  <NavigationLinks />
+                  <NavigationLinks initialIsLoggedIn={initialIsLoggedIn} initialIsAdmin={initialIsAdmin} />
                 </div>
               </div>
 
@@ -71,6 +94,11 @@ export default function RootLayout({
                       </Button>
                     </SheetTrigger>
                     <SheetContent className="w-[300px] sm:w-[400px]">
+                      {/* Accessible title (visually hidden) */}
+                      <SheetHeader className="sr-only">
+                        <SheetTitle>Menu</SheetTitle>
+                      </SheetHeader>
+
                       <div className="flex items-center justify-end border-b pb-2">
                         <SheetClose asChild>
                           <Button size="icon" variant="ghost" aria-label="Close menu">
@@ -80,10 +108,10 @@ export default function RootLayout({
                       </div>
                       <div className="flex flex-col gap-4 py-6">
                         <div className="flex flex-col gap-2">
-                          <MobileNavigationLinks />
+                          <MobileNavigationLinks initialIsLoggedIn={initialIsLoggedIn} initialIsAdmin={initialIsAdmin} />
                         </div>
                         <div className="border-t pt-4">
-                          <AuthStatus />
+                          <MobileAuthStatus />
                         </div>
                       </div>
                     </SheetContent>

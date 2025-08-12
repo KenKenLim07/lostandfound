@@ -6,28 +6,25 @@ import type { Database } from "@/types/database"
 import { Button } from "@/components/ui/button"
 import { LoginDialog } from "@/components/auth/LoginDialog"
 import { useRouter } from "next/navigation"
+import { SheetClose } from "@/components/ui/sheet"
 
-export function AuthStatus() {
+export function MobileAuthStatus() {
   const supabase = createClientComponentClient<Database>()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [email, setEmail] = useState<string | null>(null)
 
   useEffect(() => {
     let isMounted = true
     async function load() {
       const { data } = await supabase.auth.getSession()
       if (!isMounted) return
-      const session = data.session
-      setIsLoggedIn(!!session)
-      setEmail(session?.user?.email ?? null)
       setIsLoading(false)
+      setIsLoggedIn(!!data.session)
     }
     load()
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsLoggedIn(!!session)
-      setEmail(session?.user?.email ?? null)
     })
     return () => {
       isMounted = false
@@ -35,26 +32,21 @@ export function AuthStatus() {
     }
   }, [supabase])
 
-  async function handleSignOut() {
+  async function signOut() {
     await supabase.auth.signOut()
     router.push("/")
     router.refresh()
   }
 
-  if (isLoading) {
-    return <div className="text-xs text-muted-foreground">…</div>
-  }
+  if (isLoading) return <div className="text-xs text-muted-foreground">…</div>
 
-  if (!isLoggedIn) {
-    return <LoginDialog />
-  }
+  if (!isLoggedIn) return <LoginDialog />
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs sm:text-sm text-green-600">Logged in{email ? ` as ${email}` : ""}</span>
-      <Button size="sm" variant="outline" onClick={handleSignOut}>
+    <SheetClose asChild>
+      <Button variant="outline" size="sm" onClick={signOut} className="w-full">
         Sign out
       </Button>
-    </div>
+    </SheetClose>
   )
 } 

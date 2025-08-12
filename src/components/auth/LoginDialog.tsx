@@ -136,7 +136,13 @@ export function LoginDialog(props: LoginDialogProps = {}) {
           setTimeout(() => {
             setEffectiveOpen(false)
             resetForm()
-            router.refresh()
+            const intent = typeof window !== "undefined" ? sessionStorage.getItem("intent_after_login") : null
+            if (intent) {
+              try { sessionStorage.removeItem("intent_after_login") } catch {}
+              router.push(intent)
+            } else {
+              router.refresh()
+            }
           }, 1000)
         } else {
           const { error } = await supabase.auth.signUp({ email, password })
@@ -145,6 +151,11 @@ export function LoginDialog(props: LoginDialogProps = {}) {
           setTimeout(() => {
             setEffectiveOpen(false)
             resetForm()
+            const intent = typeof window !== "undefined" ? sessionStorage.getItem("intent_after_login") : null
+            if (intent) {
+              try { sessionStorage.removeItem("intent_after_login") } catch {}
+              router.push(intent)
+            }
           }, 2000)
         }
       } catch (err) {

@@ -24,6 +24,7 @@ export type Database = {
           image_url: string | null
           location: string | null
           name: string
+          reporter_year_section: string | null
           returned_at: string | null
           returned_to: string | null
           returned_year_section: string | null
@@ -41,6 +42,7 @@ export type Database = {
           image_url?: string | null
           location?: string | null
           name: string
+          reporter_year_section?: string | null
           returned_at?: string | null
           returned_to?: string | null
           returned_year_section?: string | null
@@ -58,6 +60,7 @@ export type Database = {
           image_url?: string | null
           location?: string | null
           name?: string
+          reporter_year_section?: string | null
           returned_at?: string | null
           returned_to?: string | null
           returned_year_section?: string | null

@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useMemo, useRef } from "react"
-import { createClient } from "@supabase/supabase-js"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import type { Database, Tables } from "@/types/database"
 import { ItemCard } from "@/components/items/ItemCard"
 import Link from "next/link"
@@ -17,6 +17,7 @@ const HOME_CACHE_TTL_MS = 60_000
 type Item = Pick<Tables<"items">, "id" | "title" | "name" | "type" | "description" | "date" | "location" | "contact_number" | "image_url" | "status" | "created_at">
 
 export default function PublicHomePage() {
+  const supabase = createClientComponentClient<Database>()
   const [items, setItems] = useState<Item[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false)
@@ -77,7 +78,7 @@ export default function PublicHomePage() {
       try {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
         const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
+        const supabase = createClientComponentClient<Database>()
 
         const { data, error } = await supabase
           .from("items")
@@ -127,18 +128,19 @@ export default function PublicHomePage() {
 
   async function handleReportClick() {
     try {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
       const { data } = await supabase.auth.getSession()
       if (data.session) {
-        // user is logged in → go to /post
         window.location.href = "/post"
       } else {
-        // not logged in → open login dialog
+        try {
+          sessionStorage.setItem("intent_after_login", "/post")
+        } catch {}
         setLoginOpen(true)
       }
     } catch {
+      try {
+        sessionStorage.setItem("intent_after_login", "/post")
+      } catch {}
       setLoginOpen(true)
     }
   }

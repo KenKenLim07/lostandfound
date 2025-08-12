@@ -4,7 +4,7 @@ import Image from "next/image"
 import type { Database, Tables } from "@/types/database"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { X, Calendar, MapPin, Phone, CheckCircle, User, GraduationCap } from "lucide-react"
+import { X, Calendar, MapPin, Phone, CheckCircle, User, GraduationCap, Tag } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -24,7 +24,7 @@ export default async function ItemDetailsPage({ params }: { params: Promise<{ id
 
   const { data, error } = await supabase
     .from("items")
-    .select("id, title, name, type, description, date, location, contact_number, image_url, status, created_at, returned_to, returned_year_section, returned_at")
+    .select("id, title, name, type, description, date, location, contact_number, image_url, status, created_at, returned_to, returned_year_section, returned_at, reporter_year_section")
     .eq("id", id)
     .single()
 
@@ -48,7 +48,7 @@ export default async function ItemDetailsPage({ params }: { params: Promise<{ id
       </div>
 
       {/* Media */}
-      <div className="relative aspect-square w-[calc(100%+1rem)] -mx-2 sm:w-[calc(100%+2rem)] sm:-mx-4 md:w-full md:mx-0 bg-muted rounded-none md:rounded-lg overflow-hidden">
+      <div className="relative w-[calc(100%+1rem)] -mx-2 sm:w-[calc(100%+2rem)] sm:-mx-4 md:w-full md:mx-0 bg-muted overflow-hidden aspect-square md:rounded-lg">
         {item.image_url ? (
           <Image
             src={item.image_url}
@@ -56,44 +56,41 @@ export default async function ItemDetailsPage({ params }: { params: Promise<{ id
             fill
             sizes="(min-width:1024px) 1024px, 100vw"
             unoptimized={isMockUrl}
-            className="object-cover"
+            className="object-contain"
           />
         ) : (
           <div className="absolute inset-0 grid place-items-center text-muted-foreground">No image</div>
         )}
       </div>
 
-      {/* Title centered under image */}
-      <div className="text-center">
-        <h1 className="text-lg sm:text-xl font-bold tracking-tight">
-          {item.title ?? item.name}
-        </h1>
-      </div>
-
-      {/* Single comprehensive info card */}
+      {/* Details Card */}
       <Card className="w-[calc(100%+1rem)] -mx-2 sm:w-[calc(100%+2rem)] sm:-mx-4 md:w-full md:mx-0">
-        <CardHeader className="p-4 sm:p6 pb-4">
-          {/* Header is now empty since we moved title and date */}
+        <CardHeader className="p-4 sm:p-6 pb-2 text-center space-y-2">
+          {/* Removed type/returned pills above title */}
+          <h1 className="text-base sm:text-lg md:text-xl font-bold tracking-tight">
+            {item.title ?? item.name}
+          </h1>
         </CardHeader>
 
-        <CardContent className="px-4 sm:px-6 pt-0 pb-4 sm:pb-6 space-y-6">
+        <CardContent className="px-4 sm:px-6 pt-2 pb-4 sm:pb-6 space-y-4">
           {/* Item Details Section */}
           <div>
-            <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Item Details</h3>
-            <dl className="space-y-3 text-sm">
-              <div className="flex items-center gap-3">
+            <h3 className="text-xs sm:text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Item Details</h3>
+            <dl className="text-sm divide-y divide-border">
+              {/* Type row (pill) */}
+              <div className="flex items-center gap-3 py-2 first:pt-0 last:pb-0">
                 <dt className="flex items-center gap-2 text-muted-foreground min-w-0 flex-shrink-0">
-                  <CheckCircle className="h-4 w-4" />
+                  <Tag className="h-4 w-4" />
                   <span>Type</span>
                 </dt>
-                <dd className="flex-1">
+                <dd className="font-medium flex-1">
                   <Badge className={item.type === "lost" ? "bg-red-600 text-white" : "bg-green-600 text-white"}>
                     {item.type.toUpperCase()}
                   </Badge>
                 </dd>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 py-2 first:pt-0 last:pb-0">
                 <dt className="flex items-center gap-2 text-muted-foreground min-w-0 flex-shrink-0">
                   <User className="h-4 w-4" />
                   <span>Posted by</span>
@@ -101,17 +98,25 @@ export default async function ItemDetailsPage({ params }: { params: Promise<{ id
                 <dd className="font-medium flex-1">{item.name}</dd>
               </div>
 
-              <div className="flex items-center gap-3">
+              {item.reporter_year_section && (
+                <div className="flex items-center gap-3 py-2 first:pt-0 last:pb-0">
+                  <dt className="flex items-center gap-2 text-muted-foreground min-w-0 flex-shrink-0">
+                    <GraduationCap className="h-4 w-4" />
+                    <span>Course / Year & Section</span>
+                  </dt>
+                  <dd className="font-medium flex-1">{item.reporter_year_section}</dd>
+                </div>
+              )}
+
+              <div className="flex items-center gap-3 py-2 first:pt-0 last:pb-0">
                 <dt className="flex items-center gap-2 text-muted-foreground min-w-0 flex-shrink-0">
                   <Calendar className="h-4 w-4" />
                   <span>Date Posted</span>
                 </dt>
-                <dd className="font-medium flex-1">
-                  {item.created_at ? new Date(item.created_at).toLocaleString() : "—"}
-                </dd>
+                <dd className="font-medium flex-1">{item.created_at ? new Date(item.created_at).toLocaleString() : "—"}</dd>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 py-2 first:pt-0 last:pb-0">
                 <dt className="flex items-center gap-2 text-muted-foreground min-w-0 flex-shrink-0">
                   <Calendar className="h-4 w-4" />
                   <span>Date {item.type === "lost" ? "Lost" : "Found"}</span>
@@ -119,18 +124,16 @@ export default async function ItemDetailsPage({ params }: { params: Promise<{ id
                 <dd className="font-medium flex-1">{new Date(item.date).toLocaleDateString()}</dd>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 py-2 first:pt-0 last:pb-0">
                 <dt className="flex items-center gap-2 text-muted-foreground min-w-0 flex-shrink-0">
                   <CheckCircle className="h-4 w-4" />
-                  <span>Status</span>
+                  <span>Current Status</span>
                 </dt>
-                <dd className="font-medium flex-1">
-                  {isReturned ? "Returned" : "Active"}
-                </dd>
+                <dd className="font-medium flex-1">{isReturned ? "Returned" : "Active"}</dd>
               </div>
 
               {item.location && (
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 py-2 first:pt-0 last:pb-0">
                   <dt className="flex items-center gap-2 text-muted-foreground min-w-0 flex-shrink-0">
                     <MapPin className="h-4 w-4" />
                     <span>Location</span>
@@ -140,7 +143,7 @@ export default async function ItemDetailsPage({ params }: { params: Promise<{ id
               )}
 
               {item.contact_number && (
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 py-2 first:pt-0 last:pb-0">
                   <dt className="flex items-center gap-2 text-muted-foreground min-w-0 flex-shrink-0">
                     <Phone className="h-4 w-4" />
                     <span>Contact</span>
@@ -164,7 +167,7 @@ export default async function ItemDetailsPage({ params }: { params: Promise<{ id
             <>
               <Separator />
               <div>
-                <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Return Details</h3>
+                <h3 className="text-xs sm:text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Return Details</h3>
                 <div className="grid gap-3 rounded-md border bg-green-50 p-3 sm:p-4 text-green-800">
                   <div className="flex items-center gap-2 text-sm font-medium">
                     <CheckCircle className="h-4 w-4" />
@@ -202,7 +205,7 @@ export default async function ItemDetailsPage({ params }: { params: Promise<{ id
             <>
               <Separator />
               <div>
-                <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Description</h3>
+                <h3 className="text-xs sm:text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Description</h3>
                 <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground">{item.description}</p>
               </div>
             </>
