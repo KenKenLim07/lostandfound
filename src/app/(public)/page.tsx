@@ -271,7 +271,7 @@ export default function PublicHomePage() {
               <Skeleton className="h-4 w-20" />
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-0.5 sm:gap-1">
-              {Array.from({ length: 4 }).map((_, i) => (
+              {Array.from({ length: 2 }).map((_, i) => (
                 <div key={i} className="rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden">
                   <Skeleton className="aspect-square w-full" />
                   <div className="p-2 sm:p-3 space-y-2">
