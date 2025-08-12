@@ -177,7 +177,7 @@ export default function PostItemPage() {
       <main className="container mx-auto px-4 sm:px-6 py-8">
         <div className="max-w-2xl mx-auto">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <div className="mx-auto mb-4 h-8 w-8 rounded-full bg-muted" aria-hidden />
             <p className="text-muted-foreground">Checking authentication...</p>
           </div>
         </div>
@@ -333,7 +333,7 @@ export default function PostItemPage() {
                 
                 {isCompressing && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                    <div className="h-4 w-4 rounded-full bg-muted" aria-hidden />
                     Compressing image...
                   </div>
                 )}
@@ -393,7 +393,7 @@ export default function PostItemPage() {
             >
               {isPending || isUploading ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  <span className="mr-2" aria-hidden>…</span>
                   {isUploading ? "Uploading..." : "Posting..."}
                 </>
               ) : (

@@ -71,7 +71,7 @@ export function ItemCard(props: ItemCardProps) {
       ) : (
         <div className="absolute inset-0 grid place-items-center text-muted-foreground">No image</div>
       )}
-      <div className="absolute right-2 top-2 inline-flex items-center gap-2 z-10">
+      <div className="absolute right-2 top-2 inline-flex items-center gap-2 z-20">
         <span className={cn("px-2 py-0.5 rounded text-[10px] font-semibold", typePillClasses)}>
           {type.toUpperCase()}
         </span>
@@ -99,7 +99,7 @@ export function ItemCard(props: ItemCardProps) {
         <div className="flex items-start justify-between gap-2">
           {href ? (
             <Link href={href} className="block min-w-0">
-              <h3 className="text-sm sm:text-base font-semibold leading-tight line-clamp-2">
+              <h3 className="text-sm sm:text-base font-semibold leading-tight line-clamp-1">
                 {title ?? name}
               </h3>
             </Link>
@@ -111,10 +111,10 @@ export function ItemCard(props: ItemCardProps) {
           )}
         </div>
         {href && (
-          <div className="pt-1">
-            <Button asChild size="sm" variant="outline">
-              <Link href={href}>View details</Link>
-            </Button>
+          <div className="pt-1 text-center">
+            <Link href={href} className="text-xs font-semibold text-muted-foreground hover:text-foreground uppercase tracking-wide underline underline-offset-4">
+              View details
+            </Link>
           </div>
         )}
       </div>

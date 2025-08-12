@@ -1,20 +1,23 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
 import { AuthStatus } from "@/components/auth/AuthStatus";
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Menu, Search } from "lucide-react";
+import { TopLoader } from "@/components/system/TopLoader";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -29,7 +32,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${inter.variable} ${jetbrainsMono.variable} antialiased min-h-screen flex flex-col`}>
+        {/* Global top loading bar */}
+        <TopLoader />
         <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="container mx-auto px-4 sm:px-6">
             <nav className="flex h-16 items-center justify-between">
@@ -105,7 +110,7 @@ export default function RootLayout({
                           <SheetClose asChild>
                             <Link 
                               href="/my-items" 
-                              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:text-accent-foreground"
                             >
                               My Items
                             </Link>
@@ -122,7 +127,9 @@ export default function RootLayout({
             </nav>
           </div>
         </header>
-        {children}
+        <main className="flex-1 flex flex-col">
+          {children}
+        </main>
         <footer className="border-t bg-muted/50">
           <div className="container mx-auto px-4 sm:px-6 py-8">
             <div className="grid gap-6 sm:flex sm:items-center sm:justify-between">
