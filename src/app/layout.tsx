@@ -3,9 +3,9 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
 import { AuthStatus } from "@/components/auth/AuthStatus";
-import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
+import { Sheet, SheetTrigger, SheetContent, SheetClose } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, Search } from "lucide-react";
+import { Menu, Search, X } from "lucide-react";
 import { TopLoader } from "@/components/system/TopLoader";
 
 const inter = Inter({
@@ -65,7 +65,7 @@ export default function RootLayout({
                     href="/my-items" 
                     className="text-foreground/60 transition-colors hover:text-foreground"
                   >
-                    My Items
+                    Reports
                   </Link>
                 </div>
               </div>
@@ -86,9 +86,13 @@ export default function RootLayout({
                       </Button>
                     </SheetTrigger>
                     <SheetContent className="w-[300px] sm:w-[400px]">
-                      <SheetHeader>
-                        <SheetTitle>Menu</SheetTitle>
-                      </SheetHeader>
+                      <div className="flex items-center justify-end border-b pb-2">
+                        <SheetClose asChild>
+                          <Button size="icon" variant="ghost" aria-label="Close menu">
+                            <X className="h-5 w-5" />
+                          </Button>
+                        </SheetClose>
+                      </div>
                       <div className="flex flex-col gap-4 py-6">
                         <div className="flex flex-col gap-2">
                           <SheetClose asChild>
@@ -96,7 +100,7 @@ export default function RootLayout({
                               href="/" 
                               className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
                             >
-                              Browse Items
+                              Home
                             </Link>
                           </SheetClose>
                           <SheetClose asChild>
@@ -112,7 +116,7 @@ export default function RootLayout({
                               href="/my-items" 
                               className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:text-accent-foreground"
                             >
-                              My Items
+                              Reports
                             </Link>
                           </SheetClose>
                         </div>
@@ -128,11 +132,11 @@ export default function RootLayout({
           </div>
         </header>
         <main className="flex-1 flex flex-col">
-          {children}
+        {children}
         </main>
         <footer className="border-t bg-muted/50">
-          <div className="container mx-auto px-4 sm:px-6 py-8">
-            <div className="grid gap-6 sm:flex sm:items-center sm:justify-between">
+          <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
+            <div className="space-y-4 sm:space-y-0 sm:flex sm:items-center sm:justify-between">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <div className="flex h-6 w-6 items-center justify-center rounded bg-primary text-primary-foreground">
@@ -144,7 +148,7 @@ export default function RootLayout({
                   Helping our community reconnect with lost items
                 </p>
               </div>
-              <div className="flex items-center gap-6 text-sm">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-6 text-sm">
                 <Link href="/hall-of-fame" className="text-muted-foreground transition-colors hover:text-foreground">
                   Hall of Fame
                 </Link>

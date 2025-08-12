@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { createClient } from "@supabase/supabase-js"
 import type { Database, Tables } from "@/types/database"
 import { ItemCard } from "@/components/items/ItemCard"
@@ -10,15 +10,63 @@ import { Search, Plus, Trophy } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import React from "react"
 
+const HOME_CACHE_KEY = "home_items_v1"
+const HOME_CACHE_TTL_MS = 60_000
+
 type Item = Pick<Tables<"items">, "id" | "title" | "name" | "type" | "description" | "date" | "location" | "contact_number" | "image_url" | "status" | "created_at">
 
 export default function PublicHomePage() {
   const [items, setItems] = useState<Item[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [filter, setFilter] = useState<"all" | "lost" | "found" | "returned">("all")
   const [isFilterOpen, setIsFilterOpen] = useState(false)
+  const filterRef = useRef<HTMLDivElement>(null)
+
+  // Hydrate from cache immediately to avoid flash when navigating back
+  useEffect(() => {
+    try {
+      const raw = typeof window !== "undefined" ? sessionStorage.getItem(HOME_CACHE_KEY) : null
+      if (raw) {
+        const cached = JSON.parse(raw) as { items: Item[]; ts: number }
+        const isFresh = Date.now() - cached.ts < HOME_CACHE_TTL_MS
+        if (isFresh && Array.isArray(cached.items)) {
+          setItems(cached.items)
+          // Only set loading to false if we have items, otherwise keep loading
+          if (cached.items.length > 0) {
+            setIsLoading(false)
+          }
+        }
+      }
+    } catch {
+      // ignore cache errors
+    }
+  }, [])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (filterRef.current && !filterRef.current.contains(event.target as Node)) {
+        setIsFilterOpen(false)
+      }
+    }
+
+    function handleScroll() {
+      setIsFilterOpen(false)
+    }
+
+    if (isFilterOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      document.addEventListener('scroll', handleScroll, true)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('scroll', handleScroll, true)
+    }
+  }, [isFilterOpen])
 
   useEffect(() => {
     async function fetchItems() {
@@ -34,7 +82,20 @@ export default function PublicHomePage() {
           .limit(50)
 
         if (error) throw error
-        setItems(data || [])
+
+        const nextItems = data || []
+        setItems(nextItems)
+        setHasAttemptedFetch(true)
+
+        // Update cache
+        try {
+          sessionStorage.setItem(
+            HOME_CACHE_KEY,
+            JSON.stringify({ items: nextItems, ts: Date.now() })
+          )
+        } catch {
+          // ignore cache write errors
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load items")
       } finally {
@@ -47,12 +108,10 @@ export default function PublicHomePage() {
 
   const filteredItems = useMemo(() => {
     return items.filter(item => {
-      // Apply search filter
       const matchesSearch = !searchTerm || 
         (item.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
          item.name.toLowerCase().includes(searchTerm.toLowerCase()))
 
-      // Apply type/status filter
       const matchesFilter = filter === "all" ||
         (filter === "lost" && item.type === "lost") ||
         (filter === "found" && item.type === "found") ||
@@ -118,7 +177,7 @@ export default function PublicHomePage() {
               />
             </div>
             <div className="flex justify-center sm:justify-start">
-              <div className="relative w-[378px] sm:w-[100px]">
+              <div className="relative w-[378px] sm:w-[100px]" ref={filterRef}>
                 <button
                   type="button"
                   onClick={() => setIsFilterOpen(!isFilterOpen)}
@@ -183,7 +242,7 @@ export default function PublicHomePage() {
               <Skeleton className="h-4 w-20" />
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-0.5 sm:gap-1">
-              {Array.from({ length: 6 }).map((_, i) => (
+              {Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden">
                   <Skeleton className="aspect-square w-full" />
                   <div className="p-2 sm:p-3 space-y-2">
@@ -197,7 +256,7 @@ export default function PublicHomePage() {
               ))}
             </div>
           </div>
-        ) : filteredItems.length === 0 ? (
+        ) : filteredItems.length === 0 && hasAttemptedFetch ? (
           <div className="text-center py-6">
             <div className="mx-auto w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-3">
               <Search className="h-6 w-6 text-muted-foreground" />

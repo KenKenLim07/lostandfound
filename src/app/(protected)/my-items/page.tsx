@@ -26,6 +26,7 @@ import {
   GraduationCap,
   Eye
 } from "lucide-react"
+import Link from "next/link"
 
 type Item = Pick<Tables<"items">, "id" | "title" | "name" | "type" | "status" | "image_url" | "created_at" | "returned_to" | "returned_year_section" | "returned_at">
 
@@ -200,70 +201,38 @@ const stats = { total: items.length, active: items.filter(i=>i.status!=="returne
     <div className="flex-1">
       <div className="container mx-auto px-4 sm:px-6 py-6">
         {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-              <Package className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">My Items</h1>
-              <p className="text-muted-foreground">Manage your posted lost and found items</p>
-            </div>
-          </div>
-        </div>
+        <header className="mb-6">
+          <h1 className="text-2xl font-bold mb-2">My Reports</h1>
+          <p className="text-muted-foreground">Manage your lost and found reports.</p>
+        </header>
 
-        {/* Quick Filter */}
-        <div className="flex gap-2 mb-4">
-          <Button size="sm" variant={activeFilter === "all" ? "default" : "outline"} onClick={() => setActiveFilter("all")}>All</Button>
-          <Button size="sm" variant={activeFilter === "active" ? "default" : "outline"} onClick={() => setActiveFilter("active")}>Active</Button>
-          <Button size="sm" variant={activeFilter === "returned" ? "default" : "outline"} onClick={() => setActiveFilter("returned")}>Returned</Button>
-        </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="mb-4 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
-            <p className="text-sm text-destructive">{error}</p>
-          </div>
-        )}
-
-        {/* Items List */}
+        {/* Content */}
         {isFetching ? (
           <div className="space-y-4">
             {Array.from({ length: 3 }).map((_, i) => (
-              <Card key={i}>
-                <CardContent className="p-4">
-                  <div className="flex gap-4">
-                    <Skeleton className="h-20 w-20 rounded-lg" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-4 w-3/4" />
-                      <Skeleton className="h-3 w-1/2" />
-                      <Skeleton className="h-3 w-1/3" />
-                    </div>
+              <div key={i} className="bg-card border rounded-lg p-4">
+                <div className="flex items-start gap-4">
+                  <Skeleton className="h-16 w-16 rounded" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
+                    <Skeleton className="h-3 w-1/4" />
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             ))}
           </div>
-        ) : filteredItems.length === 0 ? (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted mx-auto mb-4">
-                <Package className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">No items found</h3>
-              <p className="text-muted-foreground mb-4">
-                {activeFilter === "all" 
-                  ? "You haven't posted any items yet."
-                  : `No ${activeFilter} items found.`
-                }
-              </p>
-              {activeFilter === "all" && (
-                <Button onClick={() => router.push("/post")}>
-                  Post Your First Item
-                </Button>
-              )}
-            </CardContent>
-          </Card>
+        ) : items.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+              <Package className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">No reports found</h3>
+            <p className="text-muted-foreground mb-6">You haven't posted any reports yet.</p>
+            <Button asChild>
+              <Link href="/post">Create report now?</Link>
+            </Button>
+          </div>
         ) : (
           <div className="space-y-4">
             {filteredItems.map((item) => {
