@@ -3,26 +3,23 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
 import { AuthStatus } from "@/components/auth/AuthStatus";
-import { MobileAuthStatus } from "@/components/auth/MobileAuthStatus";
 import { NavigationLinks } from "@/components/navigation/NavigationLinks";
-import { MobileNavigationLinks } from "@/components/navigation/MobileNavigationLinks";
-import { Sheet, SheetTrigger, SheetContent, SheetClose, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Menu, Search, X } from "lucide-react";
+import { Search } from "lucide-react";
 import { TopLoader } from "@/components/system/TopLoader";
 import { AuthEventBanner } from "@/components/system/AuthEventBanner";
 import { cookies } from "next/headers";
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import type { Database } from "@/types/database";
 import { ReportItemLink } from "@/components/ReportItemLink";
+import { MobileMenuProvider } from "@/components/navigation/MobileMenuProvider";
 
-const inter = Inter({
+const inter = Inter({ 
   variable: "--font-inter",
   subsets: ["latin"],
   display: "swap",
 });
 
-const jetbrainsMono = JetBrains_Mono({
+const jetbrainsMono = JetBrains_Mono({ 
   variable: "--font-jetbrains-mono",
   subsets: ["latin"],
   display: "swap",
@@ -88,35 +85,7 @@ export default async function RootLayout({
                 
                 {/* Mobile Menu */}
                 <div className="sm:hidden">
-                  <Sheet>
-                    <SheetTrigger asChild>
-                      <Button size="icon" variant="ghost" aria-label="Open menu">
-                        <Menu className="h-5 w-5" />
-                      </Button>
-                    </SheetTrigger>
-                    <SheetContent className="w-[300px] sm:w-[400px]">
-                      {/* Accessible title (visually hidden) */}
-                      <SheetHeader className="sr-only">
-                        <SheetTitle>Menu</SheetTitle>
-                      </SheetHeader>
-
-                      <div className="flex items-center justify-end border-b pb-2">
-                        <SheetClose asChild>
-                          <Button size="icon" variant="ghost" aria-label="Close menu">
-                            <X className="h-5 w-5" />
-                          </Button>
-                        </SheetClose>
-                      </div>
-                      <div className="flex flex-col gap-4 py-6">
-                        <div className="flex flex-col gap-2">
-                          <MobileNavigationLinks initialIsLoggedIn={initialIsLoggedIn} initialIsAdmin={initialIsAdmin} />
-                        </div>
-                        <div className="border-t pt-4">
-                          <MobileAuthStatus />
-                        </div>
-                      </div>
-                    </SheetContent>
-                  </Sheet>
+                  <MobileMenuProvider initialIsLoggedIn={initialIsLoggedIn} initialIsAdmin={initialIsAdmin} />
                 </div>
               </div>
             </nav>

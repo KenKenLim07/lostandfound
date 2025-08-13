@@ -1,14 +1,12 @@
 "use client"
 
-import { useState, useTransition, useRef } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useTransition } from "react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import type { Database } from "@/types/database"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { FloatingLabelInput } from "@/components/ui/floating-label-input"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
-import { SheetClose } from "@/components/ui/sheet"
 
 export type LoginDialogProps = {
   open?: boolean
@@ -17,12 +15,12 @@ export type LoginDialogProps = {
   initialMode?: "signin" | "signup"
   note?: string
   isMobileMenu?: boolean
+  onMobileMenuClose?: () => void
 }
 
 export function LoginDialog(props: LoginDialogProps = {}) {
-  const { open: controlledOpen, onOpenChange, showTrigger = true, initialMode = "signin", note, isMobileMenu = false } = props
+  const { open: controlledOpen, onOpenChange, showTrigger = true, initialMode = "signin", note, isMobileMenu = false, onMobileMenuClose } = props
   const supabase = createClientComponentClient<Database>()
-  const router = useRouter()
   const [open, setOpen] = useState(controlledOpen ?? false)
   const effectiveOpen = controlledOpen !== undefined ? controlledOpen : open
   const setEffectiveOpen = (next: boolean) => {
@@ -42,9 +40,6 @@ export function LoginDialog(props: LoginDialogProps = {}) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
-
-  // Mobile menu close ref
-  const sheetCloseRef = useRef<HTMLButtonElement>(null)
 
   // Validation state
   const [touched, setTouched] = useState({
@@ -137,39 +132,45 @@ export function LoginDialog(props: LoginDialogProps = {}) {
         if (mode === "signin") {
           const { error } = await supabase.auth.signInWithPassword({ email, password })
           if (error) throw error
+          
+          // Show success immediately
           setSuccess("Signed in successfully!")
-          setTimeout(() => {
-            setEffectiveOpen(false)
-            resetForm()
-            // Close mobile menu on success
-            if (isMobileMenu && sheetCloseRef.current) {
-              sheetCloseRef.current.click()
-            }
-            const intent = typeof window !== "undefined" ? sessionStorage.getItem("intent_after_login") : null
-            if (intent) {
-              try { sessionStorage.removeItem("intent_after_login") } catch {}
-              router.push(intent)
-            } else {
-              router.push("/")
-            }
-          }, 1000)
+          
+          // Reset form immediately
+          resetForm()
+          
+          // Close mobile menu if provided
+          if (isMobileMenu && onMobileMenuClose) {
+            setTimeout(() => {
+              onMobileMenuClose()
+            }, 800)
+          } else {
+            // Close dialog after showing success
+            setTimeout(() => {
+              setEffectiveOpen(false)
+            }, 800)
+          }
         } else {
           const { error } = await supabase.auth.signUp({ email, password })
           if (error) throw error
+          
+          // Show success immediately
           setSuccess("Account created! Please check your email to confirm.")
-          setTimeout(() => {
-            setEffectiveOpen(false)
-            resetForm()
-            // Close mobile menu on success
-            if (isMobileMenu && sheetCloseRef.current) {
-              sheetCloseRef.current.click()
-            }
-            const intent = typeof window !== "undefined" ? sessionStorage.getItem("intent_after_login") : null
-            if (intent) {
-              try { sessionStorage.removeItem("intent_after_login") } catch {}
-              router.push(intent)
-            }
-          }, 2000)
+          
+          // Reset form immediately
+          resetForm()
+          
+          // Close mobile menu if provided
+          if (isMobileMenu && onMobileMenuClose) {
+            setTimeout(() => {
+              onMobileMenuClose()
+            }, 1000)
+          } else {
+            // Close dialog after showing success
+            setTimeout(() => {
+              setEffectiveOpen(false)
+            }, 1000)
+          }
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred")
@@ -181,8 +182,6 @@ export function LoginDialog(props: LoginDialogProps = {}) {
   if (isMobileMenu) {
     return (
       <div className="space-y-4">
-        {/* Hidden SheetClose button for programmatic closing */}
-        <SheetClose ref={sheetCloseRef} className="hidden" />
         
         <div className="text-center">
           <h3 className="text-lg font-semibold">
@@ -297,7 +296,14 @@ export function LoginDialog(props: LoginDialogProps = {}) {
 
           {success && (
             <div className="p-3 rounded-lg bg-green-50 border border-green-200">
-              <p className="text-sm text-green-700 text-center">{success}</p>
+              <p className="text-sm text-green-700 text-center">
+                {success}
+                {isMobileMenu && (
+                  <span className="block text-xs text-green-600 mt-1">
+                    Menu will close automatically...
+                  </span>
+                )}
+              </p>
             </div>
           )}
 
@@ -458,7 +464,14 @@ export function LoginDialog(props: LoginDialogProps = {}) {
 
           {success && (
             <div className="p-3 rounded-lg bg-green-50 border border-green-200">
-              <p className="text-sm text-green-700 text-center">{success}</p>
+              <p className="text-sm text-green-700 text-center">
+                {success}
+                {isMobileMenu && (
+                  <span className="block text-xs text-green-600 mt-1">
+                    Menu will close automatically...
+                  </span>
+                )}
+              </p>
             </div>
           )}
 

@@ -16,29 +16,61 @@ export function AuthStatus() {
 
   useEffect(() => {
     let isMounted = true
+    
     async function load() {
-      const { data } = await supabase.auth.getSession()
-      if (!isMounted) return
-      const session = data.session
-      setIsLoggedIn(!!session)
-      setEmail(session?.user?.email ?? null)
-      setIsLoading(false)
+      try {
+        const { data } = await supabase.auth.getSession()
+        if (!isMounted) return
+        const session = data.session
+        setIsLoggedIn(!!session)
+        setEmail(session?.user?.email ?? null)
+        setIsLoading(false)
+      } catch (error) {
+        if (!isMounted) return
+        setIsLoggedIn(false)
+        setEmail(null)
+        setIsLoading(false)
+      }
     }
+    
     load()
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsLoggedIn(!!session)
+    
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!isMounted) return
+      
+      const wasLoggedIn = isLoggedIn
+      const isNowLoggedIn = !!session
+      
+      setIsLoggedIn(isNowLoggedIn)
       setEmail(session?.user?.email ?? null)
+      
+      // Handle login redirect - only if we weren't logged in before but are now
+      if (!wasLoggedIn && isNowLoggedIn && event === "SIGNED_IN") {
+        const intent = typeof window !== "undefined" ? sessionStorage.getItem("intent_after_login") : null
+        if (intent) {
+          try { sessionStorage.removeItem("intent_after_login") } catch {}
+          router.push(intent)
+        } else {
+          router.push("/")
+          router.refresh()
+        }
+      }
     })
+    
     return () => {
       isMounted = false
       sub.subscription.unsubscribe()
     }
-  }, [supabase])
+  }, [supabase, router, isLoggedIn])
 
   async function handleSignOut() {
-    await supabase.auth.signOut()
-    router.push("/")
-    router.refresh()
+    try {
+      await supabase.auth.signOut()
+      router.push("/")
+      router.refresh()
+    } catch (error) {
+      console.error("Sign out error:", error)
+    }
   }
 
   if (isLoading) {

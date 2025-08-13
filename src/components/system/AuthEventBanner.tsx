@@ -12,7 +12,7 @@ export function AuthEventBanner() {
   const [variant, setVariant] = useState<"in" | "out">("in")
   const hideTimerRef = useRef<number | null>(null)
   const lastEventAtRef = useRef<number>(0)
-  const prevSignedInRef = useRef<boolean>(false)
+  const prevSignedInRef = useRef<boolean | null>(null)
 
   useEffect(() => {
     return () => {
@@ -29,15 +29,18 @@ export function AuthEventBanner() {
         if (!isMounted) return
         prevSignedInRef.current = !!data.session
       } catch {
-        // ignore
+        if (!isMounted) return
+        prevSignedInRef.current = false
       }
     }
 
     primePrevState()
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!isMounted) return
+      
       const now = Date.now()
-      if (now - lastEventAtRef.current < 500) return
+      if (now - lastEventAtRef.current < 300) return // Reduced debounce time
       lastEventAtRef.current = now
 
       const isSignedIn = !!session
@@ -49,29 +52,25 @@ export function AuthEventBanner() {
       }
 
       if (event === "SIGNED_IN") {
-        if (prevSignedInRef.current) {
-          // Already signed in previously; avoid showing on tab focus/init
+        // Only show if we were previously signed out or null
+        if (prevSignedInRef.current === false || prevSignedInRef.current === null) {
           prevSignedInRef.current = true
-          return
+          setVariant("in")
+          setMessage("Signed in successfully!")
+          setVisible(true)
         }
-        prevSignedInRef.current = true
-        setVariant("in")
-        setMessage("Signing you in…")
-        setVisible(true)
       } else if (event === "SIGNED_OUT") {
-        if (!prevSignedInRef.current) {
-          // Already signed out; avoid duplicate
+        // Only show if we were previously signed in
+        if (prevSignedInRef.current === true) {
           prevSignedInRef.current = false
-          return
+          setVariant("out")
+          setMessage("Signed out successfully!")
+          setVisible(true)
         }
-        prevSignedInRef.current = false
-        setVariant("out")
-        setMessage("Signing you out…")
-        setVisible(true)
       }
 
       if (hideTimerRef.current) window.clearTimeout(hideTimerRef.current)
-      hideTimerRef.current = window.setTimeout(() => setVisible(false), 1200)
+      hideTimerRef.current = window.setTimeout(() => setVisible(false), 2000) // Increased display time
     })
 
     return () => {
@@ -101,7 +100,7 @@ export function AuthEventBanner() {
           ) : (
             <LogOut className="h-4 w-4" />
           )}
-          <span>{message}</span>
+          {message}
         </div>
       </div>
     </div>
