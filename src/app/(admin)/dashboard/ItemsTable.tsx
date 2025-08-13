@@ -250,40 +250,42 @@ export function ItemsTable({ pageSize = 50 }: AdminItemsTableProps) {
       </div>
 
       <div className="overflow-x-auto rounded-md border">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm border-collapse">
           <thead className="bg-muted">
             <tr className="text-left">
-              <th className="px-3 py-2">Title</th>
-              <th className="px-3 py-2">Type</th>
-              <th className="px-3 py-2">Current Status</th>
-              <th className="px-3 py-2">Posted by</th>
-              <th className="px-3 py-2">Course / Y&S</th>
-              <th className="px-3 py-2">Date</th>
-              <th className="px-3 py-2">Created</th>
+              <th className="px-3 py-2 border-r border-border/50">Title</th>
+              <th className="px-3 py-2 border-r border-border/50">Type</th>
+              <th className="px-3 py-2 border-r border-border/50">Current Status</th>
+              <th className="px-3 py-2 border-r border-border/50">Posted by</th>
+              <th className="px-3 py-2 border-r border-border/50">Course / Y&S</th>
+              <th className="px-3 py-2 border-r border-border/50">Date</th>
+              <th className="px-3 py-2 border-r border-border/50">Created</th>
               <th className="px-3 py-2">Actions</th>
             </tr>
           </thead>
           <tbody>
             {items.length === 0 && !isLoading ? (
               <tr>
-                <td className="px-3 py-6 text-muted-foreground" colSpan={8}>No items match your filters.</td>
+                <td className="px-3 py-6 text-muted-foreground border-r border-border/50" colSpan={8}>No items match your filters.</td>
               </tr>
             ) : (
               items.map((item) => (
-                <tr key={item.id} className="border-t">
-                  <td className="px-3 py-2 font-medium max-w-[260px] truncate">{item.title ?? "—"}</td>
-                  <td className="px-3 py-2 capitalize">{item.type}</td>
-                  <td className="px-3 py-2 capitalize">{item.status ?? "active"}</td>
-                  <td className="px-3 py-2">{item.name}</td>
-                  <td className="px-3 py-2">{item.reporter_year_section ?? "—"}</td>
-                  <td className="px-3 py-2">{new Date(item.date).toLocaleDateString()}</td>
-                  <td className="px-3 py-2">{item.created_at ? new Date(item.created_at).toLocaleString() : "—"}</td>
-                  <td className="px-3 py-2">
-                    <div className="flex items-center gap-3">
+                <tr key={item.id} className="border-t border-border/50">
+                  <td className="px-3 py-2 font-medium max-w-[260px] truncate border-r border-border/50">{item.title ?? "—"}</td>
+                  <td className="px-3 py-2 capitalize border-r border-border/50">{item.type}</td>
+                  <td className="px-3 py-2 capitalize border-r border-border/50">{item.status ?? "active"}</td>
+                  <td className="px-3 py-2 border-r border-border/50">{item.name}</td>
+                  <td className="px-3 py-2 border-r border-border/50">{item.reporter_year_section ?? "—"}</td>
+                  <td className="px-3 py-2 border-r border-border/50">{new Date(item.date).toLocaleDateString()}</td>
+                  <td className="px-3 py-2 border-r border-border/50">{item.created_at ? new Date(item.created_at).toLocaleString() : "—"}</td>
+                  <td className="px-3 py-2 border-l border-border/50">
+                    <div className="flex items-center gap-3 h-full">
                       <Link href={`/items/${item.id}`} className="text-foreground/60 hover:text-foreground underline underline-offset-4">View</Link>
                       <Button size="sm" variant="outline" onClick={() => openEdit(item)}>Edit</Button>
-                      {item.status !== "returned" && (
-                        <Button size="sm" variant="outline" onClick={() => openReturn(item)}>Mark returned</Button>
+                      {item.status !== "returned" ? (
+                        <Button size="sm" variant="outline" onClick={() => openReturn(item)} className="w-28">Mark returned</Button>
+                      ) : (
+                        <span className="inline-flex items-center justify-center h-8 px-3 text-xs text-muted-foreground bg-muted rounded-md border border-border w-28">Returned</span>
                       )}
                       <Button size="sm" variant="destructive" onClick={() => handleDelete(item)}>Delete</Button>
                     </div>
@@ -293,7 +295,7 @@ export function ItemsTable({ pageSize = 50 }: AdminItemsTableProps) {
             )}
             {isLoading && (
               <tr>
-                <td className="px-3 py-4 text-muted-foreground" colSpan={8}>Loading…</td>
+                <td className="px-3 py-4 text-muted-foreground border-r border-border/50" colSpan={8}>Loading…</td>
               </tr>
             )}
           </tbody>
