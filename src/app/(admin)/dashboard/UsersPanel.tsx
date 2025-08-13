@@ -66,7 +66,7 @@ export default function UsersPanel() {
                 </td>
                 <td className="px-3 py-2 border-l border-border/50">
                   <div className="flex items-center gap-3 h-full">
-                    <PromoteDemoteButton userId={u.id} currentRole={u.role ?? "user"} />
+                  <PromoteDemoteButton userId={u.id} currentRole={u.role ?? "user"} />
                     <UsersBlockButton userId={u.id} isBlocked={u.blocked ?? false} />
                   </div>
                 </td>
