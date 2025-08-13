@@ -141,7 +141,7 @@ export function LoginDialog(props: LoginDialogProps = {}) {
               try { sessionStorage.removeItem("intent_after_login") } catch {}
               router.push(intent)
             } else {
-              router.refresh()
+              router.push("/")
             }
           }, 1000)
         } else {
@@ -174,7 +174,7 @@ export function LoginDialog(props: LoginDialogProps = {}) {
         </DialogTrigger>
       )}
       <DialogContent 
-        className="sm:max-w-md" 
+        className="sm:max-w-md"
         autoFocus={false}
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
@@ -285,7 +285,7 @@ export function LoginDialog(props: LoginDialogProps = {}) {
           {/* Error/Success Messages */}
           {error && (
             <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
-              <p className="text-sm text-destructive text-center">{error}</p>
+              <p className="text-sm text-destructive text-center break-words whitespace-normal">{error}</p>
             </div>
           )}
 

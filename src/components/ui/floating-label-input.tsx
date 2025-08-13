@@ -3,32 +3,16 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
-export interface FloatingLabelInputProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value'> {
+export interface FloatingLabelInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label: string
   error?: boolean
   icon?: React.ReactNode
-  value?: string
 }
 
 const FloatingLabelInput = React.forwardRef<HTMLInputElement, FloatingLabelInputProps>(
   ({ className, label, error, icon, type, id, value = "", ...props }, ref) => {
     const [isFocused, setIsFocused] = React.useState(false)
-    const inputRef = React.useRef<HTMLInputElement>(null)
-
-    // Check if this input is currently focused by comparing with document.activeElement
-    const checkFocus = React.useCallback(() => {
-      const isCurrentlyFocused = document.activeElement === inputRef.current
-      if (isCurrentlyFocused !== isFocused) {
-        setIsFocused(isCurrentlyFocused)
-      }
-    }, [isFocused])
-
-    // Check focus state periodically
-    React.useEffect(() => {
-      const interval = setInterval(checkFocus, 100)
-      return () => clearInterval(interval)
-    }, [checkFocus])
+    const inputRef = React.useRef<HTMLInputElement | null>(null)
 
     const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
       setIsFocused(true)
@@ -36,11 +20,11 @@ const FloatingLabelInput = React.forwardRef<HTMLInputElement, FloatingLabelInput
     }
 
     const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+      setIsFocused(false)
       props.onBlur?.(e)
     }
 
-    // Check if we should show the floating label
-    const hasValue = value && value.toString().trim().length > 0
+    const hasValue = value !== undefined && value !== null && value.toString().trim().length > 0
     const shouldFloat = isFocused || hasValue
 
     return (
@@ -74,7 +58,8 @@ const FloatingLabelInput = React.forwardRef<HTMLInputElement, FloatingLabelInput
           type={type}
           id={id}
           className={cn(
-            "w-full bg-transparent focus:outline-none text-sm text-foreground placeholder-transparent",
+            // Use 16px on mobile to prevent iOS zoom, fall back to sm on md+
+            "w-full bg-transparent focus:outline-none text-base md:text-sm text-foreground placeholder-transparent",
             icon && "pl-7"
           )}
           placeholder={label}
@@ -83,7 +68,7 @@ const FloatingLabelInput = React.forwardRef<HTMLInputElement, FloatingLabelInput
             if (typeof ref === 'function') {
               ref(node)
             } else if (ref) {
-              ref.current = node
+              ;(ref as React.MutableRefObject<HTMLInputElement | null>).current = node
             }
             inputRef.current = node
           }}
