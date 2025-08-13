@@ -1,4 +1,7 @@
 "use client"
+
+export const dynamic = "force-dynamic"
+
 import { useEffect, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
@@ -12,6 +15,7 @@ import { compressImage, formatFileSize } from "@/lib/image-utils"
 import { Upload, X, CheckCircle, AlertCircle, Image as ImageIcon } from "lucide-react"
 import Image from "next/image"
 import { Skeleton } from "@/components/ui/skeleton"
+import { postItem } from "./actions"
 
 export default function PostItemPage() {
   const supabase = createClientComponentClient<Database>()
@@ -62,7 +66,7 @@ export default function PostItemPage() {
     return () => {
       isMounted = false
     }
-  }, [router, supabase])
+  }, [supabase, router])
 
   // Handle file selection and compression
   async function handleFileSelect(file: File) {
@@ -139,23 +143,21 @@ export default function PostItemPage() {
           image_url = publicUrl.publicUrl
         }
 
-        // 2) Insert item
-        const payload: TablesInsert<"items"> = {
-          user_id: userId,
-          type,
-          title,
-          name: name || title,
-          description: description || null,
-          date: date || new Date().toISOString().slice(0, 10),
-          location: location || null,
-          contact_number: contactNumber || null,
-          reporter_year_section: reporterYearSection || null,
-          image_url,
-          status: "active",
+        // 2) Use server action for posting (includes blocked user check)
+        const formData = new FormData()
+        formData.append("type", type)
+        formData.append("title", title || "")
+        formData.append("name", name || "")
+        formData.append("description", description || "")
+        formData.append("date", date || new Date().toISOString().slice(0, 10))
+        formData.append("location", location || "")
+        formData.append("contactNumber", contactNumber || "")
+        formData.append("reporterYearSection", reporterYearSection || "")
+        if (image_url) {
+          formData.append("image_url", image_url)
         }
 
-        const { error: insertError } = await supabase.from("items").insert(payload)
-        if (insertError) throw insertError
+        await postItem(formData)
 
         setSuccess("Item posted successfully!")
         setTimeout(() => router.push("/"), 1500)
@@ -265,7 +267,7 @@ export default function PostItemPage() {
           {/* Description */}
           <div className="space-y-1.5">
             <Label htmlFor="description" className="text-sm font-medium">Description</Label>
-            <Textarea
+            <Input
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -337,7 +339,7 @@ export default function PostItemPage() {
                   id="image-upload"
                 />
                 <label htmlFor="image-upload" className="cursor-pointer">
-                  <ImageIcon className="mx-auto h-8 w-8 text-muted-foreground mb-3" />
+                  <Upload className="mx-auto h-8 w-8 text-muted-foreground mb-3" />
                   <p className="text-muted-foreground text-sm mb-1">Click to upload an image</p>
                   <p className="text-xs text-muted-foreground">PNG, JPG up to 10MB</p>
                 </label>

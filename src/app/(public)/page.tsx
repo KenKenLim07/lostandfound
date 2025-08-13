@@ -130,6 +130,27 @@ export default function PublicHomePage() {
     try {
       const { data } = await supabase.auth.getSession()
       if (data.session) {
+        // Check if user is blocked before redirecting
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("blocked")
+          .eq("id", data.session.user.id)
+          .single()
+        
+        if (profileError) {
+          console.error("Error checking user status:", profileError)
+          // If we can't check, allow the user to proceed (fail open)
+          window.location.href = "/post"
+          return
+        }
+        
+        if (profile?.blocked) {
+          // Show blocked message instead of redirecting
+          alert("Your account has been blocked. You cannot post new items. Please contact an administrator if you believe this is an error.")
+          return
+        }
+        
+        // User is not blocked, proceed to post page
         window.location.href = "/post"
       } else {
         try {

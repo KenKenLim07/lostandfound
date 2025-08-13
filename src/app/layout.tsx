@@ -14,6 +14,7 @@ import { AuthEventBanner } from "@/components/system/AuthEventBanner";
 import { cookies } from "next/headers";
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import type { Database } from "@/types/database";
+import { ReportItemLink } from "@/components/ReportItemLink";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -142,9 +143,7 @@ export default async function RootLayout({
                 <Link href="/hall-of-fame" className="text-muted-foreground transition-colors hover:text-foreground">
                   Hall of Fame
                 </Link>
-                <Link href="/post" className="text-muted-foreground transition-colors hover:text-foreground">
-                  Report Item
-                </Link>
+                <ReportItemLink className="text-muted-foreground transition-colors hover:text-foreground" />
               </div>
             </div>
             <div className="mt-6 border-t pt-6 text-center text-sm text-muted-foreground">

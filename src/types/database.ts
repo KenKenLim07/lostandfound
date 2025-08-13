@@ -73,18 +73,21 @@ export type Database = {
       }
       profiles: {
         Row: {
+          blocked: boolean | null
           created_at: string | null
           full_name: string | null
           id: string
           role: string | null
         }
         Insert: {
+          blocked?: boolean | null
           created_at?: string | null
           full_name?: string | null
           id: string
           role?: string | null
         }
         Update: {
+          blocked?: boolean | null
           created_at?: string | null
           full_name?: string | null
           id?: string

@@ -12,10 +12,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="container mx-auto px-4 sm:px-6 py-6">
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold">Admin</h1>
-        <p className="text-muted-foreground">Dashboard</p>
-      </div>
       {children}
     </div>
   )
