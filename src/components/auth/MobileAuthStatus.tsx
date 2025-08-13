@@ -40,7 +40,7 @@ export function MobileAuthStatus() {
 
   if (isLoading) return <div className="text-xs text-muted-foreground">…</div>
 
-  if (!isLoggedIn) return <LoginDialog />
+  if (!isLoggedIn) return <LoginDialog isMobileMenu={true} />
 
   return (
     <SheetClose asChild>

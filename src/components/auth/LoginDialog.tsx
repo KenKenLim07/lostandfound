@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button"
 import { FloatingLabelInput } from "@/components/ui/floating-label-input"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
+import { SheetClose } from "@/components/ui/sheet"
 
 export type LoginDialogProps = {
   open?: boolean
@@ -15,10 +16,11 @@ export type LoginDialogProps = {
   showTrigger?: boolean
   initialMode?: "signin" | "signup"
   note?: string
+  isMobileMenu?: boolean
 }
 
 export function LoginDialog(props: LoginDialogProps = {}) {
-  const { open: controlledOpen, onOpenChange, showTrigger = true, initialMode = "signin", note } = props
+  const { open: controlledOpen, onOpenChange, showTrigger = true, initialMode = "signin", note, isMobileMenu = false } = props
   const supabase = createClientComponentClient<Database>()
   const router = useRouter()
   const [open, setOpen] = useState(controlledOpen ?? false)
@@ -164,6 +166,159 @@ export function LoginDialog(props: LoginDialogProps = {}) {
     })
   }
 
+  // If this is for mobile menu, render as a simple form instead of dialog
+  if (isMobileMenu) {
+    return (
+      <div className="space-y-4">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold">
+            {mode === "signin" ? "Welcome back" : "Create account"}
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            {mode === "signin" 
+              ? "Enter your credentials to access your account" 
+              : "Fill in your details to create a new account"
+            }
+          </p>
+          {note && (
+            <p className="text-xs text-foreground mt-1">{note}</p>
+          )}
+        </div>
+        
+        <form onSubmit={handleAuth} className="space-y-4">
+          {/* Email field */}
+          <div className="space-y-1">
+            <FloatingLabelInput
+              id="email"
+              type="email"
+              label="Email Address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onBlur={() => handleBlur("email")}
+              error={!isEmailValid && touched.email}
+              required
+              autoComplete="email"
+            />
+            {!isEmailValid && touched.email && (
+              <p className="text-xs text-destructive ml-3">Please enter a valid email address</p>
+            )}
+          </div>
+
+          {/* Password field */}
+          <div className="space-y-1">
+            <div className="relative">
+              <FloatingLabelInput
+                id="password"
+                type={showPassword ? "text" : "password"}
+                label="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onBlur={() => handleBlur("password")}
+                error={!isPasswordValid && touched.password}
+                required
+                autoComplete={mode === "signin" ? "current-password" : "new-password"}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-9 w-9 p-0"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? (
+                  <Eye className="h-4 w-4" />
+                ) : (
+                  <EyeOff className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            {!isPasswordValid && touched.password && (
+              <p className="text-xs text-destructive ml-3">Password must be at least 6 characters</p>
+            )}
+          </div>
+
+          {/* Confirm Password field (signup only) */}
+          {mode === "signup" && (
+            <div className="space-y-1">
+              <div className="relative">
+                <FloatingLabelInput
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  label="Confirm Password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onBlur={() => handleBlur("confirmPassword")}
+                  error={!isConfirmPasswordValid && touched.confirmPassword}
+                  required
+                  autoComplete="new-password"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-9 w-9 p-0"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                >
+                  {showConfirmPassword ? (
+                    <Eye className="h-4 w-4" />
+                  ) : (
+                    <EyeOff className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+              {!isConfirmPasswordValid && touched.confirmPassword && (
+                <p className="text-xs text-destructive ml-3">Passwords do not match</p>
+              )}
+            </div>
+          )}
+
+          {/* Error/Success Messages */}
+          {error && (
+            <div className="p-3 rounded-lg bg-red-50 border border-red-200">
+              <p className="text-sm text-red-700 text-center break-words whitespace-normal">{error}</p>
+            </div>
+          )}
+
+          {success && (
+            <div className="p-3 rounded-lg bg-green-50 border border-green-200">
+              <p className="text-sm text-green-700 text-center">{success}</p>
+            </div>
+          )}
+
+          {/* Submit Button */}
+          <SheetClose asChild>
+            <Button
+              type="submit"
+              disabled={isPending || !isFormValid()}
+              className="w-full h-12 font-medium"
+            >
+              {isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {mode === "signin" ? "Signing in..." : "Creating account..."}
+                </>
+              ) : (
+                mode === "signin" ? "Sign In" : "Create Account"
+              )}
+            </Button>
+          </SheetClose>
+
+          {/* Mode Switch */}
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">
+              {mode === "signin" ? "Don't have an account? " : "Already have an account? "}
+              <button type="button" className="font-medium underline underline-offset-4" onClick={handleModeSwitch}>
+                {mode === "signin" ? "Sign up" : "Sign in"}
+              </button>
+            </p>
+          </div>
+        </form>
+      </div>
+    )
+  }
+
   return (
     <Dialog open={effectiveOpen} onOpenChange={setEffectiveOpen}>
       {showTrigger && (
@@ -284,14 +439,14 @@ export function LoginDialog(props: LoginDialogProps = {}) {
 
           {/* Error/Success Messages */}
           {error && (
-            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
-              <p className="text-sm text-destructive text-center break-words whitespace-normal">{error}</p>
+            <div className="p-3 rounded-lg bg-red-50 border border-red-200">
+              <p className="text-sm text-red-700 text-center break-words whitespace-normal">{error}</p>
             </div>
           )}
 
           {success && (
-            <div className="p-3 rounded-lg bg-green-600/10 border border-green-600/20">
-              <p className="text-sm text-green-600 text-center">{success}</p>
+            <div className="p-3 rounded-lg bg-green-50 border border-green-200">
+              <p className="text-sm text-green-700 text-center">{success}</p>
             </div>
           )}
 
