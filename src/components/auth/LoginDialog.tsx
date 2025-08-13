@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import type { Database } from "@/types/database"
@@ -42,6 +42,9 @@ export function LoginDialog(props: LoginDialogProps = {}) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+
+  // Mobile menu close ref
+  const sheetCloseRef = useRef<HTMLButtonElement>(null)
 
   // Validation state
   const [touched, setTouched] = useState({
@@ -138,6 +141,10 @@ export function LoginDialog(props: LoginDialogProps = {}) {
           setTimeout(() => {
             setEffectiveOpen(false)
             resetForm()
+            // Close mobile menu on success
+            if (isMobileMenu && sheetCloseRef.current) {
+              sheetCloseRef.current.click()
+            }
             const intent = typeof window !== "undefined" ? sessionStorage.getItem("intent_after_login") : null
             if (intent) {
               try { sessionStorage.removeItem("intent_after_login") } catch {}
@@ -153,6 +160,10 @@ export function LoginDialog(props: LoginDialogProps = {}) {
           setTimeout(() => {
             setEffectiveOpen(false)
             resetForm()
+            // Close mobile menu on success
+            if (isMobileMenu && sheetCloseRef.current) {
+              sheetCloseRef.current.click()
+            }
             const intent = typeof window !== "undefined" ? sessionStorage.getItem("intent_after_login") : null
             if (intent) {
               try { sessionStorage.removeItem("intent_after_login") } catch {}
@@ -170,6 +181,9 @@ export function LoginDialog(props: LoginDialogProps = {}) {
   if (isMobileMenu) {
     return (
       <div className="space-y-4">
+        {/* Hidden SheetClose button for programmatic closing */}
+        <SheetClose ref={sheetCloseRef} className="hidden" />
+        
         <div className="text-center">
           <h3 className="text-lg font-semibold">
             {mode === "signin" ? "Welcome back" : "Create account"}
@@ -288,22 +302,20 @@ export function LoginDialog(props: LoginDialogProps = {}) {
           )}
 
           {/* Submit Button */}
-          <SheetClose asChild>
-            <Button
-              type="submit"
-              disabled={isPending || !isFormValid()}
-              className="w-full h-12 font-medium"
-            >
-              {isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {mode === "signin" ? "Signing in..." : "Creating account..."}
-                </>
-              ) : (
-                mode === "signin" ? "Sign In" : "Create Account"
-              )}
-            </Button>
-          </SheetClose>
+          <Button
+            type="submit"
+            disabled={isPending || !isFormValid()}
+            className="w-full h-12 font-medium"
+          >
+            {isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {mode === "signin" ? "Signing in..." : "Creating account..."}
+              </>
+            ) : (
+              mode === "signin" ? "Sign In" : "Create Account"
+            )}
+          </Button>
 
           {/* Mode Switch */}
           <div className="text-center">
