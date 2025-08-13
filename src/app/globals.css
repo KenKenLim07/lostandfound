@@ -3,12 +3,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Custom select styling to move dropdown icon left */
-.custom-select select {
-  padding-right: 2rem !important;
-  background-position: right 1.75rem center !important;
-}
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

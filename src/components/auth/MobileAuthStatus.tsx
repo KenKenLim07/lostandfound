@@ -5,8 +5,8 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import type { Database } from "@/types/database"
 import { Button } from "@/components/ui/button"
 import { LoginDialog } from "@/components/auth/LoginDialog"
-import { useRouter } from "next/navigation"
 import { SheetClose } from "@/components/ui/sheet"
+import { useRouter } from "next/navigation"
 
 type Props = {
   onMobileMenuClose?: () => void
@@ -39,29 +39,19 @@ export function MobileAuthStatus({ onMobileMenuClose }: Props) {
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (!isMounted) return
       
-      const wasLoggedIn = isLoggedIn
       const isNowLoggedIn = !!session
       
       setIsLoggedIn(isNowLoggedIn)
       
-      // Handle login redirect - only if we weren't logged in before but are now
-      if (!wasLoggedIn && isNowLoggedIn && event === "SIGNED_IN") {
-        const intent = typeof window !== "undefined" ? sessionStorage.getItem("intent_after_login") : null
-        if (intent) {
-          try { sessionStorage.removeItem("intent_after_login") } catch {}
-          router.push(intent)
-        } else {
-          router.push("/")
-          router.refresh()
-        }
-      }
+      // Note: Removed login redirect to keep users on current page for better UX
+      // Users will stay where they are and can continue browsing
     })
     
     return () => {
       isMounted = false
       sub.subscription.unsubscribe()
     }
-  }, [supabase, router, isLoggedIn])
+  }, [supabase, isLoggedIn])
 
   async function signOut() {
     try {

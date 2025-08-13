@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { ItemCard } from "@/components/items/ItemCard"
 import { ItemCardSkeleton } from "@/components/items/ItemCardSkeleton"
 import { Search } from "lucide-react"
+import { ItemsSearchFilterBar } from "@/components/items/ItemsSearchFilterBar"
 
  type Item = Pick<Tables<"items">, "id" | "title" | "name" | "type" | "description" | "date" | "location" | "contact_number" | "image_url" | "status" | "created_at">
 
@@ -113,29 +114,12 @@ export default function AllItemsPage() {
       </header>
 
       <section className="mb-3 max-w-2xl">
-        <div className="flex flex-col sm:flex-row items-stretch gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search items by title or name..."
-              className="pl-10 h-10"
-              aria-label="Search items"
-            />
-          </div>
-          <Select 
-            value={filter}
-            onChange={(e) => setFilter(e.target.value as typeof filter)}
-            className="w-full sm:w-[130px] h-10"
-            aria-label="Filter items"
-          >
-            <option value="all">All Items</option>
-            <option value="lost">Lost</option>
-            <option value="found">Found</option>
-            <option value="returned">Returned</option>
-          </Select>
-        </div>
+        <ItemsSearchFilterBar
+          searchTerm={searchTerm}
+          onSearchTermChange={setSearchTerm}
+          filter={filter}
+          onFilterChange={(next) => setFilter(next)}
+        />
       </section>
 
       {isLoading ? (
