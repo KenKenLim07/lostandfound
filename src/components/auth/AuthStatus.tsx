@@ -19,17 +19,23 @@ export function AuthStatus() {
     
     async function load() {
       try {
-        const { data } = await supabase.auth.getSession()
+        const { data: { user }, error } = await supabase.auth.getUser()
         if (!isMounted) return
-        const session = data.session
-        setIsLoggedIn(!!session)
-        setEmail(session?.user?.email ?? null)
+        if (error) {
+          console.error("Auth error:", error)
+          setIsLoggedIn(false)
+          setEmail(null)
+        } else {
+          setIsLoggedIn(!!user)
+          setEmail(user?.email ?? null)
+        }
         setIsLoading(false)
       } catch (error) {
-        if (!isMounted) return
+      if (!isMounted) return
+        console.error("Load error:", error)
         setIsLoggedIn(false)
         setEmail(null)
-        setIsLoading(false)
+      setIsLoading(false)
       }
     }
     
@@ -38,6 +44,7 @@ export function AuthStatus() {
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (!isMounted) return
       
+      console.log("Auth state change:", event, !!session)
       const isNowLoggedIn = !!session
       
       setIsLoggedIn(isNowLoggedIn)
@@ -51,13 +58,19 @@ export function AuthStatus() {
       isMounted = false
       sub.subscription.unsubscribe()
     }
-  }, [supabase, router, isLoggedIn])
+  }, [supabase])
 
   async function handleSignOut() {
     try {
-      await supabase.auth.signOut()
-      router.push("/")
-      router.refresh()
+      console.log("Starting sign out...")
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        console.error("Sign out error:", error)
+        return
+      }
+      console.log("Sign out successful")
+    router.push("/")
+    router.refresh()
     } catch (error) {
       console.error("Sign out error:", error)
     }

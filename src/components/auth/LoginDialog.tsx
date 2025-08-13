@@ -136,18 +136,16 @@ export function LoginDialog(props: LoginDialogProps = {}) {
           // Show success immediately
           setSuccess("Signed in successfully!")
           
-          // Reset form immediately
-          resetForm()
-          
           // Close mobile menu if provided
           if (isMobileMenu && onMobileMenuClose) {
             setTimeout(() => {
               onMobileMenuClose()
             }, 800)
           } else {
-            // Close dialog after showing success
-            setTimeout(() => {
-              setEffectiveOpen(false)
+            // Reset form and close dialog after showing success
+          setTimeout(() => {
+              resetForm()
+            setEffectiveOpen(false)
             }, 800)
           }
         } else {
@@ -157,18 +155,16 @@ export function LoginDialog(props: LoginDialogProps = {}) {
           // Show success immediately
           setSuccess("Account created! Please check your email to confirm.")
           
-          // Reset form immediately
-          resetForm()
-          
           // Close mobile menu if provided
           if (isMobileMenu && onMobileMenuClose) {
             setTimeout(() => {
               onMobileMenuClose()
             }, 1000)
           } else {
-            // Close dialog after showing success
-            setTimeout(() => {
-              setEffectiveOpen(false)
+            // Reset form and close dialog after showing success
+          setTimeout(() => {
+              resetForm()
+            setEffectiveOpen(false)
             }, 1000)
           }
         }
@@ -181,7 +177,7 @@ export function LoginDialog(props: LoginDialogProps = {}) {
   // If this is for mobile menu, render as a simple form instead of dialog
   if (isMobileMenu) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4" key={`mobile-${mode}-${success ? 'success' : 'form'}`}>
         
         <div className="text-center">
           <h3 className="text-lg font-semibold">
@@ -347,7 +343,7 @@ export function LoginDialog(props: LoginDialogProps = {}) {
         </DialogTrigger>
       )}
       <DialogContent 
-        className="sm:max-w-md"
+        className="sm:max-w-md" 
         autoFocus={false}
         onOpenAutoFocus={(e) => e.preventDefault()}
       >

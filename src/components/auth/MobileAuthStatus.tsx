@@ -5,7 +5,6 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import type { Database } from "@/types/database"
 import { Button } from "@/components/ui/button"
 import { LoginDialog } from "@/components/auth/LoginDialog"
-import { SheetClose } from "@/components/ui/sheet"
 import { useRouter } from "next/navigation"
 
 type Props = {
@@ -23,14 +22,20 @@ export function MobileAuthStatus({ onMobileMenuClose }: Props) {
     
     async function load() {
       try {
-        const { data } = await supabase.auth.getSession()
+        const { data: { user }, error } = await supabase.auth.getUser()
         if (!isMounted) return
-        setIsLoggedIn(!!data.session)
+        if (error) {
+          console.error("Auth error:", error)
+          setIsLoggedIn(false)
+        } else {
+          setIsLoggedIn(!!user)
+        }
         setIsLoading(false)
       } catch (error) {
-        if (!isMounted) return
+      if (!isMounted) return
+        console.error("Load error:", error)
         setIsLoggedIn(false)
-        setIsLoading(false)
+      setIsLoading(false)
       }
     }
     
@@ -39,6 +44,7 @@ export function MobileAuthStatus({ onMobileMenuClose }: Props) {
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (!isMounted) return
       
+      console.log("Auth state change:", event, !!session)
       const isNowLoggedIn = !!session
       
       setIsLoggedIn(isNowLoggedIn)
@@ -51,13 +57,24 @@ export function MobileAuthStatus({ onMobileMenuClose }: Props) {
       isMounted = false
       sub.subscription.unsubscribe()
     }
-  }, [supabase, isLoggedIn])
+  }, [supabase])
 
   async function signOut() {
     try {
-      await supabase.auth.signOut()
-      router.push("/")
-      router.refresh()
+      console.log("Starting sign out...")
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        console.error("Sign out error:", error)
+        return
+      }
+      console.log("Sign out successful")
+      
+      // Close mobile menu after successful sign out
+      if (onMobileMenuClose) {
+        onMobileMenuClose()
+      }
+    router.push("/")
+    router.refresh()
     } catch (error) {
       console.error("Sign out error:", error)
     }
@@ -68,10 +85,8 @@ export function MobileAuthStatus({ onMobileMenuClose }: Props) {
   if (!isLoggedIn) return <LoginDialog isMobileMenu={true} onMobileMenuClose={onMobileMenuClose} />
 
   return (
-    <SheetClose asChild>
       <Button variant="outline" size="sm" onClick={signOut} className="w-full">
         Sign out
       </Button>
-    </SheetClose>
   )
 } 

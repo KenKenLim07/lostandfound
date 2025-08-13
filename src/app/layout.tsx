@@ -13,13 +13,13 @@ import type { Database } from "@/types/database";
 import { ReportItemLink } from "@/components/ReportItemLink";
 import { MobileMenuProvider } from "@/components/navigation/MobileMenuProvider";
 
-const inter = Inter({ 
+const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
   display: "swap",
 });
 
-const jetbrainsMono = JetBrains_Mono({ 
+const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
   subsets: ["latin"],
   display: "swap",

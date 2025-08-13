@@ -1,6 +1,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import { Package, MapPin, Calendar } from "lucide-react"
 
 
 function formatRelativeTime(isoString: string | null | undefined): string {
@@ -44,7 +45,7 @@ export function ItemCard(props: ItemCardProps) {
     type,
     // description,  // hidden on list
     date,
-    // location,     // hidden on list
+    location,     // needed for no-image placeholder
     // contactNumber, // hidden on list
     imageUrl,
     status,
@@ -69,7 +70,22 @@ export function ItemCard(props: ItemCardProps) {
           className="object-cover"
         />
       ) : (
-        <div className="absolute inset-0 grid place-items-center text-muted-foreground">No image</div>
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center bg-gradient-to-br from-muted/50 to-muted/80">
+          <div className="bg-background/80 backdrop-blur-sm rounded-full p-3 mb-3 shadow-sm">
+            <Package className="h-6 w-6 text-muted-foreground" />
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-foreground line-clamp-2 leading-tight">
+              {title ?? name}
+            </p>
+            {location && (
+              <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+                <MapPin className="h-3 w-3" />
+                <span className="line-clamp-1">{location}</span>
+              </div>
+            )}
+          </div>
+        </div>
       )}
       <div className="absolute right-2 top-2 inline-flex items-center gap-2 z-20">
         <span className={cn("px-2 py-0.5 rounded text-[10px] font-semibold", typePillClasses)}>
@@ -81,6 +97,13 @@ export function ItemCard(props: ItemCardProps) {
           <span className="px-3 py-1 rounded-md bg-blue-600/80 text-white text-xs sm:text-sm font-semibold tracking-wide">
             RETURNED
           </span>
+        </div>
+      )}
+      {href && imageUrl && (
+        <div className="absolute bottom-0 left-0 right-0 z-20">
+          <div className="bg-black/60 text-white text-xs font-semibold px-2 py-0.5 border border-white/20 text-center">
+            Tap to view details
+          </div>
         </div>
       )}
     </div>
@@ -110,13 +133,7 @@ export function ItemCard(props: ItemCardProps) {
             <span className="shrink-0 text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap">{relativeTimeLabel}</span>
           )}
         </div>
-        {href && (
-          <div className="pt-1 text-center">
-            <Link href={href} className="text-xs font-semibold text-muted-foreground hover:text-foreground uppercase tracking-wide underline underline-offset-4">
-              View details
-            </Link>
-          </div>
-        )}
+
       </div>
     </article>
   )
