@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { motion } from "framer-motion"
-import { shouldAnimateOnMount, markAsAnimated, resetAnimationState } from "@/lib/animations"
+import { shouldAnimateOnMount, markAsAnimated, resetAnimationState, getInitialAnimationState, markNavigationTime } from "@/lib/animations"
 import { useState, useEffect } from "react"
 
 const testAnimations = {
@@ -33,11 +33,25 @@ export default function AnimationTestPage() {
     setHasAnimated(shouldAnimate)
   }, [])
 
+  // Track navigation time for animation state management
+  useEffect(() => {
+    markNavigationTime('animation-test')
+  }, [])
+
   const handleReset = () => {
     resetAnimationState('animation-test')
     resetAnimationState('home-page')
     resetAnimationState('item-cards')
     resetAnimationState('animated-links')
+    
+    // Also clear navigation timing data
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('nav_animation-test')
+      sessionStorage.removeItem('nav_home-page')
+      sessionStorage.removeItem('nav_item-cards')
+      sessionStorage.removeItem('nav_animated-links')
+    }
+    
     setHasAnimated(false)
     setCount(prev => prev + 1)
   }
@@ -47,7 +61,7 @@ export default function AnimationTestPage() {
       <motion.div
         className="text-center space-y-6"
         variants={testAnimations.container}
-        initial={shouldAnimateOnMount('animation-test') ? "hidden" : "visible"}
+        initial={getInitialAnimationState('animation-test')}
         animate="visible"
         onAnimationStart={() => {
           if (shouldAnimateOnMount('animation-test')) {
@@ -84,7 +98,7 @@ export default function AnimationTestPage() {
         <motion.div
           className="grid grid-cols-2 gap-4 mt-8"
           variants={testAnimations.container}
-          initial={shouldAnimateOnMount('animation-test') ? "hidden" : "visible"}
+          initial={getInitialAnimationState('animation-test')}
           animate="visible"
           onAnimationStart={() => {
             if (shouldAnimateOnMount('animation-test')) {

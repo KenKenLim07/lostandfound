@@ -11,7 +11,7 @@ import { LoginDialog } from "@/components/auth/LoginDialog"
 import { ItemsSearchFilterBar } from "@/components/items/ItemsSearchFilterBar"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { heroAnimations, cardAnimations, getReducedMotionVariants, shouldAnimateOnMount, markAsAnimated } from "@/lib/animations"
+import { heroAnimations, cardAnimations, getReducedMotionVariants, shouldAnimateOnMount, markAsAnimated, getInitialAnimationState, getInitialAnimationStateSimple, markNavigationTime } from "@/lib/animations"
 import { useReducedMotion } from "framer-motion"
 import { AnimatedLink } from "@/components/ui/animated-link"
 import { CampusGuardianDialog } from "@/components/leaderboard/CampusGuardianDialog"
@@ -39,6 +39,7 @@ export default function PublicHomePage() {
 
   // Animation support
   const shouldReduceMotion = useReducedMotion()
+  const [useSimpleApproach, setUseSimpleApproach] = useState(true)
 
   // Hydrate from cache immediately to avoid flash when navigating back
   useEffect(() => {
@@ -98,6 +99,29 @@ export default function PublicHomePage() {
     fetchItems()
   }, [])
 
+  // Track navigation time for animation state management
+  useEffect(() => {
+    markNavigationTime('home-page')
+  }, [])
+
+  // Debug state for development
+  const [debugInfo, setDebugInfo] = useState<any>({})
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      const info = {
+        hasAnimated: sessionStorage.getItem('animated_home-page'),
+        navTime: sessionStorage.getItem('nav_home-page'),
+        hotReloadTime: sessionStorage.getItem('hot_reload_home-page'),
+        currentTime: Date.now(),
+        shouldAnimate: shouldAnimateOnMount('home-page'),
+        initialState: getInitialAnimationState('home-page'),
+        initialStateSimple: getInitialAnimationStateSimple('home-page'),
+        useSimpleApproach
+      }
+      setDebugInfo(info)
+    }
+  }, [useSimpleApproach])
 
 
   const filteredItems = useMemo(() => {
@@ -169,13 +193,40 @@ export default function PublicHomePage() {
 
   return (
     <main className="min-h-screen">
+      {/* Debug Panel - Only in development */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="fixed top-4 right-4 bg-black/80 text-white p-4 rounded-lg text-xs font-mono z-50 max-w-xs">
+          <div className="font-bold mb-2">🐛 Debug Info</div>
+          <div>hasAnimated: {debugInfo.hasAnimated || 'null'}</div>
+          <div>navTime: {debugInfo.navTime || 'null'}</div>
+          <div>hotReloadTime: {debugInfo.hotReloadTime || 'null'}</div>
+          <div>currentTime: {debugInfo.currentTime}</div>
+          <div>shouldAnimate: {String(debugInfo.shouldAnimate)}</div>
+          <div>initialState: {debugInfo.initialState}</div>
+          <div>initialStateSimple: {debugInfo.initialStateSimple}</div>
+          <div>useSimpleApproach: {String(debugInfo.useSimpleApproach)}</div>
+          <button 
+            onClick={() => setUseSimpleApproach(!useSimpleApproach)} 
+            className="mt-2 px-2 py-1 bg-green-600 rounded text-xs mr-2"
+          >
+            Toggle Approach
+          </button>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-2 px-2 py-1 bg-blue-600 rounded text-xs"
+          >
+            Reload Page
+          </button>
+        </div>
+      )}
+
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-background to-muted/20">
         <div className="container mx-auto px-2 sm:px-4 py-6">
           <motion.div 
             className="text-center space-y-3"
             variants={getReducedMotionVariants(heroAnimations.container, !!shouldReduceMotion)}
-            initial={shouldAnimateOnMount('home-page') ? "hidden" : "visible"}
+            initial={useSimpleApproach ? getInitialAnimationStateSimple('home-page') : getInitialAnimationState('home-page')}
             animate="visible"
             onAnimationStart={() => {
               if (shouldAnimateOnMount('home-page')) {
@@ -289,7 +340,7 @@ export default function PublicHomePage() {
             <motion.div 
               className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-0.5 sm:gap-1"
               variants={getReducedMotionVariants(cardAnimations.container, !!shouldReduceMotion)}
-              initial={shouldAnimateOnMount('home-page') ? "hidden" : "visible"}
+              initial={useSimpleApproach ? getInitialAnimationStateSimple('home-page') : getInitialAnimationState('home-page')}
               animate="visible"
               onAnimationStart={() => {
                 if (shouldAnimateOnMount('home-page')) {
