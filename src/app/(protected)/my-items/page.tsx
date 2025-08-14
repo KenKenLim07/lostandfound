@@ -201,7 +201,7 @@ export default function MyItemsPage() {
   }
 
   return (
-    <div className="flex-1">
+    <div className="flex-1 overflow-x-hidden">
       <div className="container mx-auto px-4 sm:px-6 py-6">
         {/* Header */}
         <header className="mb-6">
@@ -311,11 +311,12 @@ export default function MyItemsPage() {
                         </div>
 
                         {/* Actions */}
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <Button 
                             size="sm" 
                             variant="outline" 
                             onClick={() => router.push(`/items/${item.id}`)}
+                            className="w-full sm:w-auto"
                           >
                             <Eye className="h-3 w-3 mr-1" />
                             View
@@ -326,6 +327,7 @@ export default function MyItemsPage() {
                               size="sm" 
                               variant="outline" 
                               onClick={() => openReturnModal(item.id)}
+                              className="w-full sm:w-auto"
                             >
                               <CheckCircle className="h-3 w-3 mr-1" />
                               Mark Returned
@@ -336,6 +338,7 @@ export default function MyItemsPage() {
                             size="sm" 
                             variant="destructive" 
                             onClick={() => handleDelete(item.id, item.image_url)}
+                            className="w-full sm:w-auto"
                           >
                             <Trash2 className="h-3 w-3 mr-1" />
                             Delete

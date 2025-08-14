@@ -35,7 +35,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const supabase = createServerComponentClient<Database>({ cookies });
+  const supabase = createServerComponentClient<Database>({ cookies })
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -110,7 +110,7 @@ export default async function RootLayout({
               </div>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-6 text-sm">
                 <Link href="/hall-of-fame" className="text-muted-foreground transition-colors hover:text-foreground">
-                  Hall of Fame
+                  Campus Guardian
                 </Link>
                 <ReportItemLink className="text-muted-foreground transition-colors hover:text-foreground" />
               </div>

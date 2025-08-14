@@ -4,10 +4,12 @@ import { useState } from "react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import type { Database } from "@/types/database"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 export function ReportItemLink({ className }: { className?: string }) {
   const supabase = createClientComponentClient<Database>()
   const [isChecking, setIsChecking] = useState(false)
+  const router = useRouter()
 
   async function handleClick(e: React.MouseEvent) {
     e.preventDefault()
@@ -27,7 +29,7 @@ export function ReportItemLink({ className }: { className?: string }) {
         if (profileError) {
           console.error("Error checking user status:", profileError)
           // If we can't check, allow the user to proceed (fail open)
-          window.location.href = "/post"
+          router.push("/post")
           return
         }
         
@@ -38,15 +40,15 @@ export function ReportItemLink({ className }: { className?: string }) {
         }
         
         // User is not blocked, proceed to post page
-        window.location.href = "/post"
+        router.push("/post")
       } else {
         // Not logged in, redirect to post page (will show login dialog)
-        window.location.href = "/post"
+        router.push("/post")
       }
     } catch (error) {
       console.error("Error checking user status:", error)
       // If there's an error, allow the user to proceed (fail open)
-      window.location.href = "/post"
+      router.push("/post")
     } finally {
       setIsChecking(false)
     }

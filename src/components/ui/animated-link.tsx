@@ -1,6 +1,9 @@
+"use client"
+
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { forwardRef, useEffect, useState } from "react"
+import { shouldAnimateOnMount, markAsAnimated } from "@/lib/animations"
 
 interface AnimatedLinkProps {
   href: string
@@ -16,13 +19,14 @@ export const AnimatedLink = forwardRef<HTMLAnchorElement, AnimatedLinkProps>(
     const [isVisible, setIsVisible] = useState(false)
 
     useEffect(() => {
-      if (!trigger) {
+      if (!trigger || !shouldAnimateOnMount('animated-links')) {
         setIsVisible(false)
         return
       }
 
       const timer = setTimeout(() => {
         setIsVisible(true)
+        markAsAnimated('animated-links')
       }, delay)
 
       return () => clearTimeout(timer)
@@ -40,12 +44,12 @@ export const AnimatedLink = forwardRef<HTMLAnchorElement, AnimatedLinkProps>(
         {...props}
       >
         {children}
-        <span 
+        <span
           className={cn(
             "absolute bottom-0 left-1/2 h-0.5 bg-black transform origin-right transition-transform duration-700 ease-out -translate-x-1/2",
             isVisible ? "scale-x-100" : "scale-x-0"
           )}
-          style={{ width: '90%' }}
+          style={{ width: '100%' }}
         />
       </Link>
     )

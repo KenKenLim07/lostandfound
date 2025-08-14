@@ -360,7 +360,7 @@ export function ReusableLoginForm({
             <button
               type="button"
               onClick={handleModeSwitch}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="text-sm font-medium hover:text-accent-foreground transition-colors"
             >
               {mode === "signin" ? switchToSignUpText : switchToSignInText}
             </button>

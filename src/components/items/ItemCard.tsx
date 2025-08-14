@@ -1,11 +1,10 @@
 import Image from "next/image"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import { Package, MapPin, Calendar } from "lucide-react"
+import { Package, MapPin } from "lucide-react"
 import { motion } from "framer-motion"
-import { cardAnimations, getReducedMotionVariants } from "@/lib/animations"
+import { cardAnimations, getReducedMotionVariants, shouldAnimateOnMount, markAsAnimated } from "@/lib/animations"
 import { useReducedMotion } from "framer-motion"
-
 
 function formatRelativeTime(isoString: string | null | undefined): string {
   if (!isoString) return ""
@@ -46,10 +45,8 @@ export function ItemCard(props: ItemCardProps) {
     title,
     name,
     type,
-    // description,  // hidden on list
     date,
-    location,     // needed for no-image placeholder
-    // contactNumber, // hidden on list
+    location,
     imageUrl,
     status,
     createdAt,
@@ -114,13 +111,18 @@ export function ItemCard(props: ItemCardProps) {
   )
 
   return (
-    <motion.article 
+    <motion.article
       className={cn("rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden", className)}
       variants={getReducedMotionVariants(cardAnimations.item, !!shouldReduceMotion)}
       whileHover={shouldReduceMotion ? undefined : "hover"}
       whileTap={shouldReduceMotion ? undefined : "tap"}
-      initial="hidden"
+      initial={shouldAnimateOnMount('item-cards') ? "hidden" : "visible"}
       animate="visible"
+      onAnimationStart={() => {
+        if (shouldAnimateOnMount('item-cards')) {
+          markAsAnimated('item-cards')
+        }
+      }}
     >
       {href ? (
         <Link href={href} aria-label={`View details for ${title ?? name}`}>
@@ -144,8 +146,7 @@ export function ItemCard(props: ItemCardProps) {
             <span className="shrink-0 text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap">{relativeTimeLabel}</span>
           )}
         </div>
-
       </div>
     </motion.article>
   )
-} 
+}

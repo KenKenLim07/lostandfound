@@ -20,7 +20,7 @@ export function MobileAuthStatus({ onMobileMenuClose, initialIsLoggedIn }: Props
 
   useEffect(() => {
     let isMounted = true
-
+    
     async function load() {
       try {
         const { data: { user }, error } = await supabase.auth.getUser()
@@ -30,33 +30,33 @@ export function MobileAuthStatus({ onMobileMenuClose, initialIsLoggedIn }: Props
           if (error.message === 'Auth session missing!') {
             setIsLoggedIn(false)
           } else {
-            console.error("Auth error:", error)
-            setIsLoggedIn(false)
+          console.error("Auth error:", error)
+          setIsLoggedIn(false)
           }
         } else {
           setIsLoggedIn(!!user)
         }
         setIsLoading(false)
       } catch (error) {
-        if (!isMounted) return
+      if (!isMounted) return
         console.error("Load error:", error)
         setIsLoggedIn(false)
-        setIsLoading(false)
+      setIsLoading(false)
       }
     }
-
+    
     // If server provided an initial state, skip the initial network fetch
     if (initialIsLoggedIn === undefined) {
-      load()
+    load()
     } else {
       setIsLoading(false)
     }
-
+    
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (!isMounted) return
       setIsLoggedIn(!!session)
     })
-
+    
     return () => {
       isMounted = false
       sub.subscription.unsubscribe()
@@ -73,8 +73,8 @@ export function MobileAuthStatus({ onMobileMenuClose, initialIsLoggedIn }: Props
       if (onMobileMenuClose) {
         onMobileMenuClose()
       }
-      router.push("/")
-      router.refresh()
+    router.push("/")
+    router.refresh()
     } catch (error) {
       console.error("Sign out error", error)
     }

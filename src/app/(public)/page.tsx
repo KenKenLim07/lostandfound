@@ -9,10 +9,13 @@ import { Plus, Trophy, Search } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { LoginDialog } from "@/components/auth/LoginDialog"
 import { ItemsSearchFilterBar } from "@/components/items/ItemsSearchFilterBar"
+import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { heroAnimations, cardAnimations, getReducedMotionVariants } from "@/lib/animations"
+import { heroAnimations, cardAnimations, getReducedMotionVariants, shouldAnimateOnMount, markAsAnimated } from "@/lib/animations"
 import { useReducedMotion } from "framer-motion"
 import { AnimatedLink } from "@/components/ui/animated-link"
+import { CampusGuardianDialog } from "@/components/leaderboard/CampusGuardianDialog"
+import { PostingRulesDialog } from "@/components/posting/PostingRulesDialog"
 import { ItemCardSkeleton } from "@/components/items/ItemCardSkeleton"
 
 const HOME_CACHE_KEY = "home_items_v1"
@@ -22,6 +25,7 @@ type Item = Pick<Tables<"items">, "id" | "title" | "name" | "type" | "descriptio
 
 export default function PublicHomePage() {
   const supabase = createClientComponentClient<Database>()
+  const router = useRouter()
   const [items, setItems] = useState<Item[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false)
@@ -31,6 +35,7 @@ export default function PublicHomePage() {
 
   // Login dialog control
   const [loginOpen, setLoginOpen] = useState(false)
+  const [rulesOpen, setRulesOpen] = useState(false)
 
   // Animation support
   const shouldReduceMotion = useReducedMotion()
@@ -93,6 +98,8 @@ export default function PublicHomePage() {
     fetchItems()
   }, [])
 
+
+
   const filteredItems = useMemo(() => {
     return items.filter(item => {
       const matchesSearch = !searchTerm || 
@@ -122,7 +129,7 @@ export default function PublicHomePage() {
         if (profileError) {
           console.error("Error checking user status:", profileError)
           // If we can't check, allow the user to proceed (fail open)
-          window.location.href = "/post"
+          setRulesOpen(true)
           return
         }
         
@@ -132,8 +139,8 @@ export default function PublicHomePage() {
           return
         }
         
-        // User is not blocked, proceed to post page
-        window.location.href = "/post"
+        // User is not blocked, show rules dialog first
+        setRulesOpen(true)
       } else {
         try {
           sessionStorage.setItem("intent_after_login", "/post")
@@ -168,8 +175,13 @@ export default function PublicHomePage() {
           <motion.div 
             className="text-center space-y-3"
             variants={getReducedMotionVariants(heroAnimations.container, !!shouldReduceMotion)}
-            initial="hidden"
+            initial={shouldAnimateOnMount('home-page') ? "hidden" : "visible"}
             animate="visible"
+            onAnimationStart={() => {
+              if (shouldAnimateOnMount('home-page')) {
+                markAsAnimated('home-page')
+              }
+            }}
           >
             <motion.h1 
               className="text-2xl sm:text-3xl font-bold tracking-tight"
@@ -184,18 +196,13 @@ export default function PublicHomePage() {
               Browse recently posted lost and found items.
             </motion.p>
             <motion.div 
-              className="flex flex-col sm:flex-row gap-2 justify-center items-center"
+              className="flex flex-col gap-2 items-center"
               variants={getReducedMotionVariants(heroAnimations.buttons, !!shouldReduceMotion)}
             >
+              <CampusGuardianDialog />
               <Button onClick={handleReportClick} size="default" className="gap-2">
                 <Plus className="h-4 w-4" />
                 Report Item
-              </Button>
-              <Button asChild variant="outline" size="default" className="gap-2">
-                <Link href="/hall-of-fame">
-                  <Trophy className="h-4 w-4" />
-                  Hall of Fame
-                </Link>
               </Button>
             </motion.div>
           </motion.div>
@@ -209,6 +216,16 @@ export default function PublicHomePage() {
         showTrigger={false}
         initialMode="signin"
         note="Please sign in or create an account to report a lost or found item."
+      />
+
+      {/* Posting rules dialog */}
+      <PostingRulesDialog
+        open={rulesOpen}
+        onOpenChange={setRulesOpen}
+        onContinue={() => {
+          setRulesOpen(false)
+          router.push("/post")
+        }}
       />
 
       {/* Search & Filter Section */}
@@ -230,7 +247,7 @@ export default function PublicHomePage() {
             <div className="flex items-center justify-between">
               <Skeleton className="h-5 w-24" />
               <div className="flex items-center gap-3">
-                <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-20" />
               </div>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-0.5 sm:gap-1">
@@ -272,8 +289,13 @@ export default function PublicHomePage() {
             <motion.div 
               className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-0.5 sm:gap-1"
               variants={getReducedMotionVariants(cardAnimations.container, !!shouldReduceMotion)}
-              initial="hidden"
+              initial={shouldAnimateOnMount('home-page') ? "hidden" : "visible"}
               animate="visible"
+              onAnimationStart={() => {
+                if (shouldAnimateOnMount('home-page')) {
+                  markAsAnimated('home-page')
+                }
+              }}
             >
               {filteredItems.map((item) => (
                 <ItemCard

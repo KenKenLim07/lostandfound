@@ -28,9 +28,9 @@ export function AuthStatus() {
             setIsLoggedIn(false)
             setEmail(null)
           } else {
-            console.error("Auth error:", error)
-            setIsLoggedIn(false)
-            setEmail(null)
+          console.error("Auth error:", error)
+          setIsLoggedIn(false)
+          setEmail(null)
           }
         } else {
           setIsLoggedIn(!!user)
@@ -38,11 +38,11 @@ export function AuthStatus() {
         }
         setIsLoading(false)
       } catch (error) {
-        if (!isMounted) return
+      if (!isMounted) return
         console.error("Load error:", error)
         setIsLoggedIn(false)
         setEmail(null)
-        setIsLoading(false)
+      setIsLoading(false)
       }
     }
     

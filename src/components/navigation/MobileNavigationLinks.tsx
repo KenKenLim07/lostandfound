@@ -83,7 +83,7 @@ export function MobileNavigationLinks({ initialIsLoggedIn = false, initialIsAdmi
           href="/hall-of-fame" 
           className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
         >
-          Hall of Fame
+          Campus Guardian
         </Link>
       </SheetClose>
       {isLoggedIn && (

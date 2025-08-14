@@ -321,7 +321,7 @@ export function LoginDialog(props: LoginDialogProps = {}) {
 
           {/* Mode Switch */}
           <div className="text-center">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm">
               {mode === "signin" ? "Don't have an account? " : "Already have an account? "}
               <button type="button" className="font-medium underline underline-offset-4" onClick={handleModeSwitch}>
                 {mode === "signin" ? "Sign up" : "Sign in"}
@@ -489,7 +489,7 @@ export function LoginDialog(props: LoginDialogProps = {}) {
 
           {/* Mode Switch */}
           <div className="text-center">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm">
               {mode === "signin" ? "Don't have an account? " : "Already have an account? "}
               <button type="button" className="font-medium underline underline-offset-4" onClick={handleModeSwitch}>
                 {mode === "signin" ? "Sign up" : "Sign in"}

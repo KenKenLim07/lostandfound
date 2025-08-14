@@ -79,7 +79,7 @@ export function NavigationLinks({ initialIsLoggedIn = false, initialIsAdmin = fa
         href="/hall-of-fame" 
         className="text-foreground/60 transition-colors hover:text-foreground"
       >
-        Hall of Fame
+        Campus Guardian
       </Link>
       {isLoggedIn && (
         <Link 

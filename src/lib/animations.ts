@@ -94,4 +94,38 @@ export const getReducedMotionVariants = (variants: Variants, shouldReduceMotion:
     }
   }
   return variants
+}
+
+/**
+ * Checks if animations should run for a given page/component
+ * Only runs on first visit or page reload, not on client-side navigation
+ */
+export function shouldAnimateOnMount(componentKey: string): boolean {
+  if (typeof window === 'undefined') return true // Server-side, always animate
+  
+  const key = `animated_${componentKey}`
+  const hasAnimated = sessionStorage.getItem(key)
+  
+  return !hasAnimated
+}
+
+/**
+ * Marks a component as having been animated
+ * Call this after the animation starts, not during render
+ */
+export function markAsAnimated(componentKey: string): void {
+  if (typeof window === 'undefined') return
+  
+  const key = `animated_${componentKey}`
+  sessionStorage.setItem(key, 'true')
+}
+
+/**
+ * Resets animation state for a component (useful for testing or manual refresh)
+ */
+export function resetAnimationState(componentKey: string): void {
+  if (typeof window === 'undefined') return
+  
+  const key = `animated_${componentKey}`
+  sessionStorage.removeItem(key)
 } 
