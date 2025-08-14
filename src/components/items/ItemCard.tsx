@@ -86,12 +86,23 @@ export function ItemCard(props: ItemCardProps) {
           fill
           sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 50vw"
           unoptimized={isMockUrl}
-          className="object-cover transition-opacity duration-200"
+          className="object-cover transition-opacity duration-200 image-no-blink image-smooth image-mobile-optimized"
           priority={false} // Don't prioritize all images, let preloading handle it
           onLoad={(e) => {
             // Smooth fade-in when image loads
             const target = e.target as HTMLImageElement
             target.style.opacity = '1'
+          }}
+          onError={(e) => {
+            // Fallback to mobile cache if available
+            if (imageCache.isMobileDevice) {
+              const cached = imageCache.getMobileCache(imageUrl)
+              if (cached) {
+                const target = e.target as HTMLImageElement
+                target.src = cached
+                target.style.opacity = '1'
+              }
+            }
           }}
           style={{ opacity: 0 }} // Start transparent, fade in on load
         />
