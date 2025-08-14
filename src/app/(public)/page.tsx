@@ -12,6 +12,7 @@ import { ItemsSearchFilterBar } from "@/components/items/ItemsSearchFilterBar"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { heroAnimations, cardAnimations, getReducedMotionVariants, shouldAnimateOnMount, markAsAnimated, getInitialAnimationState, getInitialAnimationStateSimple, markNavigationTime } from "@/lib/animations"
+import { preloadItemImages } from "@/lib/imageCache"
 import { useReducedMotion } from "framer-motion"
 import { AnimatedLink } from "@/components/ui/animated-link"
 import { CampusGuardianDialog } from "@/components/leaderboard/CampusGuardianDialog"
@@ -124,6 +125,13 @@ export default function PublicHomePage() {
     initialStateSimple: "hidden",
     useSimpleApproach: true
   })
+
+  // Preload images to prevent blinking on navigation back
+  useEffect(() => {
+    if (items.length > 0) {
+      preloadItemImages(items)
+    }
+  }, [items])
 
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {

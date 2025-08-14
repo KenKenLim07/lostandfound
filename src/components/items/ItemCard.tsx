@@ -3,8 +3,10 @@ import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { Package, MapPin } from "lucide-react"
 import { motion } from "framer-motion"
-import { cardAnimations, getReducedMotionVariants, shouldAnimateOnMount, markAsAnimated } from "@/lib/animations"
+import { cardAnimations, getReducedMotionVariants, shouldAnimateOnMount, markAsAnimated, markNavigationTime, getInitialAnimationState } from "@/lib/animations"
+import { imageCache } from "@/lib/imageCache"
 import { useReducedMotion } from "framer-motion"
+import { useEffect } from "react"
 
 function formatRelativeTime(isoString: string | null | undefined): string {
   if (!isoString) return ""
@@ -61,6 +63,20 @@ export function ItemCard(props: ItemCardProps) {
   // Animation support
   const shouldReduceMotion = useReducedMotion()
 
+  // Track navigation time for animation state management
+  useEffect(() => {
+    markNavigationTime('item-cards')
+  }, [])
+
+  // Preload image to prevent blinking on navigation back
+  useEffect(() => {
+    if (imageUrl && !isMockUrl) {
+      imageCache.preload(imageUrl).catch(() => {
+        // Silently fail preloading
+      })
+    }
+  }, [imageUrl, isMockUrl])
+
   const CardMedia = (
     <div className="relative aspect-square bg-muted">
       {imageUrl ? (
@@ -70,7 +86,14 @@ export function ItemCard(props: ItemCardProps) {
           fill
           sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 50vw"
           unoptimized={isMockUrl}
-          className="object-cover"
+          className="object-cover transition-opacity duration-200"
+          priority={false} // Don't prioritize all images, let preloading handle it
+          onLoad={(e) => {
+            // Smooth fade-in when image loads
+            const target = e.target as HTMLImageElement
+            target.style.opacity = '1'
+          }}
+          style={{ opacity: 0 }} // Start transparent, fade in on load
         />
       ) : (
         <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
@@ -116,7 +139,7 @@ export function ItemCard(props: ItemCardProps) {
       variants={getReducedMotionVariants(cardAnimations.item, !!shouldReduceMotion)}
       whileHover={shouldReduceMotion ? undefined : "hover"}
       whileTap={shouldReduceMotion ? undefined : "tap"}
-      initial={shouldAnimateOnMount('item-cards') ? "hidden" : "visible"}
+      initial={getInitialAnimationState('item-cards')}
       animate="visible"
       onAnimationStart={() => {
         if (shouldAnimateOnMount('item-cards')) {
