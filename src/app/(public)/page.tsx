@@ -105,7 +105,25 @@ export default function PublicHomePage() {
   }, [])
 
   // Debug state for development
-  const [debugInfo, setDebugInfo] = useState<any>({})
+  const [debugInfo, setDebugInfo] = useState<{
+    hasAnimated: string | null
+    navTime: string | null
+    hotReloadTime: string | null
+    currentTime: number
+    shouldAnimate: boolean
+    initialState: "hidden" | "visible"
+    initialStateSimple: "hidden" | "visible"
+    useSimpleApproach: boolean
+  }>({
+    hasAnimated: null,
+    navTime: null,
+    hotReloadTime: null,
+    currentTime: 0,
+    shouldAnimate: false,
+    initialState: "hidden",
+    initialStateSimple: "hidden",
+    useSimpleApproach: true
+  })
 
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
