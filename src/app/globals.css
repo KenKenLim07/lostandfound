@@ -175,10 +175,8 @@
 
 /* Mobile-specific optimizations to prevent image blinking */
 @media (max-width: 768px) {
-  /* Force hardware acceleration for images */
+  /* Force hardware acceleration for images without overflow */
   img {
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
     -webkit-perspective: 1000;
@@ -200,12 +198,18 @@
   .aspect-square {
     contain: layout style paint;
   }
+  
+  /* Ensure images stay within their containers */
+  .overflow-hidden img {
+    object-fit: cover;
+    object-position: center;
+  }
 }
 
 /* iOS Safari specific fixes */
 @supports (-webkit-touch-callout: none) {
   img {
-    -webkit-transform: translate3d(0, 0, 0);
-    transform: translate3d(0, 0, 0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
   }
 }

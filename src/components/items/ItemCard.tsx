@@ -89,7 +89,7 @@ export function ItemCard(props: ItemCardProps) {
   }, [imageUrl, isMockUrl])
 
   const CardMedia = (
-    <div className="relative aspect-square bg-muted">
+    <div className="relative aspect-square bg-muted overflow-hidden">
       {imageUrl ? (
         <Image
           src={imageUrl}
@@ -111,9 +111,7 @@ export function ItemCard(props: ItemCardProps) {
             setImageLoaded(true)
           }}
           style={{ 
-            opacity: imageLoaded ? 1 : 0,
-            // Mobile: Add transform to force hardware acceleration
-            transform: isMobileDevice ? 'translateZ(0)' : undefined
+            opacity: imageLoaded ? 1 : 0
           }}
         />
       ) : (
