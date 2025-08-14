@@ -6,7 +6,14 @@ import { motion } from "framer-motion"
 import { cardAnimations, getReducedMotionVariants, shouldAnimateOnMount, markAsAnimated, markNavigationTime, getInitialAnimationState } from "@/lib/animations"
 import { imageCache } from "@/lib/imageCache"
 import { useReducedMotion } from "framer-motion"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
+
+// Detect mobile device
+function isMobile(): boolean {
+  if (typeof window === 'undefined') return false
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+         window.innerWidth <= 768
+}
 
 function formatRelativeTime(isoString: string | null | undefined): string {
   if (!isoString) return ""
@@ -62,6 +69,8 @@ export function ItemCard(props: ItemCardProps) {
   
   // Animation support
   const shouldReduceMotion = useReducedMotion()
+  const [imageLoaded, setImageLoaded] = useState(false)
+  const [isMobileDevice] = useState(() => isMobile())
 
   // Track navigation time for animation state management
   useEffect(() => {
@@ -71,7 +80,9 @@ export function ItemCard(props: ItemCardProps) {
   // Preload image to prevent blinking on navigation back
   useEffect(() => {
     if (imageUrl && !isMockUrl) {
-      imageCache.preload(imageUrl).catch(() => {
+      imageCache.preload(imageUrl).then(() => {
+        setImageLoaded(true)
+      }).catch(() => {
         // Silently fail preloading
       })
     }
@@ -86,25 +97,24 @@ export function ItemCard(props: ItemCardProps) {
           fill
           sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 50vw"
           unoptimized={isMockUrl}
-          className="object-cover transition-opacity duration-200 image-no-blink image-smooth image-mobile-optimized"
-          priority={false} // Don't prioritize all images, let preloading handle it
+          className={cn(
+            "object-cover transition-opacity duration-200",
+            // Mobile: Use different transition timing
+            isMobileDevice ? "transition-opacity duration-100" : "transition-opacity duration-200"
+          )}
+          priority={isMobileDevice} // Prioritize on mobile
+          loading={isMobileDevice ? "eager" : "lazy"} // Force eager loading on mobile
           onLoad={(e) => {
             // Smooth fade-in when image loads
             const target = e.target as HTMLImageElement
             target.style.opacity = '1'
+            setImageLoaded(true)
           }}
-          onError={(e) => {
-            // Fallback to mobile cache if available
-            if (imageCache.isMobileDevice) {
-              const cached = imageCache.getMobileCache(imageUrl)
-              if (cached) {
-                const target = e.target as HTMLImageElement
-                target.src = cached
-                target.style.opacity = '1'
-              }
-            }
+          style={{ 
+            opacity: imageLoaded ? 1 : 0,
+            // Mobile: Add transform to force hardware acceleration
+            transform: isMobileDevice ? 'translateZ(0)' : undefined
           }}
-          style={{ opacity: 0 }} // Start transparent, fade in on load
         />
       ) : (
         <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">

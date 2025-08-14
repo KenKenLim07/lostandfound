@@ -1,6 +1,10 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+ 
+/* DO not remove this cause im using tailwindv4 */
+@import "tailwindcss";
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -169,32 +173,39 @@
   }
 }
 
-/* Mobile-specific image optimizations */
-@layer utilities {
-  /* Prevent image blinking on mobile */
-  .image-no-blink {
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
+/* Mobile-specific optimizations to prevent image blinking */
+@media (max-width: 768px) {
+  /* Force hardware acceleration for images */
+  img {
     -webkit-transform: translateZ(0);
     transform: translateZ(0);
-    will-change: auto;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-perspective: 1000;
+    perspective: 1000;
   }
   
-  /* Smooth image transitions */
-  .image-smooth {
-    transition: opacity 0.2s ease-in-out;
+  /* Prevent image re-rendering on mobile */
+  .aspect-square img {
+    will-change: opacity;
+    -webkit-will-change: opacity;
   }
   
-  /* Mobile-specific image loading states */
-  @media (max-width: 768px) {
-    .image-mobile-optimized {
-      -webkit-backface-visibility: hidden;
-      backface-visibility: hidden;
-      -webkit-transform: translateZ(0);
-      transform: translateZ(0);
-      will-change: auto;
-      image-rendering: -webkit-optimize-contrast;
-      image-rendering: optimize-contrast;
-    }
+  /* Smooth transitions for mobile */
+  .transition-opacity {
+    transition: opacity 0.1s ease-out !important;
+  }
+  
+  /* Prevent layout shifts on mobile */
+  .aspect-square {
+    contain: layout style paint;
+  }
+}
+
+/* iOS Safari specific fixes */
+@supports (-webkit-touch-callout: none) {
+  img {
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
   }
 }

@@ -12,7 +12,7 @@ import { ItemsSearchFilterBar } from "@/components/items/ItemsSearchFilterBar"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { heroAnimations, cardAnimations, getReducedMotionVariants, shouldAnimateOnMount, markAsAnimated, getInitialAnimationState, getInitialAnimationStateSimple, markNavigationTime } from "@/lib/animations"
-import { preloadItemImages, imageCache } from "@/lib/imageCache"
+import { preloadItemImages } from "@/lib/imageCache"
 import { useReducedMotion } from "framer-motion"
 import { AnimatedLink } from "@/components/ui/animated-link"
 import { CampusGuardianDialog } from "@/components/leaderboard/CampusGuardianDialog"
@@ -130,19 +130,6 @@ export default function PublicHomePage() {
   useEffect(() => {
     if (items.length > 0) {
       preloadItemImages(items)
-      
-      // Additional mobile-specific preloading
-      if (typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-        // For mobile, preload with higher priority and create base64 versions
-        items.forEach(item => {
-          if (item.image_url && !item.image_url.includes('your-bucket-url.supabase.co')) {
-            // Force preload with mobile optimizations
-            imageCache.preload(item.image_url).catch(() => {
-              // Silently fail preloading
-            })
-          }
-        })
-      }
     }
   }, [items])
 
