@@ -24,7 +24,7 @@ export default async function ItemDetailsPage({ params }: { params: Promise<{ id
 
   const { data, error } = await supabase
     .from("items")
-    .select("id, title, name, type, description, date, location, contact_number, image_url, status, created_at, returned_to, returned_year_section, returned_at, reporter_year_section")
+    .select("id, title, name, type, description, date, location, contact_number, image_url, status, created_at, returned_party, returned_year_section, returned_at, reporter_year_section")
     .eq("id", id)
     .single()
 
@@ -174,11 +174,11 @@ export default async function ItemDetailsPage({ params }: { params: Promise<{ id
                     <span>Item has been returned</span>
                   </div>
                   <div className="grid gap-2 text-sm">
-                    {item.returned_to && (
+                    {item.returned_party && (
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4" />
                         <span>
-                          To: <span className="font-medium text-green-900">{item.returned_to}</span>
+                          {item.type === "found" ? "Returned to" : "Returned by"}: <span className="font-medium text-green-900">{item.returned_party}</span>
                         </span>
                       </div>
                     )}

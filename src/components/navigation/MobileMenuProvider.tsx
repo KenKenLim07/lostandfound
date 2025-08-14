@@ -40,7 +40,7 @@ export function MobileMenuProvider({ initialIsLoggedIn, initialIsAdmin }: Props)
             <MobileNavigationLinks initialIsLoggedIn={initialIsLoggedIn} initialIsAdmin={initialIsAdmin} />
           </div>
           <div className="border-t pt-4">
-            <MobileAuthStatus onMobileMenuClose={() => setMobileMenuOpen(false)} />
+            <MobileAuthStatus initialIsLoggedIn={initialIsLoggedIn} onMobileMenuClose={() => setMobileMenuOpen(false)} />
           </div>
         </div>
       </SheetContent>

@@ -8,7 +8,7 @@ export default async function AdminReturnsPage() {
   const supabase = createServerComponentClient<Database>({ cookies })
   const { data, error } = await supabase
     .from("items")
-    .select("id, title, name, returned_to, returned_year_section, returned_at")
+    .select("id, title, name, type, returned_party, returned_year_section, returned_at")
     .eq("status", "returned")
     .order("returned_at", { ascending: false })
     .limit(100)
@@ -17,7 +17,7 @@ export default async function AdminReturnsPage() {
     return <div className="text-sm text-destructive">Failed to load: {error.message}</div>
   }
 
-  const rows = (data ?? []) as Array<Pick<Tables<"items">, "id" | "title" | "name" | "returned_to" | "returned_year_section" | "returned_at">>
+  const rows = (data ?? []) as Array<Pick<Tables<"items">, "id" | "title" | "name" | "type" | "returned_party" | "returned_year_section" | "returned_at">>
 
   return (
     <div className="space-y-3">
@@ -27,7 +27,7 @@ export default async function AdminReturnsPage() {
           <div key={r.id} className="p-3 text-sm">
             <div className="font-medium truncate">{r.title ?? "—"}</div>
             <div className="text-muted-foreground">
-              Returned to {r.returned_to ?? "—"}
+              {r.type === "found" ? "Returned to" : "Returned by"}: {r.returned_party ?? "—"}
               {r.returned_year_section ? ` • ${r.returned_year_section}` : ""}
             </div>
             <div className="text-muted-foreground">

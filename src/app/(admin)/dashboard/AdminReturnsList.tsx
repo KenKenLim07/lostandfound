@@ -6,7 +6,7 @@ import type { Database, Tables } from "@/types/database"
 
 export function AdminReturnsList() {
   const supabase = createClientComponentClient<Database>()
-  const [data, setData] = useState<Array<Pick<Tables<"items">, "id" | "title" | "name" | "returned_to" | "returned_year_section" | "returned_at">>>([])
+  const [data, setData] = useState<Array<Pick<Tables<"items">, "id" | "title" | "name" | "type" | "returned_party" | "returned_year_section" | "returned_at">>>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -15,7 +15,7 @@ export function AdminReturnsList() {
       try {
         const { data: rows, error } = await supabase
           .from("items")
-          .select("id, title, name, returned_to, returned_year_section, returned_at")
+          .select("id, title, name, type, returned_party, returned_year_section, returned_at")
           .eq("status", "returned")
           .order("returned_at", { ascending: false })
           .limit(100)
@@ -46,7 +46,7 @@ export function AdminReturnsList() {
         <div key={r.id} className="p-3 text-sm">
           <div className="font-medium truncate">{r.title ?? "—"}</div>
           <div className="text-muted-foreground">
-            Returned to {r.returned_to ?? "—"}
+            {r.type === "found" ? "Returned to" : "Returned by"}: {r.returned_party ?? "—"}
             {r.returned_year_section ? ` • ${r.returned_year_section}` : ""}
           </div>
           <div className="text-muted-foreground">

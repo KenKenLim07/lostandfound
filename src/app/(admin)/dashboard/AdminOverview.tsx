@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import type { Database, Tables } from "@/types/database"
 
-type RecentReturn = Pick<Tables<"items">, "id" | "title" | "name" | "returned_to" | "returned_year_section" | "returned_at">
+type RecentReturn = Pick<Tables<"items">, "id" | "title" | "name" | "type" | "returned_party" | "returned_year_section" | "returned_at">
 type RecentPost = Pick<Tables<"items">, "id" | "title" | "name" | "created_at" | "type">
 
 export type OverviewData = {
@@ -31,7 +31,7 @@ export function useOverviewData() {
           supabase.from("items").select("id", { count: "exact", head: true }).eq("type", "found"),
           supabase
             .from("items")
-            .select("id, title, name, returned_to, returned_year_section, returned_at")
+            .select("id, title, name, type, returned_party, returned_year_section, returned_at")
             .eq("status", "returned")
             .order("returned_at", { ascending: false })
             .limit(10),
@@ -89,7 +89,7 @@ export function AdminOverview() {
                 <div key={r.id} className="p-3 text-sm">
                   <div className="font-medium truncate">{r.title ?? "—"}</div>
                   <div className="text-muted-foreground">
-                    Returned to {r.returned_to ?? "—"}
+                    {r.type === "found" ? "Returned to" : "Returned by"}: {r.returned_party ?? "—"}
                     {r.returned_year_section ? ` • ${r.returned_year_section}` : ""}
                   </div>
                   <div className="text-muted-foreground">

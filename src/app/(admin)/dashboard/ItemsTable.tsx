@@ -166,7 +166,7 @@ export function ItemsTable({ pageSize = 50 }: AdminItemsTableProps) {
     try {
       const updatePayload: Partial<Tables<"items">> = {
         status: "returned",
-        returned_to: returnedTo || null,
+        returned_party: returnedTo || null,
         returned_year_section: returnedYearSection || null,
         returned_at: useCustomDate ? returnedDate : new Date().toISOString().slice(0, 10),
       }
@@ -335,7 +335,7 @@ export function ItemsTable({ pageSize = 50 }: AdminItemsTableProps) {
           </DialogHeader>
           <form onSubmit={submitReturn} className="space-y-3">
             <div className="grid gap-1">
-              <label className="text-sm">Returned to</label>
+              <label className="text-sm">Returned by</label>
               <input className="h-9 rounded-md border px-2 text-sm" value={returnedTo} onChange={(e) => setReturnedTo(e.target.value)} />
             </div>
             <div className="grid gap-1">

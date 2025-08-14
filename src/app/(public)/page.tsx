@@ -9,6 +9,11 @@ import { Plus, Trophy, Search } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { LoginDialog } from "@/components/auth/LoginDialog"
 import { ItemsSearchFilterBar } from "@/components/items/ItemsSearchFilterBar"
+import { motion } from "framer-motion"
+import { heroAnimations, cardAnimations, getReducedMotionVariants } from "@/lib/animations"
+import { useReducedMotion } from "framer-motion"
+import { AnimatedLink } from "@/components/ui/animated-link"
+import { ItemCardSkeleton } from "@/components/items/ItemCardSkeleton"
 
 const HOME_CACHE_KEY = "home_items_v1"
 const HOME_CACHE_TTL_MS = 60_000
@@ -26,6 +31,9 @@ export default function PublicHomePage() {
 
   // Login dialog control
   const [loginOpen, setLoginOpen] = useState(false)
+
+  // Animation support
+  const shouldReduceMotion = useReducedMotion()
 
   // Hydrate from cache immediately to avoid flash when navigating back
   useEffect(() => {
@@ -155,16 +163,30 @@ export default function PublicHomePage() {
   return (
     <main className="min-h-screen">
       {/* Hero Section */}
-      <section className="border-b bg-gradient-to-b from-background to-muted/20">
+      <section className="bg-gradient-to-b from-background to-muted/20">
         <div className="container mx-auto px-2 sm:px-4 py-6">
-          <div className="text-center space-y-3">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+          <motion.div 
+            className="text-center space-y-3"
+            variants={getReducedMotionVariants(heroAnimations.container, !!shouldReduceMotion)}
+            initial="hidden"
+            animate="visible"
+          >
+            <motion.h1 
+              className="text-2xl sm:text-3xl font-bold tracking-tight"
+              variants={getReducedMotionVariants(heroAnimations.title, !!shouldReduceMotion)}
+            >
               Welcome, Mosquedian&apos;s
-            </h1>
-            <p className="text-muted-foreground max-w-xl mx-auto">
+            </motion.h1>
+            <motion.p 
+              className="text-muted-foreground max-w-xl mx-auto"
+              variants={getReducedMotionVariants(heroAnimations.subtitle, !!shouldReduceMotion)}
+            >
               Browse recently posted lost and found items.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-2 justify-center items-center">
+            </motion.p>
+            <motion.div 
+              className="flex flex-col sm:flex-row gap-2 justify-center items-center"
+              variants={getReducedMotionVariants(heroAnimations.buttons, !!shouldReduceMotion)}
+            >
               <Button onClick={handleReportClick} size="default" className="gap-2">
                 <Plus className="h-4 w-4" />
                 Report Item
@@ -175,8 +197,8 @@ export default function PublicHomePage() {
                   Hall of Fame
                 </Link>
               </Button>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
@@ -207,20 +229,13 @@ export default function PublicHomePage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <Skeleton className="h-5 w-24" />
-              <Skeleton className="h-4 w-20" />
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-4 w-20" />
+              </div>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-0.5 sm:gap-1">
-              {Array.from({ length: 2 }).map((_, i) => (
-                <div key={i} className="rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden">
-                  <Skeleton className="aspect-square w-full" />
-                  <div className="p-2 sm:p-3 space-y-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <Skeleton className="h-4 flex-1" />
-                      <Skeleton className="h-3 w-12" />
-                    </div>
-                    <Skeleton className="h-8 w-full" />
-                  </div>
-                </div>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <ItemCardSkeleton key={i} />
               ))}
             </div>
           </div>
@@ -249,12 +264,17 @@ export default function PublicHomePage() {
                     Filtered by &quot;{searchTerm}&quot;
                   </p>
                 )}
-                <Link href="/items" className="text-xs font-semibold text-muted-foreground hover:text-foreground uppercase tracking-wide underline underline-offset-4 px-2">
+                <AnimatedLink href="/items" delay={300} trigger={!isLoading}>
                   View all items
-                </Link>
+                </AnimatedLink>
               </div>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-0.5 sm:gap-1">
+            <motion.div 
+              className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-0.5 sm:gap-1"
+              variants={getReducedMotionVariants(cardAnimations.container, !!shouldReduceMotion)}
+              initial="hidden"
+              animate="visible"
+            >
               {filteredItems.map((item) => (
                 <ItemCard
                   key={item.id}
@@ -272,7 +292,7 @@ export default function PublicHomePage() {
                   href={`/items/${item.id}`}
                 />
               ))}
-            </div>
+            </motion.div>
           </div>
         )}
       </section>

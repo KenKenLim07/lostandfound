@@ -21,21 +21,28 @@ export function AuthStatus() {
       try {
         const { data: { user }, error } = await supabase.auth.getUser()
         if (!isMounted) return
+        
         if (error) {
-          console.error("Auth error:", error)
-          setIsLoggedIn(false)
-          setEmail(null)
+          // Handle AuthSessionMissingError gracefully
+          if (error.message === 'Auth session missing!') {
+            setIsLoggedIn(false)
+            setEmail(null)
+          } else {
+            console.error("Auth error:", error)
+            setIsLoggedIn(false)
+            setEmail(null)
+          }
         } else {
           setIsLoggedIn(!!user)
           setEmail(user?.email ?? null)
         }
         setIsLoading(false)
       } catch (error) {
-      if (!isMounted) return
+        if (!isMounted) return
         console.error("Load error:", error)
         setIsLoggedIn(false)
         setEmail(null)
-      setIsLoading(false)
+        setIsLoading(false)
       }
     }
     

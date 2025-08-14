@@ -9,74 +9,74 @@ import { useRouter } from "next/navigation"
 
 type Props = {
   onMobileMenuClose?: () => void
+  initialIsLoggedIn?: boolean
 }
 
-export function MobileAuthStatus({ onMobileMenuClose }: Props) {
+export function MobileAuthStatus({ onMobileMenuClose, initialIsLoggedIn }: Props) {
   const supabase = createClientComponentClient<Database>()
   const router = useRouter()
-  const [isLoading, setIsLoading] = useState(true)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [isLoading, setIsLoading] = useState(initialIsLoggedIn === undefined)
+  const [isLoggedIn, setIsLoggedIn] = useState(!!initialIsLoggedIn)
 
   useEffect(() => {
     let isMounted = true
-    
+
     async function load() {
       try {
         const { data: { user }, error } = await supabase.auth.getUser()
         if (!isMounted) return
+
         if (error) {
-          console.error("Auth error:", error)
-          setIsLoggedIn(false)
+          if (error.message === 'Auth session missing!') {
+            setIsLoggedIn(false)
+          } else {
+            console.error("Auth error:", error)
+            setIsLoggedIn(false)
+          }
         } else {
           setIsLoggedIn(!!user)
         }
         setIsLoading(false)
       } catch (error) {
-      if (!isMounted) return
+        if (!isMounted) return
         console.error("Load error:", error)
         setIsLoggedIn(false)
-      setIsLoading(false)
+        setIsLoading(false)
       }
     }
-    
-    load()
-    
+
+    // If server provided an initial state, skip the initial network fetch
+    if (initialIsLoggedIn === undefined) {
+      load()
+    } else {
+      setIsLoading(false)
+    }
+
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (!isMounted) return
-      
-      console.log("Auth state change:", event, !!session)
-      const isNowLoggedIn = !!session
-      
-      setIsLoggedIn(isNowLoggedIn)
-      
-      // Note: Removed login redirect to keep users on current page for better UX
-      // Users will stay where they are and can continue browsing
+      setIsLoggedIn(!!session)
     })
-    
+
     return () => {
       isMounted = false
       sub.subscription.unsubscribe()
     }
-  }, [supabase])
+  }, [supabase, initialIsLoggedIn])
 
   async function signOut() {
     try {
-      console.log("Starting sign out...")
       const { error } = await supabase.auth.signOut()
       if (error) {
         console.error("Sign out error:", error)
         return
       }
-      console.log("Sign out successful")
-      
-      // Close mobile menu after successful sign out
       if (onMobileMenuClose) {
         onMobileMenuClose()
       }
-    router.push("/")
-    router.refresh()
+      router.push("/")
+      router.refresh()
     } catch (error) {
-      console.error("Sign out error:", error)
+      console.error("Sign out error", error)
     }
   }
 

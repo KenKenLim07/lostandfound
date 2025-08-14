@@ -2,6 +2,9 @@ import Image from "next/image"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { Package, MapPin, Calendar } from "lucide-react"
+import { motion } from "framer-motion"
+import { cardAnimations, getReducedMotionVariants } from "@/lib/animations"
+import { useReducedMotion } from "framer-motion"
 
 
 function formatRelativeTime(isoString: string | null | undefined): string {
@@ -57,6 +60,9 @@ export function ItemCard(props: ItemCardProps) {
   const typePillClasses = type === "lost" ? "bg-red-600 text-white" : "bg-green-600 text-white"
   const relativeTimeLabel = formatRelativeTime(createdAt ?? date)
   const isMockUrl = imageUrl?.includes("your-bucket-url.supabase.co") ?? false
+  
+  // Animation support
+  const shouldReduceMotion = useReducedMotion()
 
   const CardMedia = (
     <div className="relative aspect-square bg-muted">
@@ -70,16 +76,14 @@ export function ItemCard(props: ItemCardProps) {
           className="object-cover"
         />
       ) : (
-        <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center bg-gradient-to-br from-muted/50 to-muted/80">
-          <div className="bg-background/80 backdrop-blur-sm rounded-full p-3 mb-3 shadow-sm">
-            <Package className="h-6 w-6 text-muted-foreground" />
-          </div>
-          <div className="space-y-2">
-            <p className="text-sm font-semibold text-foreground line-clamp-2 leading-tight">
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+          <Package className="h-8 w-8 text-muted-foreground/60 mb-2" />
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground line-clamp-2">
               {title ?? name}
             </p>
             {location && (
-              <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+              <div className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground/70">
                 <MapPin className="h-3 w-3" />
                 <span className="line-clamp-1">{location}</span>
               </div>
@@ -110,7 +114,14 @@ export function ItemCard(props: ItemCardProps) {
   )
 
   return (
-    <article className={cn("rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden", className)}>
+    <motion.article 
+      className={cn("rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden", className)}
+      variants={getReducedMotionVariants(cardAnimations.item, !!shouldReduceMotion)}
+      whileHover={shouldReduceMotion ? undefined : "hover"}
+      whileTap={shouldReduceMotion ? undefined : "tap"}
+      initial="hidden"
+      animate="visible"
+    >
       {href ? (
         <Link href={href} aria-label={`View details for ${title ?? name}`}>
           {CardMedia}
@@ -135,6 +146,6 @@ export function ItemCard(props: ItemCardProps) {
         </div>
 
       </div>
-    </article>
+    </motion.article>
   )
 } 

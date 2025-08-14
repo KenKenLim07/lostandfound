@@ -26,7 +26,7 @@ export type Database = {
           name: string
           reporter_year_section: string | null
           returned_at: string | null
-          returned_to: string | null
+          returned_party: string | null
           returned_year_section: string | null
           status: string | null
           title: string | null
@@ -44,7 +44,7 @@ export type Database = {
           name: string
           reporter_year_section?: string | null
           returned_at?: string | null
-          returned_to?: string | null
+          returned_party?: string | null
           returned_year_section?: string | null
           status?: string | null
           title?: string | null
@@ -62,7 +62,7 @@ export type Database = {
           name?: string
           reporter_year_section?: string | null
           returned_at?: string | null
-          returned_to?: string | null
+          returned_party?: string | null
           returned_year_section?: string | null
           status?: string | null
           title?: string | null

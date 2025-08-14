@@ -9,6 +9,10 @@ import { ItemCard } from "@/components/items/ItemCard"
 import { ItemCardSkeleton } from "@/components/items/ItemCardSkeleton"
 import { Search } from "lucide-react"
 import { ItemsSearchFilterBar } from "@/components/items/ItemsSearchFilterBar"
+import { motion } from "framer-motion"
+import { cardAnimations, getReducedMotionVariants } from "@/lib/animations"
+import { useReducedMotion } from "framer-motion"
+import { AnimatedLink } from "@/components/ui/animated-link"
 
  type Item = Pick<Tables<"items">, "id" | "title" | "name" | "type" | "description" | "date" | "location" | "contact_number" | "image_url" | "status" | "created_at">
 
@@ -22,6 +26,9 @@ export default function AllItemsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filter, setFilter] = useState<"all" | "lost" | "found" | "returned">("all")
   const [cursor, setCursor] = useState<{ created_at: string; id: string } | null>(null)
+
+  // Animation support
+  const shouldReduceMotion = useReducedMotion()
 
   const observerRef = useRef<HTMLDivElement | null>(null)
   const supabase = useMemo(() => {
@@ -134,7 +141,12 @@ export default function AllItemsPage() {
         </div>
       ) : (
         <>
-          <section className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-0.5 sm:gap-1">
+          <motion.section 
+            className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-0.5 sm:gap-1"
+            variants={getReducedMotionVariants(cardAnimations.container, !!shouldReduceMotion)}
+            initial="hidden"
+            animate="visible"
+          >
             {items.map((item) => (
               <ItemCard
                 key={item.id}
@@ -152,7 +164,7 @@ export default function AllItemsPage() {
                 href={`/items/${item.id}`}
               />
             ))}
-          </section>
+          </motion.section>
 
           {/* Load more sentinel */}
           <div ref={observerRef} aria-hidden className="h-10" />

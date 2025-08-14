@@ -28,7 +28,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 
-type Item = Pick<Tables<"items">, "id" | "title" | "name" | "type" | "status" | "image_url" | "created_at" | "returned_to" | "returned_year_section" | "returned_at">
+type Item = Pick<Tables<"items">, "id" | "title" | "name" | "type" | "status" | "image_url" | "created_at" | "returned_party" | "returned_year_section" | "returned_at">
 
 export default function MyItemsPage() {
   const supabase = createClientComponentClient<Database>()
@@ -48,6 +48,7 @@ export default function MyItemsPage() {
   const [returnedDate, setReturnedDate] = useState<string>(new Date().toISOString().slice(0, 10))
   const [useCustomDate, setUseCustomDate] = useState(false)
   const [isSubmittingReturn, startSubmittingReturn] = useTransition()
+  const [returningItemType, setReturningItemType] = useState<"lost" | "found" | null>(null)
 
   useEffect(() => {
     let isMounted = true
@@ -76,7 +77,7 @@ export default function MyItemsPage() {
       try {
         const { data, error } = await supabase
           .from("items")
-          .select("id, title, name, type, status, image_url, created_at, returned_to, returned_year_section, returned_at")
+          .select("id, title, name, type, status, image_url, created_at, returned_party, returned_year_section, returned_at")
           .eq("user_id", userId)
           .order("created_at", { ascending: false })
         
@@ -94,6 +95,8 @@ export default function MyItemsPage() {
 
   function openReturnModal(itemId: string) {
     setReturningItemId(itemId)
+    const it = items.find(x => x.id === itemId)
+    setReturningItemType((it?.type as "lost" | "found") ?? null)
     setReturnedTo("")
     setReturnedYearSection("")
     setReturnedDate(new Date().toISOString().slice(0, 10))
@@ -107,7 +110,7 @@ export default function MyItemsPage() {
     startSubmittingReturn(async () => {
       const updatePayload: Partial<Tables<"items">> = {
         status: "returned",
-        returned_to: returnedTo || null,
+        returned_party: returnedTo || null,
         returned_year_section: returnedYearSection || null,
         returned_at: useCustomDate ? returnedDate : new Date().toISOString().slice(0, 10)
       }
@@ -123,7 +126,7 @@ export default function MyItemsPage() {
       }
       setItems((prev) => prev.map((it) => 
         it.id === returningItemId 
-          ? { ...it, status: "returned", returned_to: returnedTo || null, returned_year_section: returnedYearSection || null, returned_at: useCustomDate ? returnedDate : new Date().toISOString().slice(0, 10) }
+          ? { ...it, status: "returned", returned_party: returnedTo || null, returned_year_section: returnedYearSection || null, returned_at: useCustomDate ? returnedDate : new Date().toISOString().slice(0, 10) }
           : it
       ))
       setReturnModalOpen(false)
@@ -272,17 +275,17 @@ export default function MyItemsPage() {
                         </div>
 
                         {/* Return Info */}
-                        {item.status === "returned" && (item.returned_to || item.returned_year_section || item.returned_at) && (
+                        {item.status === "returned" && (item.returned_party || item.returned_year_section || item.returned_at) && (
                           <div className="mb-3 p-3 bg-green-50 rounded-lg border border-green-200">
                             <div className="flex items-center gap-2 text-sm text-green-700 mb-1">
                               <CheckCircle className="h-4 w-4" />
                               <span className="font-medium">Returned</span>
                             </div>
                             <div className="space-y-1 text-xs text-green-600">
-                              {item.returned_to && (
+                              {item.returned_party && (
                                 <div className="flex items-center gap-1">
                                   <User className="h-3 w-3" />
-                                  <span>To: {item.returned_to}</span>
+                                  <span>{item.type === "found" ? "To" : "By"}: {item.returned_party}</span>
                                 </div>
                               )}
                               {item.returned_year_section && (
@@ -359,12 +362,12 @@ export default function MyItemsPage() {
           </DialogHeader>
           <form onSubmit={markAsReturned} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="returned_to">Returned to (name) *</Label>
+              <Label htmlFor="returned_to">{returningItemType === "found" ? "Returned to (name) *" : "Returned by (name) *"}</Label>
               <Input 
                 id="returned_to" 
                 value={returnedTo} 
                 onChange={(e) => setReturnedTo(e.target.value)} 
-                placeholder="Student name" 
+                placeholder={returningItemType === "found" ? "Owner's name" : "Student who returned the item"} 
                 required
               />
             </div>
