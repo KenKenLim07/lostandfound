@@ -173,43 +173,11 @@
   }
 }
 
-/* Mobile-specific optimizations to prevent image blinking */
+/* Simplified mobile optimizations */
 @media (max-width: 768px) {
-  /* Force hardware acceleration for images without overflow */
-  img {
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
-    -webkit-perspective: 1000;
-    perspective: 1000;
-  }
-  
-  /* Prevent image re-rendering on mobile */
+  /* Basic image optimization */
   .aspect-square img {
-    will-change: opacity;
-    -webkit-will-change: opacity;
-  }
-  
-  /* Smooth transitions for mobile */
-  .transition-opacity {
-    transition: opacity 0.1s ease-out !important;
-  }
-  
-  /* Prevent layout shifts on mobile */
-  .aspect-square {
-    contain: layout style paint;
-  }
-  
-  /* Ensure images stay within their containers */
-  .overflow-hidden img {
     object-fit: cover;
     object-position: center;
-  }
-}
-
-/* iOS Safari specific fixes */
-@supports (-webkit-touch-callout: none) {
-  img {
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
   }
 }

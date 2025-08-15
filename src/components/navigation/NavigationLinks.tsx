@@ -14,7 +14,6 @@ export function NavigationLinks({ initialIsLoggedIn = false, initialIsAdmin = fa
   const supabase = createClientComponentClient<Database>()
   const [isLoggedIn, setIsLoggedIn] = useState(initialIsLoggedIn)
   const [isAdmin, setIsAdmin] = useState(initialIsAdmin)
-  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -46,7 +45,6 @@ export function NavigationLinks({ initialIsLoggedIn = false, initialIsAdmin = fa
           setIsAdmin(false)
         }
       } finally {
-        if (isMounted) setIsLoading(false)
       }
     }
 

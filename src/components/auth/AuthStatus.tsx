@@ -51,7 +51,6 @@ export function AuthStatus() {
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (!isMounted) return
       
-      console.log("Auth state change:", event, !!session)
       const isNowLoggedIn = !!session
       
       setIsLoggedIn(isNowLoggedIn)
@@ -69,13 +68,11 @@ export function AuthStatus() {
 
   async function handleSignOut() {
     try {
-      console.log("Starting sign out...")
       const { error } = await supabase.auth.signOut()
       if (error) {
         console.error("Sign out error:", error)
         return
       }
-      console.log("Sign out successful")
     router.push("/")
     router.refresh()
     } catch (error) {
