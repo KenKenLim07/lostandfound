@@ -1,7 +1,6 @@
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { createServerSupabaseClient } from "@/lib/supabase-server"
 import Image from "next/image"
-import type { Database, Tables } from "@/types/database"
+import type { Tables } from "@/types/database"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { X, Calendar, MapPin, Phone, CheckCircle, User, GraduationCap, Tag } from "lucide-react"
@@ -20,7 +19,7 @@ function getErrorMessage(err: unknown): string {
 
 export default async function ItemDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const supabase = createServerComponentClient<Database>({ cookies })
+  const supabase = await createServerSupabaseClient()
 
   const { data, error } = await supabase
     .from("items")
