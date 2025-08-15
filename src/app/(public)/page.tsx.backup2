@@ -3,7 +3,6 @@ import { useState, useEffect } from "react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import type { Database, Tables } from "@/types/database"
 import { ItemCard } from "@/components/items/ItemCard"
-import { ItemCardSkeleton } from "@/components/items/ItemCardSkeleton"
 import { Button } from "@/components/ui/button"
 import { Plus, Search } from "lucide-react"
 import { LoginDialog } from "@/components/auth/LoginDialog"
@@ -19,6 +18,7 @@ const HOME_CACHE_TTL_MS = 60_000
 type Item = Pick<Tables<"items">, "id" | "title" | "name" | "type" | "description" | "date" | "location" | "contact_number" | "image_url" | "status" | "created_at">
 
 export default function PublicHomePage() {
+  const supabase = createClientComponentClient<Database>()
   const router = useRouter()
   const [items, setItems] = useState<Item[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -29,17 +29,13 @@ export default function PublicHomePage() {
   const [loginOpen, setLoginOpen] = useState(false)
   const [rulesOpen, setRulesOpen] = useState(false)
 
-
-
   // Hydrate from cache immediately to avoid flash when navigating back
   useEffect(() => {
     try {
       const raw = typeof window !== "undefined" ? sessionStorage.getItem(HOME_CACHE_KEY) : null
-      
       if (raw) {
         const cached = JSON.parse(raw) as { items: Item[]; ts: number }
         const isFresh = Date.now() - cached.ts < HOME_CACHE_TTL_MS
-        
         if (isFresh && Array.isArray(cached.items)) {
           setItems(cached.items)
           // Only set loading to false if we have items, otherwise keep loading
@@ -49,14 +45,13 @@ export default function PublicHomePage() {
         }
       }
     } catch {
-      // Ignore cache errors
+      // ignore cache errors
     }
   }, [])
 
   useEffect(() => {
     async function fetchItems() {
       try {
-        const supabase = createClientComponentClient<Database>()
         const { data, error } = await supabase
           .from("items")
           .select("id, title, name, type, description, date, location, contact_number, image_url, status, created_at")
@@ -75,7 +70,7 @@ export default function PublicHomePage() {
             JSON.stringify({ items: nextItems, ts: Date.now() })
           )
         } catch {
-          // Ignore cache errors
+          // ignore cache write errors
         }
       } catch (err) { // eslint-disable-line @typescript-eslint/no-unused-vars
         // Handle error silently for better UX
@@ -85,7 +80,7 @@ export default function PublicHomePage() {
     }
 
     fetchItems()
-  }, [])
+  }, [supabase])
 
   // Filter items based on search and filter
   const filteredItems = items.filter((item) => {
@@ -101,11 +96,8 @@ export default function PublicHomePage() {
     return matchesSearch && matchesFilter
   })
 
-
-
   async function handleReportClick() {
     try {
-      const supabase = createClientComponentClient<Database>()
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) {
         setLoginOpen(true)
@@ -152,14 +144,7 @@ export default function PublicHomePage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold">
-              {isLoading ? (
-                <div className="flex items-center gap-2">
-                  <div className="h-4 w-20 bg-muted rounded animate-pulse" />
-                  <div className="h-4 w-16 bg-muted rounded animate-pulse" />
-                </div>
-              ) : (
-                `${filteredItems.length} item${filteredItems.length !== 1 ? 's' : ''} found`
-              )}
+              {filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''} found
             </h2>
             <div className="flex items-center gap-3">
               {searchTerm && (
@@ -179,43 +164,24 @@ export default function PublicHomePage() {
             filter={filter}
             onFilterChange={(next) => setFilter(next)}
           />
-          
-          {/* Items Grid with Skeleton Loading */}
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-0.5 sm:gap-1">
-            {isLoading ? (
-              // Show skeleton loading while fetching data
-              Array.from({ length: 6 }).map((_, i) => (
-                <ItemCardSkeleton key={i} />
-              ))
-            ) : filteredItems.length === 0 ? (
-              // Show empty state when no items
-              <div className="col-span-full text-center py-12">
-                <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-                  <Search className="h-8 w-8 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">No items found</h3>
-                <p className="text-muted-foreground">Try adjusting your search or filter criteria.</p>
-              </div>
-            ) : (
-              // Show actual items
-              filteredItems.map((item) => (
-                <ItemCard
-                  key={item.id}
-                  id={item.id}
-                  title={item.title}
-                  name={item.name}
-                  type={item.type as "lost" | "found"}
-                  description={item.description}
-                  date={item.date}
-                  location={item.location}
-                  contactNumber={item.contact_number}
-                  imageUrl={item.image_url}
-                  status={item.status as "active" | "returned" | null}
-                  createdAt={item.created_at}
-                  href={`/items/${item.id}`}
-                />
-              ))
-            )}
+            {filteredItems.map((item) => (
+              <ItemCard
+                key={item.id}
+                id={item.id}
+                title={item.title}
+                name={item.name}
+                type={item.type as "lost" | "found"}
+                description={item.description}
+                date={item.date}
+                location={item.location}
+                contactNumber={item.contact_number}
+                imageUrl={item.image_url}
+                status={item.status as "active" | "returned" | null}
+                createdAt={item.created_at}
+                href={`/items/${item.id}`}
+              />
+            ))}
           </div>
         </div>
       </section>

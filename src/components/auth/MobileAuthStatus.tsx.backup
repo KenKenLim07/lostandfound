@@ -7,13 +7,16 @@ import { Button } from "@/components/ui/button"
 import { LoginDialog } from "@/components/auth/LoginDialog"
 import { useRouter } from "next/navigation"
 
-export function AuthStatus() {
+type Props = {
+  onMobileMenuClose?: () => void
+  initialIsLoggedIn?: boolean
+}
+
+export function MobileAuthStatus({ onMobileMenuClose, initialIsLoggedIn }: Props) {
   const supabase = createClientComponentClient<Database>()
   const router = useRouter()
-  const [isLoading, setIsLoading] = useState(true)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [email, setEmail] = useState<string | null>(null)
-  const [loginOpen, setLoginOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(initialIsLoggedIn === undefined)
+  const [isLoggedIn, setIsLoggedIn] = useState(!!initialIsLoggedIn)
 
   useEffect(() => {
     let isMounted = true
@@ -22,88 +25,68 @@ export function AuthStatus() {
       try {
         const { data: { user }, error } = await supabase.auth.getUser()
         if (!isMounted) return
-        
+
         if (error) {
-          // Handle AuthSessionMissingError gracefully
           if (error.message === 'Auth session missing!') {
             setIsLoggedIn(false)
-            setEmail(null)
           } else {
           console.error("Auth error:", error)
           setIsLoggedIn(false)
-          setEmail(null)
           }
         } else {
           setIsLoggedIn(!!user)
-          setEmail(user?.email ?? null)
         }
         setIsLoading(false)
       } catch (error) {
       if (!isMounted) return
         console.error("Load error:", error)
         setIsLoggedIn(false)
-        setEmail(null)
       setIsLoading(false)
       }
     }
     
+    // If server provided an initial state, skip the initial network fetch
+    if (initialIsLoggedIn === undefined) {
     load()
+    } else {
+      setIsLoading(false)
+    }
     
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (!isMounted) return
-      
-      const isNowLoggedIn = !!session
-      
-      setIsLoggedIn(isNowLoggedIn)
-      setEmail(session?.user?.email ?? null)
-      
-      // Note: Removed login redirect to keep users on current page for better UX
-      // Users will stay where they are and can continue browsing
+      setIsLoggedIn(!!session)
     })
     
     return () => {
       isMounted = false
       sub.subscription.unsubscribe()
     }
-  }, [supabase])
+  }, [supabase, initialIsLoggedIn])
 
-  async function handleSignOut() {
+  async function signOut() {
     try {
       const { error } = await supabase.auth.signOut()
       if (error) {
         console.error("Sign out error:", error)
         return
       }
+      if (onMobileMenuClose) {
+        onMobileMenuClose()
+      }
     router.push("/")
     router.refresh()
     } catch (error) {
-      console.error("Sign out error:", error)
+      console.error("Sign out error", error)
     }
   }
 
-  if (isLoading) {
-    return <div className="text-xs text-muted-foreground">…</div>
-  }
+  if (isLoading) return <div className="text-xs text-muted-foreground">…</div>
 
-  if (!isLoggedIn) {
-    return (
-      <>
-        <Button variant="outline" size="sm" onClick={() => setLoginOpen(true)}>
-          Sign In
-        </Button>
-        {loginOpen && (
-          <LoginDialog open={loginOpen} onOpenChange={setLoginOpen} showTrigger={false} />
-        )}
-      </>
-    )
-  }
+  if (!isLoggedIn) return <LoginDialog isMobileMenu={true} onMobileMenuClose={onMobileMenuClose} />
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs sm:text-sm text-green-600">Logged in{email ? ` as ${email}` : ""}</span>
-      <Button size="sm" variant="outline" onClick={handleSignOut}>
+      <Button variant="outline" size="sm" onClick={signOut} className="w-full">
         Sign out
       </Button>
-    </div>
   )
-}
+} 

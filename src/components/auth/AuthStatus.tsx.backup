@@ -13,7 +13,6 @@ export function AuthStatus() {
   const [isLoading, setIsLoading] = useState(true)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [email, setEmail] = useState<string | null>(null)
-  const [loginOpen, setLoginOpen] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -86,16 +85,7 @@ export function AuthStatus() {
   }
 
   if (!isLoggedIn) {
-    return (
-      <>
-        <Button variant="outline" size="sm" onClick={() => setLoginOpen(true)}>
-          Sign In
-        </Button>
-        {loginOpen && (
-          <LoginDialog open={loginOpen} onOpenChange={setLoginOpen} showTrigger={false} />
-        )}
-      </>
-    )
+    return <LoginDialog showTrigger={false} />
   }
 
   return (
@@ -106,4 +96,4 @@ export function AuthStatus() {
       </Button>
     </div>
   )
-}
+} 

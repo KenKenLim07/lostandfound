@@ -112,7 +112,13 @@ export default function AllItemsPage() {
       <div className="container mx-auto px-2 sm:px-4 py-6">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">All Items</h1>
+            <h1 className="text-2xl font-bold">
+              {isLoading ? (
+                <div className="h-8 w-32 bg-muted rounded animate-pulse" />
+              ) : (
+                "All Items"
+              )}
+            </h1>
           </div>
           <ItemsSearchFilterBar
             searchTerm={searchTerm}

@@ -2,7 +2,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { Package, MapPin } from "lucide-react"
-import { useState } from "react"
+import { useImagePreload } from "@/hooks/useImagePreload"
 
 function formatRelativeTime(isoString: string | null | undefined): string {
   if (!isoString) return ""
@@ -56,23 +56,39 @@ export function ItemCard(props: ItemCardProps) {
   const relativeTimeLabel = formatRelativeTime(createdAt ?? date)
   const isMockUrl = imageUrl?.includes("your-bucket-url.supabase.co") ?? false
   
-  const [imageLoaded, setImageLoaded] = useState(false)
+  // Use the custom hook for image preloading with mobile detection
+  const { isLoaded: imageLoaded, isLoading, isMobile } = useImagePreload(imageUrl)
 
+  // Use a more stable approach to prevent image blinking on navigation
   const CardMedia = (
     <div className="relative aspect-square bg-muted overflow-hidden">
       {imageUrl ? (
-        <Image
-          src={imageUrl}
-          alt={title ?? name}
-          fill
-          sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 50vw"
-          unoptimized={isMockUrl}
-          className={cn(
-            "object-cover transition-opacity duration-200",
-            imageLoaded ? "opacity-100" : "opacity-0"
+        <>
+          <Image
+            src={imageUrl}
+            alt={title ?? name}
+            fill
+            sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 50vw"
+            unoptimized={isMockUrl}
+            priority={false}
+            loading="lazy"
+            className={cn(
+              "object-cover",
+              isMobile 
+                ? "mobile-hardware-accel force-gpu mobile-image-transition mobile-memory-safe"
+                : "image-no-blink image-smooth-transition",
+              imageLoaded ? "opacity-100" : "opacity-0"
+            )}
+          />
+          {isLoading && !imageLoaded && (
+            <div className={cn(
+              "absolute inset-0",
+              isMobile 
+                ? "bg-muted/30 animate-pulse mobile-memory-safe" 
+                : "bg-muted/20 animate-pulse"
+            )} />
           )}
-          onLoad={() => setImageLoaded(true)}
-        />
+        </>
       ) : (
         <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
           <Package className="h-8 w-8 text-muted-foreground/60 mb-2" />
