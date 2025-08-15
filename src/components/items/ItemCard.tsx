@@ -2,10 +2,10 @@ import Image from "next/image"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { Package, MapPin } from "lucide-react"
-import { motion } from "framer-motion"
-import { cardAnimations, getReducedMotionVariants } from "@/lib/animations"
-import { useReducedMotion } from "framer-motion"
-import { useState } from "react"
+import { cardAnimations, getReducedMotionVariants, shouldAnimateOnMount, markAsAnimated, markNavigationTime, getInitialAnimationState } from "@/lib/animations"
+import { imageCache } from "@/lib/imageCache"
+import {motion, useReducedMotion } from "framer-motion"
+import { useEffect, useState } from "react"
 
 // Detect mobile device
 function isMobile(): boolean {
@@ -71,7 +71,21 @@ export function ItemCard(props: ItemCardProps) {
   const [imageLoaded, setImageLoaded] = useState(false)
   const [isMobileDevice] = useState(() => isMobile())
 
+  // Track navigation time for animation state management
+  useEffect(() => {
+    markNavigationTime('item-cards')
+  }, [])
 
+  // Preload image to prevent blinking on navigation back
+  useEffect(() => {
+    if (imageUrl && !isMockUrl) {
+      imageCache.preload(imageUrl).then(() => {
+        setImageLoaded(true)
+      }).catch(() => {
+        // Silently fail preloading
+      })
+    }
+  }, [imageUrl, isMockUrl])
 
   const CardMedia = (
     <div className="relative aspect-square bg-muted overflow-hidden">
@@ -84,11 +98,20 @@ export function ItemCard(props: ItemCardProps) {
           unoptimized={isMockUrl}
           className={cn(
             "object-cover transition-opacity duration-200",
-            imageLoaded ? "opacity-100" : "opacity-0"
+            // Mobile: Use different transition timing
+            isMobileDevice ? "transition-opacity duration-100" : "transition-opacity duration-200"
           )}
           priority={isMobileDevice} // Prioritize on mobile
           loading={isMobileDevice ? "eager" : "lazy"} // Force eager loading on mobile
-          onLoad={() => setImageLoaded(true)}
+          onLoad={(e) => {
+            // Smooth fade-in when image loads
+            const target = e.target as HTMLImageElement
+            target.style.opacity = '1'
+            setImageLoaded(true)
+          }}
+          style={{ 
+            opacity: imageLoaded ? 1 : 0
+          }}
         />
       ) : (
         <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
@@ -134,8 +157,13 @@ export function ItemCard(props: ItemCardProps) {
       variants={getReducedMotionVariants(cardAnimations.item, !!shouldReduceMotion)}
       whileHover={shouldReduceMotion ? undefined : "hover"}
       whileTap={shouldReduceMotion ? undefined : "tap"}
-      initial="hidden"
+      initial={getInitialAnimationState('item-cards')}
       animate="visible"
+      onAnimationStart={() => {
+        if (shouldAnimateOnMount('item-cards')) {
+          markAsAnimated('item-cards')
+        }
+      }}
     >
       {href ? (
         <Link href={href} aria-label={`View details for ${title ?? name}`}>
@@ -162,4 +190,4 @@ export function ItemCard(props: ItemCardProps) {
       </div>
     </motion.article>
   )
-}
+}  
