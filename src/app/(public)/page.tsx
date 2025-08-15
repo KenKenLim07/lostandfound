@@ -1,19 +1,17 @@
 "use client"
+
 import { useState, useEffect, useMemo } from "react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import type { Database, Tables } from "@/types/database"
 import { ItemCard } from "@/components/items/ItemCard"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Plus, Trophy, Search } from "lucide-react"
+import { Plus, Search } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { LoginDialog } from "@/components/auth/LoginDialog"
 import { ItemsSearchFilterBar } from "@/components/items/ItemsSearchFilterBar"
 import { useRouter } from "next/navigation"
-import { motion } from "framer-motion"
-import { heroAnimations, cardAnimations, getReducedMotionVariants, shouldAnimateOnMount, markAsAnimated, getInitialAnimationState, getInitialAnimationStateSimple, markNavigationTime } from "@/lib/animations"
 import { preloadItemImages } from "@/lib/imageCache"
-import { useReducedMotion } from "framer-motion"
 import { AnimatedLink } from "@/components/ui/animated-link"
 import { CampusGuardianDialog } from "@/components/leaderboard/CampusGuardianDialog"
 import { PostingRulesDialog } from "@/components/posting/PostingRulesDialog"
@@ -38,10 +36,6 @@ export default function PublicHomePage() {
   const [loginOpen, setLoginOpen] = useState(false)
   const [rulesOpen, setRulesOpen] = useState(false)
 
-  // Animation support
-  const shouldReduceMotion = useReducedMotion()
-  const [useSimpleApproach, setUseSimpleApproach] = useState(true)
-
   // Hydrate from cache immediately to avoid flash when navigating back
   useEffect(() => {
     try {
@@ -51,7 +45,6 @@ export default function PublicHomePage() {
         const isFresh = Date.now() - cached.ts < HOME_CACHE_TTL_MS
         if (isFresh && Array.isArray(cached.items)) {
           setItems(cached.items)
-          // Only set loading to false if we have items, otherwise keep loading
           if (cached.items.length > 0) {
             setIsLoading(false)
           }
@@ -65,8 +58,6 @@ export default function PublicHomePage() {
   useEffect(() => {
     async function fetchItems() {
       try {
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
         const supabase = createClientComponentClient<Database>()
 
         const { data, error } = await supabase
@@ -100,55 +91,12 @@ export default function PublicHomePage() {
     fetchItems()
   }, [])
 
-  // Track navigation time for animation state management
-  useEffect(() => {
-    markNavigationTime('home-page')
-  }, [])
-
-  // Debug state for development
-  const [debugInfo, setDebugInfo] = useState<{
-    hasAnimated: string | null
-    navTime: string | null
-    hotReloadTime: string | null
-    currentTime: number
-    shouldAnimate: boolean
-    initialState: "hidden" | "visible"
-    initialStateSimple: "hidden" | "visible"
-    useSimpleApproach: boolean
-  }>({
-    hasAnimated: null,
-    navTime: null,
-    hotReloadTime: null,
-    currentTime: 0,
-    shouldAnimate: false,
-    initialState: "hidden",
-    initialStateSimple: "hidden",
-    useSimpleApproach: true
-  })
-
   // Preload images to prevent blinking on navigation back
   useEffect(() => {
     if (items.length > 0) {
       preloadItemImages(items)
     }
   }, [items])
-
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      const info = {
-        hasAnimated: sessionStorage.getItem('animated_home-page'),
-        navTime: sessionStorage.getItem('nav_home-page'),
-        hotReloadTime: sessionStorage.getItem('hot_reload_home-page'),
-        currentTime: Date.now(),
-        shouldAnimate: shouldAnimateOnMount('home-page'),
-        initialState: getInitialAnimationState('home-page'),
-        initialStateSimple: getInitialAnimationStateSimple('home-page'),
-        useSimpleApproach
-      }
-      setDebugInfo(info)
-    }
-  }, [useSimpleApproach])
-
 
   const filteredItems = useMemo(() => {
     return items.filter(item => {
@@ -178,18 +126,14 @@ export default function PublicHomePage() {
         
         if (profileError) {
           console.error("Error checking user status:", profileError)
-          // If we can't check, allow the user to proceed (fail open)
           setRulesOpen(true)
           return
         }
         
         if (profile?.blocked) {
-          // Show blocked message instead of redirecting
           alert("Your account has been blocked. You cannot post new items. Please contact an administrator if you believe this is an error.")
           return
         }
-        
-        // User is not blocked, show rules dialog first
         setRulesOpen(true)
       } else {
         try {
@@ -219,70 +163,24 @@ export default function PublicHomePage() {
 
   return (
     <main className="min-h-screen">
-      {/* Debug Panel - Only in development */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="fixed top-4 right-4 bg-black/80 text-white p-4 rounded-lg text-xs font-mono z-50 max-w-xs">
-          <div className="font-bold mb-2">🐛 Debug Info</div>
-          <div>hasAnimated: {debugInfo.hasAnimated || 'null'}</div>
-          <div>navTime: {debugInfo.navTime || 'null'}</div>
-          <div>hotReloadTime: {debugInfo.hotReloadTime || 'null'}</div>
-          <div>currentTime: {debugInfo.currentTime}</div>
-          <div>shouldAnimate: {String(debugInfo.shouldAnimate)}</div>
-          <div>initialState: {debugInfo.initialState}</div>
-          <div>initialStateSimple: {debugInfo.initialStateSimple}</div>
-          <div>useSimpleApproach: {String(debugInfo.useSimpleApproach)}</div>
-          <button 
-            onClick={() => setUseSimpleApproach(!useSimpleApproach)} 
-            className="mt-2 px-2 py-1 bg-green-600 rounded text-xs mr-2"
-          >
-            Toggle Approach
-          </button>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="mt-2 px-2 py-1 bg-blue-600 rounded text-xs"
-          >
-            Reload Page
-          </button>
-        </div>
-      )}
-
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-background to-muted/20">
         <div className="container mx-auto px-2 sm:px-4 py-6">
-          <motion.div 
-            className="text-center space-y-3"
-            variants={getReducedMotionVariants(heroAnimations.container, !!shouldReduceMotion)}
-            initial={useSimpleApproach ? getInitialAnimationStateSimple('home-page') : getInitialAnimationState('home-page')}
-            animate="visible"
-            onAnimationStart={() => {
-              if (shouldAnimateOnMount('home-page')) {
-                markAsAnimated('home-page')
-              }
-            }}
-          >
-            <motion.h1 
-              className="text-2xl sm:text-3xl font-bold tracking-tight"
-              variants={getReducedMotionVariants(heroAnimations.title, !!shouldReduceMotion)}
-            >
+          <div className="text-center space-y-3">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
               Welcome, Mosquedian&apos;s
-            </motion.h1>
-            <motion.p 
-              className="text-muted-foreground max-w-xl mx-auto"
-              variants={getReducedMotionVariants(heroAnimations.subtitle, !!shouldReduceMotion)}
-            >
+            </h1>
+            <p className="text-muted-foreground max-w-xl mx-auto">
               Browse recently posted lost and found items.
-            </motion.p>
-            <motion.div 
-              className="flex flex-col gap-2 items-center"
-              variants={getReducedMotionVariants(heroAnimations.buttons, !!shouldReduceMotion)}
-            >
+            </p>
+            <div className="flex flex-col gap-2 items-center">
               <CampusGuardianDialog />
               <Button onClick={handleReportClick} size="default" className="gap-2">
                 <Plus className="h-4 w-4" />
                 Report Item
               </Button>
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -324,7 +222,7 @@ export default function PublicHomePage() {
             <div className="flex items-center justify-between">
               <Skeleton className="h-5 w-24" />
               <div className="flex items-center gap-3">
-              <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-20" />
               </div>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-0.5 sm:gap-1">
@@ -340,7 +238,7 @@ export default function PublicHomePage() {
             </div>
             <h3 className="text-base font-semibold mb-2">No items found</h3>
             <p className="text-muted-foreground text-sm mb-4">
-              {searchTerm ? `No items matching &quot;${searchTerm}&quot;` : "No items have been posted yet."}
+              {searchTerm ? `No items matching ${"&quot;"}${searchTerm}${"&quot;"}` : "No items have been posted yet."}
             </p>
             <Button asChild size="sm">
               <Link href="/post">Post the first item</Link>
@@ -363,17 +261,7 @@ export default function PublicHomePage() {
                 </AnimatedLink>
               </div>
             </div>
-            <motion.div 
-              className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-0.5 sm:gap-1"
-              variants={getReducedMotionVariants(cardAnimations.container, !!shouldReduceMotion)}
-              initial={useSimpleApproach ? getInitialAnimationStateSimple('home-page') : getInitialAnimationState('home-page')}
-              animate="visible"
-              onAnimationStart={() => {
-                if (shouldAnimateOnMount('home-page')) {
-                  markAsAnimated('home-page')
-                }
-              }}
-            >
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-0.5 sm:gap-1">
               {filteredItems.map((item) => (
                 <ItemCard
                   key={item.id}
@@ -391,7 +279,7 @@ export default function PublicHomePage() {
                   href={`/items/${item.id}`}
                 />
               ))}
-            </motion.div>
+            </div>
           </div>
         )}
       </section>

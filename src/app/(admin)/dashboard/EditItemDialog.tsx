@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import type { Database, Tables } from "@/types/database"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -30,14 +30,15 @@ export function EditItemDialog({
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Sync when item changes
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  if (open && item && item.id && title === undefined) {
+  // Sync when dialog opens or item changes
+  useEffect(() => {
+    if (open && item) {
     setTitle(item.title ?? "")
     setDescription(item.description ?? "")
     setContact(item.contact_number ?? "")
     setStatus(item.status ?? "active")
   }
+  }, [open, item])
 
   async function save() {
     if (!item) return

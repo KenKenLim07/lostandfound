@@ -1,18 +1,11 @@
 "use client"
-import { useEffect, useMemo, useRef, useState } from "react"
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { createClient } from "@supabase/supabase-js"
 import type { Database, Tables } from "@/types/database"
-import { Input } from "@/components/ui/input"
-import { Select } from "@/components/ui/select"
-import { Button } from "@/components/ui/button"
 import { ItemCard } from "@/components/items/ItemCard"
 import { ItemCardSkeleton } from "@/components/items/ItemCardSkeleton"
-import { Search } from "lucide-react"
 import { ItemsSearchFilterBar } from "@/components/items/ItemsSearchFilterBar"
-import { motion } from "framer-motion"
-import { cardAnimations, getReducedMotionVariants } from "@/lib/animations"
-import { useReducedMotion } from "framer-motion"
-import { AnimatedLink } from "@/components/ui/animated-link"
 
  type Item = Pick<Tables<"items">, "id" | "title" | "name" | "type" | "description" | "date" | "location" | "contact_number" | "image_url" | "status" | "created_at">
 
@@ -26,9 +19,6 @@ export default function AllItemsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filter, setFilter] = useState<"all" | "lost" | "found" | "returned">("all")
   const [cursor, setCursor] = useState<{ created_at: string; id: string } | null>(null)
-
-  // Animation support
-  const shouldReduceMotion = useReducedMotion()
 
   const observerRef = useRef<HTMLDivElement | null>(null)
   const supabase = useMemo(() => {
@@ -44,7 +34,7 @@ export default function AllItemsPage() {
     return () => clearTimeout(t)
   }, [searchTerm])
 
-  async function fetchPage(opts: { append: boolean; cursor?: { created_at: string; id: string } | null }) {
+  const fetchPage = useCallback(async (opts: { append: boolean; cursor?: { created_at: string; id: string } | null }) => {
     const { append, cursor } = opts
     const like = debouncedSearch ? `%${debouncedSearch}%` : null
 
@@ -66,7 +56,6 @@ export default function AllItemsPage() {
     }
 
     if (cursor) {
-      // Keyset pagination: created_at < cursor.created_at OR (created_at = cursor.created_at AND id < cursor.id)
       query = query.or(
         `created_at.lt.${cursor.created_at},and(created_at.eq.${cursor.created_at},id.lt.${cursor.id})`
       )
@@ -85,7 +74,7 @@ export default function AllItemsPage() {
 
     const last = (data || [])[data.length - 1]
     setCursor(last ? { created_at: last.created_at!, id: last.id } : null)
-  }
+  }, [debouncedSearch, filter, supabase])
 
   // Initial fetch and on filter/search change
   useEffect(() => {
@@ -94,7 +83,7 @@ export default function AllItemsPage() {
     fetchPage({ append: false, cursor: null })
       .catch(() => {})
       .finally(() => setIsLoading(false))
-  }, [debouncedSearch, filter, supabase])
+  }, [debouncedSearch, filter, supabase, fetchPage])
 
   // Infinite scroll
   useEffect(() => {
@@ -141,12 +130,7 @@ export default function AllItemsPage() {
         </div>
       ) : (
         <>
-          <motion.section 
-            className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-0.5 sm:gap-1"
-            variants={getReducedMotionVariants(cardAnimations.container, !!shouldReduceMotion)}
-            initial="hidden"
-            animate="visible"
-          >
+          <section className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-0.5 sm:gap-1">
             {items.map((item) => (
               <ItemCard
                 key={item.id}
@@ -164,7 +148,7 @@ export default function AllItemsPage() {
                 href={`/items/${item.id}`}
               />
             ))}
-          </motion.section>
+          </section>
 
           {/* Load more sentinel */}
           <div ref={observerRef} aria-hidden className="h-10" />
@@ -172,12 +156,12 @@ export default function AllItemsPage() {
           {/* Accessible Load more button fallback */}
           {hasMore && !isLoadingMore && (
             <div className="mt-3 flex justify-center">
-              <Button onClick={() => {
+              <button className="btn" onClick={() => {
                 setIsLoadingMore(true)
                 fetchPage({ append: true, cursor })
                   .catch(() => {})
                   .finally(() => setIsLoadingMore(false))
-              }}>Load more</Button>
+              }}>Load more</button>
             </div>
           )}
 

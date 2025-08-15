@@ -15,7 +15,6 @@ export function MobileNavigationLinks({ initialIsLoggedIn = false, initialIsAdmi
   const supabase = createClientComponentClient<Database>()
   const [isLoggedIn, setIsLoggedIn] = useState(initialIsLoggedIn)
   const [isAdmin, setIsAdmin] = useState(initialIsAdmin)
-  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -36,7 +35,6 @@ export function MobileNavigationLinks({ initialIsLoggedIn = false, initialIsAdmi
     }
 
     async function init() {
-      try {
         const { data } = await supabase.auth.getSession()
         if (!isMounted) return
         const session = data.session
@@ -45,9 +43,6 @@ export function MobileNavigationLinks({ initialIsLoggedIn = false, initialIsAdmi
           await loadRole(session.user.id)
         } else {
           setIsAdmin(false)
-        }
-      } finally {
-        if (isMounted) setIsLoading(false)
       }
     }
 

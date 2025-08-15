@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import type { Database, Tables } from "@/types/database"
+import type { Tables } from "@/types/database"
 import { PromoteDemoteButton } from "./UsersRoleButton"
 import { UsersBlockButton } from "./UsersBlockButton"
 import { getAllUsers } from "./actions"
