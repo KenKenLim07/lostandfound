@@ -3,6 +3,15 @@ import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { Package, MapPin } from "lucide-react"
 import { useImagePreload } from "@/hooks/useImagePreload"
+import { useEffect } from "react"
+
+// Debug logging for ItemCard
+const DEBUG_ITEM_CARD = true
+function debugItemCard(message: string, data?: unknown) {
+  if (DEBUG_ITEM_CARD && typeof window !== 'undefined') {
+    console.log(`🎴 [ItemCard] ${message}`, data || '')
+  }
+}
 
 function formatRelativeTime(isoString: string | null | undefined): string {
   if (!isoString) return ""
@@ -36,6 +45,8 @@ export type ItemCardProps = {
   createdAt?: string | null
   href?: string
   className?: string
+  // New: allow page to tell card to skip fade on mount (for back nav on mobile)
+  preferNoFade?: boolean
 }
 
 export function ItemCard(props: ItemCardProps) {
@@ -50,6 +61,7 @@ export function ItemCard(props: ItemCardProps) {
     createdAt,
     href,
     className,
+    preferNoFade,
   } = props
 
   const typePillClasses = type === "lost" ? "bg-red-600 text-white" : "bg-green-600 text-white"
@@ -58,6 +70,31 @@ export function ItemCard(props: ItemCardProps) {
   
   // Use the custom hook for image preloading with mobile detection
   const { isLoaded: imageLoaded, isLoading, isMobile } = useImagePreload(imageUrl)
+
+  // Debug image state changes
+  useEffect(() => {
+    debugItemCard(`Image state changed for ${name}`, {
+      id: props.id,
+      imageUrl: imageUrl?.substring(0, 50) + '...',
+      imageLoaded,
+      isLoading,
+      isMobile,
+      preferNoFade,
+      timestamp: new Date().toISOString()
+    })
+  }, [props.id, name, imageUrl, imageLoaded, isLoading, isMobile, preferNoFade])
+
+  // Debug component mount/unmount
+  useEffect(() => {
+    debugItemCard(`ItemCard mounted`, { id: props.id, name, imageUrl: !!imageUrl })
+    
+    return () => {
+      debugItemCard(`ItemCard unmounted`, { id: props.id, name, imageUrl: !!imageUrl })
+    }
+  }, [props.id, name, imageUrl])
+
+  // Determine whether to apply fade
+  const shouldFade = !(preferNoFade && isMobile)
 
   // Use a more stable approach to prevent image blinking on navigation
   const CardMedia = (
@@ -77,10 +114,15 @@ export function ItemCard(props: ItemCardProps) {
               isMobile 
                 ? "mobile-hardware-accel force-gpu mobile-image-transition mobile-memory-safe"
                 : "image-no-blink image-smooth-transition",
-              imageLoaded ? "opacity-100" : "opacity-0"
+              shouldFade ? (imageLoaded ? "opacity-100" : "opacity-0") : "opacity-100"
             )}
+            onError={(e) => {
+              // If image fails, keep it visible to avoid flashes
+              const target = e.currentTarget as HTMLImageElement
+              target.style.opacity = "1"
+            }}
           />
-          {isLoading && !imageLoaded && (
+          {isLoading && shouldFade && !imageLoaded && (
             <div className={cn(
               "absolute inset-0",
               isMobile 

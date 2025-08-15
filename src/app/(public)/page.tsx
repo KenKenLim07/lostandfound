@@ -12,6 +12,15 @@ import { useRouter } from "next/navigation"
 import { AnimatedLink } from "@/components/ui/animated-link"
 import { CampusGuardianDialog } from "@/components/leaderboard/CampusGuardianDialog"
 import { PostingRulesDialog } from "@/components/posting/PostingRulesDialog"
+import { useBackNav } from "@/hooks/useBackNav"
+
+// Debug logging for home page
+const DEBUG_HOME = true
+function debugHome(message: string, data?: unknown) {
+  if (DEBUG_HOME && typeof window !== 'undefined') {
+    console.log(`🏠 [HomePage] ${message}`, data || '')
+  }
+}
 
 const HOME_CACHE_KEY = "home_items_v1"
 const HOME_CACHE_TTL_MS = 60_000
@@ -24,38 +33,66 @@ export default function PublicHomePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [filter, setFilter] = useState<"all" | "lost" | "found" | "returned">("all")
+  const { isBack, isMobile } = useBackNav()
 
   // Login dialog control
   const [loginOpen, setLoginOpen] = useState(false)
   const [rulesOpen, setRulesOpen] = useState(false)
 
-
+  // Debug component lifecycle
+  useEffect(() => {
+    debugHome('HomePage mounted', { 
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent,
+      url: window.location.href,
+      isBack,
+      isMobile,
+    })
+    
+    return () => {
+      debugHome('HomePage unmounted', { 
+        timestamp: new Date().toISOString(),
+        url: window.location.href
+      })
+    }
+  }, [isBack, isMobile])
 
   // Hydrate from cache immediately to avoid flash when navigating back
   useEffect(() => {
     try {
       const raw = typeof window !== "undefined" ? sessionStorage.getItem(HOME_CACHE_KEY) : null
+      debugHome('Hydrating from cache', { 
+        hasCache: !!raw,
+        cacheSize: raw ? JSON.parse(raw).items?.length : 0
+      })
       
       if (raw) {
         const cached = JSON.parse(raw) as { items: Item[]; ts: number }
         const isFresh = Date.now() - cached.ts < HOME_CACHE_TTL_MS
+        debugHome('Cache validation', { 
+          isFresh, 
+          ageMs: Date.now() - cached.ts,
+          cacheSize: cached.items?.length
+        })
         
         if (isFresh && Array.isArray(cached.items)) {
           setItems(cached.items)
           // Only set loading to false if we have items, otherwise keep loading
           if (cached.items.length > 0) {
             setIsLoading(false)
+            debugHome('Cache hydration successful', { itemCount: cached.items.length })
           }
         }
       }
-    } catch {
-      // Ignore cache errors
+    } catch (error) {
+      debugHome('Cache hydration error', error)
     }
   }, [])
 
   useEffect(() => {
     async function fetchItems() {
       try {
+        debugHome('Fetching items from Supabase')
         const supabase = createClientComponentClient<Database>()
         const { data, error } = await supabase
           .from("items")
@@ -66,6 +103,11 @@ export default function PublicHomePage() {
         if (error) throw error
 
         const nextItems = data || []
+        debugHome('Items fetched successfully', { 
+          itemCount: nextItems.length,
+          hasImages: nextItems.some(item => item.image_url)
+        })
+        
         setItems(nextItems)
 
         // Update cache
@@ -74,13 +116,16 @@ export default function PublicHomePage() {
             HOME_CACHE_KEY,
             JSON.stringify({ items: nextItems, ts: Date.now() })
           )
-        } catch {
-          // Ignore cache errors
+          debugHome('Cache updated', { itemCount: nextItems.length })
+        } catch (cacheError) {
+          debugHome('Cache update failed', cacheError)
         }
       } catch (err) { // eslint-disable-line @typescript-eslint/no-unused-vars
+        debugHome('Items fetch failed', err)
         // Handle error silently for better UX
       } finally {
         setIsLoading(false)
+        debugHome('Loading state set to false')
       }
     }
 
@@ -101,7 +146,15 @@ export default function PublicHomePage() {
     return matchesSearch && matchesFilter
   })
 
-
+  // Debug filtered items
+  useEffect(() => {
+    debugHome('Items filtered', { 
+      totalItems: items.length,
+      filteredItems: filteredItems.length,
+      searchTerm,
+      filter
+    })
+  }, [items, filteredItems, searchTerm, filter])
 
   async function handleReportClick() {
     try {
@@ -213,6 +266,7 @@ export default function PublicHomePage() {
                   status={item.status as "active" | "returned" | null}
                   createdAt={item.created_at}
                   href={`/items/${item.id}`}
+                  preferNoFade={isBack && isMobile}
                 />
               ))
             )}
