@@ -56,25 +56,23 @@ export const cardAnimations: {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.2
+        staggerChildren: 0.05,
+        delayChildren: 0.1
       }
     }
   },
   item: {
-    hidden: { opacity: 0, y: 20, scale: 0.95 },
+    hidden: { opacity: 0, y: 10 },
     visible: {
       opacity: 1,
       y: 0,
-      scale: 1,
-      transition: { duration: 0.4, ease: "easeOut" }
+      transition: { duration: 0.3, ease: "easeOut" }
     }
   },
   hover: {
     hover: {
-      y: -4,
-      scale: 1.02,
-      transition: { duration: 0.2, ease: "easeOut" }
+      y: -2,
+      transition: { duration: 0.15, ease: "easeOut" }
     }
   },
   tap: {
