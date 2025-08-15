@@ -16,6 +16,7 @@ import { Upload, X, CheckCircle, AlertCircle, Image as ImageIcon } from "lucide-
 import Image from "next/image"
 import { Skeleton } from "@/components/ui/skeleton"
 import { postItem } from "./actions"
+import { CustomTopLoader } from "@/components/system/CustomTopLoader"
 
 export default function PostItemPage() {
   const supabase = useSupabase()
@@ -26,6 +27,8 @@ export default function PostItemPage() {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [isBlocked, setIsBlocked] = useState(false)
+  const [isCheckingStatus, setIsCheckingStatus] = useState(true)
 
   // Form state
   const [type, setType] = useState<"lost" | "found">("lost")
@@ -53,16 +56,56 @@ export default function PostItemPage() {
 
   useEffect(() => {
     let isMounted = true
-    supabase.auth.getSession().then(({ data }) => {
+    
+    async function checkUserStatus() {
+      try {
+        setIsCheckingStatus(true)
+        const { data } = await supabase.auth.getSession()
+        
       if (!isMounted) return
-      const session = data.session
-      if (!session) {
+        
+        if (!data.session) {
         router.replace("/")
         return
       }
-      setUserId(session.user.id)
+
+        const userId = data.session.user.id
+        setUserId(userId)
+
+        // Check if user is blocked
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("blocked")
+          .eq("id", userId)
+          .single()
+
+        if (!isMounted) return
+
+        if (profileError) {
+          console.error("Error checking user status:", profileError)
+          setError("Failed to verify your account status. Please try again.")
+          return
+        }
+
+        if (profile?.blocked) {
+          setIsBlocked(true)
+          setError("Your account has been blocked. You cannot post new items. Please contact an administrator if you believe this is an error.")
+        }
+
       setIsLoadingUser(false)
-    })
+      } catch (error) {
+        if (!isMounted) return
+        console.error("Error checking user status:", error)
+        setError("Failed to verify your account. Please try again.")
+      } finally {
+        if (isMounted) {
+          setIsCheckingStatus(false)
+        }
+      }
+    }
+
+    checkUserStatus()
+
     return () => {
       isMounted = false
     }
@@ -111,6 +154,12 @@ export default function PostItemPage() {
     setSuccess(null)
 
     if (!userId) return
+    
+    // Check if user is blocked before allowing submission
+    if (isBlocked) {
+      setError("Your account has been blocked. You cannot post new items.")
+      return
+    }
 
     startTransition(async () => {
       try {
@@ -178,27 +227,69 @@ export default function PostItemPage() {
     setError(null)
   }
 
-  if (isLoadingUser) {
+  if (isLoadingUser || isCheckingStatus) {
     return (
       <main className="container mx-auto px-3 sm:px-6 py-4">
+        {/* Custom Top Loader for loading states */}
+        <CustomTopLoader 
+          isLoading={true} 
+          color="#000000"
+          height={3}
+          duration={300}
+        />
+        
         <div className="max-w-xl mx-auto">
           <div className="space-y-4">
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-4 w-80" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        </div>
+      </main>
+    )
+  }
+
+  if (isBlocked) {
+    return (
+      <main className="container mx-auto px-3 sm:px-6 py-4">
+        {/* Custom Top Loader for blocked state */}
+        <CustomTopLoader 
+          isLoading={false} 
+          color="#000000"
+          height={3}
+          duration={300}
+        />
+        
+        <div className="max-w-xl mx-auto">
+          <div className="text-center space-y-4">
+            <div className="flex justify-center">
+              <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center">
+                <AlertCircle className="h-8 w-8 text-destructive" />
+              </div>
+            </div>
+            <h1 className="text-xl font-bold text-destructive">Account Blocked</h1>
+            <p className="text-muted-foreground">
+              Your account has been blocked. You cannot post new items at this time.
+            </p>
             <div className="space-y-2">
-              <Skeleton className="h-6 w-40" />
-              <Skeleton className="h-4 w-64" />
+              <p className="text-sm text-muted-foreground">
+                If you believe this is an error, please contact an administrator.
+              </p>
+              <Button 
+                variant="outline" 
+                onClick={() => router.push("/")}
+                className="w-full"
+              >
+                Return to Home
+              </Button>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-20 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <div className="border-2 border-dashed rounded-lg p-6">
-              <Skeleton className="h-32 w-full" />
-            </div>
-            <Skeleton className="h-10 w-full" />
           </div>
         </div>
       </main>
@@ -207,6 +298,14 @@ export default function PostItemPage() {
 
   return (
     <main className="container mx-auto px-3 sm:px-6 py-4">
+      {/* Custom Top Loader for internal loading states */}
+      <CustomTopLoader 
+        isLoading={isCheckingStatus || isUploading || isCompressing || isPending} 
+        color="#000000"
+        height={3}
+        duration={300}
+      />
+      
       <div className="max-w-xl mx-auto">
         {/* Header */}
         <header className="mb-4">
@@ -251,6 +350,20 @@ export default function PostItemPage() {
             />
           </div>
 
+          {/* Course/Year/Section */}
+          <div className="space-y-1.5">
+            <Label htmlFor="reporter_year_section" className="text-sm font-medium">
+              Course / Year & Section <span className="text-muted-foreground font-normal">(Optional)</span>
+            </Label>
+            <Input
+              id="reporter_year_section"
+              value={reporterYearSection}
+              onChange={(e) => setReporterYearSection(e.target.value)}
+              placeholder="e.g., BSIT 3A, BSHM 2B (leave blank if faculty/staff)"
+              className="h-10 text-sm"
+            />
+          </div>
+
           {/* Item Title */}
           <div className="space-y-1.5">
             <Label htmlFor="title" className="text-sm font-medium">Item Title *</Label>
@@ -258,7 +371,7 @@ export default function PostItemPage() {
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g., Black Backpack, iPhone 15, etc."
+              placeholder="e.g., iPhone 17 Pro Max 1TB Fully Paid."
               required
               className="h-10 text-sm"
             />
@@ -309,18 +422,6 @@ export default function PostItemPage() {
               value={contactNumber}
               onChange={(e) => setContactNumber(e.target.value)}
               placeholder="Your phone number for contact"
-              className="h-10 text-sm"
-            />
-          </div>
-
-          {/* Course/Year/Section */}
-          <div className="space-y-1.5">
-            <Label htmlFor="reporter_year_section" className="text-sm font-medium">Course / Year & Section</Label>
-            <Input
-              id="reporter_year_section"
-              value={reporterYearSection}
-              onChange={(e) => setReporterYearSection(e.target.value)}
-              placeholder="e.g., BSIT 3A, BSHM 2B"
               className="h-10 text-sm"
             />
           </div>
@@ -423,7 +524,7 @@ export default function PostItemPage() {
           <div className="pt-3">
             <Button
               type="submit"
-              disabled={isPending || isCompressing || isUploading}
+              disabled={isPending || isCompressing || isUploading || isBlocked}
               className="w-full h-11 text-sm font-medium"
             >
               {isPending || isUploading ? (

@@ -34,14 +34,14 @@ export function MobileNavigationLinks({ initialIsLoggedIn = false, initialIsAdmi
     }
 
     async function init() {
-      const { data } = await supabase.auth.getSession()
-      if (!isMounted) return
-      const session = data.session
-      setIsLoggedIn(!!session)
-      if (session?.user?.id) {
-        await loadRole(session.user.id)
-      } else {
-        setIsAdmin(false)
+        const { data } = await supabase.auth.getSession()
+        if (!isMounted) return
+        const session = data.session
+        setIsLoggedIn(!!session)
+        if (session?.user?.id) {
+          await loadRole(session.user.id)
+        } else {
+          setIsAdmin(false)
       }
     }
 

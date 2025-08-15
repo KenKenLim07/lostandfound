@@ -18,7 +18,7 @@ export function MobileAuthStatus({ initialIsLoggedIn = false }: Props) {
 
   useEffect(() => {
     let isMounted = true
-
+    
     async function init() {
       try {
         const { data } = await supabase.auth.getSession()
@@ -37,15 +37,15 @@ export function MobileAuthStatus({ initialIsLoggedIn = false }: Props) {
         }
       }
     }
-
+    
     init()
-
+    
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (!isMounted) return
       setIsLoggedIn(!!session)
       setEmail(session?.user?.email ?? null)
     })
-
+    
     return () => {
       isMounted = false
       sub.subscription.unsubscribe()
@@ -84,8 +84,8 @@ export function MobileAuthStatus({ initialIsLoggedIn = false }: Props) {
           className="w-full justify-start gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
         >
           <LogOut className="h-4 w-4" />
-          Sign out
-        </Button>
+        Sign out
+      </Button>
       </SheetClose>
     </>
   )

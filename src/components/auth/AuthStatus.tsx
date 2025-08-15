@@ -13,7 +13,7 @@ export function AuthStatus() {
 
   useEffect(() => {
     let isMounted = true
-
+    
     async function init() {
       try {
         const { data } = await supabase.auth.getSession()
@@ -34,15 +34,15 @@ export function AuthStatus() {
         if (isMounted) setIsLoading(false)
       }
     }
-
+    
     init()
-
+    
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (!isMounted) return
       setIsLoggedIn(!!session)
       setEmail(session?.user?.email ?? null)
     })
-
+    
     return () => {
       isMounted = false
       sub.subscription.unsubscribe()

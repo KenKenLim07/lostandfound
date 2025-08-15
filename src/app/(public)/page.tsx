@@ -14,6 +14,7 @@ import { AnimatedLink } from "@/components/ui/animated-link"
 import { CampusGuardianDialog } from "@/components/leaderboard/CampusGuardianDialog"
 import { PostingRulesDialog } from "@/components/posting/PostingRulesDialog"
 import { useSupabase } from "@/hooks/useSupabase"
+import { hasAgreedToPostingRules } from "@/lib/posting-rules"
 
 const HOME_CACHE_KEY = "home_items_v1"
 const HOME_CACHE_TTL_MS = 60_000
@@ -122,7 +123,22 @@ export default function PublicHomePage() {
           alert("Your account has been blocked. You cannot post new items. Please contact an administrator if you believe this is an error.")
           return
         }
+
+        // Check if user has already agreed to the posting rules
+        try {
+          const hasAgreed = hasAgreedToPostingRules()
+          if (hasAgreed) {
+            // User has already agreed, go directly to post page
+            router.push("/post")
+          } else {
+            // User hasn't agreed yet, show rules dialog
+            setRulesOpen(true)
+          }
+        } catch (error) {
+          console.warn("Failed to check rules agreement from localStorage:", error)
+          // Fallback: show rules dialog
         setRulesOpen(true)
+        }
       } else {
         try {
           sessionStorage.setItem("intent_after_login", "/post")

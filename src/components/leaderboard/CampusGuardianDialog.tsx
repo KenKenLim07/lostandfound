@@ -53,7 +53,7 @@ export function CampusGuardianDialog({ triggerClassName }: { triggerClassName?: 
           <Trophy className="h-4 w-4 mr-2" /> Campus Guardian
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg w-full">
+      <DialogContent className="sm:max-w-xs w-full mx-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Trophy className="h-5 w-5 text-yellow-500" /> Campus Guardian

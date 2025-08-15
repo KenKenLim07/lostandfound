@@ -11,16 +11,16 @@ export default async function ProtectedLayout({ children }: { children: React.Re
 	} = await supabase.auth.getSession()
 	if (!session) redirect("/")
 
-	// Enforce block at the server level so users cannot access /post directly
-	const { data: profile } = await supabase
-		.from("profiles")
-		.select("blocked")
-		.eq("id", session.user.id)
-		.single()
+	// Remove server-side blocking - we'll handle it client-side for better UX
+	// const { data: profile } = await supabase
+	// 	.from("profiles")
+	// 	.select("blocked")
+	// 	.eq("id", session.user.id)
+	// 	.single()
 
-	if (profile?.blocked) {
-		redirect("/?blocked=true")
-	}
+	// if (profile?.blocked) {
+	// 	redirect("/?blocked=true")
+	// }
 
 	return <>{children}</>
 } 

@@ -12,6 +12,7 @@ import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import type { Database } from "@/types/database";
 import { ReportItemLink } from "@/components/ReportItemLink";
 import { MobileMenuProvider } from "@/components/navigation/MobileMenuProvider";
+import { FooterRulesReset } from "@/components/ui/footer-rules-reset";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -116,7 +117,8 @@ export default async function RootLayout({
               </div>
             </div>
             <div className="mt-6 border-t pt-6 text-center text-sm text-muted-foreground">
-              © {new Date().getFullYear()} Mosqueda Campus. All rights reserved.
+              © {new Date().getFullYear()} Mosqueda Campus. All rights reserved.{" "}
+              <FooterRulesReset />
             </div>
           </div>
         </footer>

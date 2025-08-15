@@ -115,6 +115,11 @@ export function ItemCard(props: ItemCardProps) {
               <div className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground/70">
                 <MapPin className="h-3 w-3" />
                 <span className="line-clamp-1">{location}</span>
+                <div className="absolute bottom-0 left-0 right-0 z-20">
+                  <div className="bg-black/60 text-white text-xs font-semibold px-2 py-0.5 border border-white/20 text-center">
+                    Tap to view details
+                  </div>
+                </div>
               </div>
             )}
           </div>
