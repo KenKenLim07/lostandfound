@@ -14,8 +14,6 @@ import { AnimatedLink } from "@/components/ui/animated-link"
 import { CampusGuardianDialog } from "@/components/leaderboard/CampusGuardianDialog"
 import { PostingRulesDialog } from "@/components/posting/PostingRulesDialog"
 import { useSupabase } from "@/hooks/useSupabase"
-import { useToast } from "@/components/system/ToastProvider"
-import { ErrorHandlers } from "@/lib/errorHandling"
 
 const HOME_CACHE_KEY = "home_items_v1"
 const HOME_CACHE_TTL_MS = 60_000
@@ -25,7 +23,6 @@ type Item = Pick<Tables<"items">, "id" | "title" | "name" | "type" | "descriptio
 export default function PublicHomePage() {
   const supabase = useSupabase()
   const router = useRouter()
-  const toast = useToast()
   const [items, setItems] = useState<Item[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -122,7 +119,7 @@ export default function PublicHomePage() {
         }
         
         if (profile?.blocked) {
-          ErrorHandlers.permission(new Error("Account blocked"), toast)
+          alert("Your account has been blocked. You cannot post new items. Please contact an administrator if you believe this is an error.")
           return
         }
         setRulesOpen(true)

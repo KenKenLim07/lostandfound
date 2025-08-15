@@ -12,15 +12,12 @@ import { ItemCard } from "@/components/items/ItemCard"
 import { ItemCardSkeleton } from "@/components/items/ItemCardSkeleton"
 import { Trash2, CheckCircle, Eye } from "lucide-react"
 import Link from "next/link"
-import { useToast } from "@/components/system/ToastProvider"
-import { ErrorHandlers } from "@/lib/errorHandling"
 
 type Item = Pick<Tables<"items">, "id" | "title" | "name" | "type" | "description" | "date" | "location" | "contact_number" | "image_url" | "status" | "created_at" | "returned_party">
 
 export default function MyItemsPage() {
   const supabase = useSupabase()
   const router = useRouter()
-  const toast = useToast()
   const [items, setItems] = useState<Item[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isPending, startTransition] = useTransition()
@@ -98,7 +95,7 @@ export default function MyItemsPage() {
         setMarkReturnedDialog({ open: false, item: null })
         setReturnedParty("")
       } catch (error) {
-        ErrorHandlers.itemOperation("update", error, toast)
+        alert(`Failed to mark as returned: ${error instanceof Error ? error.message : "Unknown error"}`)
       }
     })
   }
@@ -120,7 +117,7 @@ export default function MyItemsPage() {
         // Update local state
         setItems(prev => prev.filter(i => i.id !== item.id))
       } catch (error) {
-        ErrorHandlers.itemOperation("delete", error, toast)
+        alert(`Failed to delete item: ${error instanceof Error ? error.message : "Unknown error"}`)
       }
     })
   }

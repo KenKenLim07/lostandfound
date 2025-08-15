@@ -1,34 +1,26 @@
-import { createServerSupabaseClient } from "@/lib/supabase-server"
+import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
+import type { Database } from "@/types/database"
 
-export default async function ProtectedLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  const supabase = await createServerSupabaseClient()
-  
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
+	const supabase = createServerComponentClient<Database>({ cookies })
 
-  if (!session) {
-    redirect("/")
-  }
+	const {
+		data: { session },
+	} = await supabase.auth.getSession()
+	if (!session) redirect("/")
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("blocked")
-    .eq("id", session.user.id)
-    .single()
+	// Enforce block at the server level so users cannot access /post directly
+	const { data: profile } = await supabase
+		.from("profiles")
+		.select("blocked")
+		.eq("id", session.user.id)
+		.single()
 
-  if (profile?.blocked) {
-    redirect("/")
-  }
+	if (profile?.blocked) {
+		redirect("/?blocked=true")
+	}
 
-  return (
-    <div className="container mx-auto px-4 sm:px-6 py-6">
-      {children}
-    </div>
-  )
+	return <>{children}</>
 } 

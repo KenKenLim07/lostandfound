@@ -1,8 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server"
-import { createMiddlewareSupabaseClient } from "@/lib/supabase-server"
+import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs"
+import type { Database } from "@/types/database"
 
 export async function middleware(req: NextRequest) {
-  const { supabase, response } = createMiddlewareSupabaseClient(req)
+  const res = NextResponse.next()
+  const supabase = createMiddlewareClient<Database>({ req, res })
   const {
     data: { session },
   } = await supabase.auth.getSession()
@@ -13,7 +15,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  return response
+  return res
 }
 
 export const config = {

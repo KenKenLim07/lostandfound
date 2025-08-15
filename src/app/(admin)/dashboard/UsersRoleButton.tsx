@@ -1,46 +1,36 @@
 "use client"
 
-import { useTransition } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
-import type { Database } from "@/types/database"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { useToast } from "@/components/system/ToastProvider"
-import { ErrorHandlers } from "@/lib/errorHandling"
+import { updateUserRole } from "./actions"
 
 export function PromoteDemoteButton({ userId, currentRole }: { userId: string; currentRole: string }) {
-  const supabase = createClientComponentClient<Database>()
-  const [isPending, startTransition] = useTransition()
-  const toast = useToast()
+  const [role, setRole] = useState(currentRole)
+  const [isSaving, setIsSaving] = useState(false)
+  const isAdmin = role === "admin"
 
-  const isAdmin = currentRole === "admin"
-  const nextRole = isAdmin ? "user" : "admin"
-
-  function handleClick() {
-    startTransition(async () => {
-      try {
-        const { error } = await supabase
-          .from("profiles")
-          .update({ role: nextRole })
-          .eq("id", userId)
-
-        if (error) throw error
-
-        // Refresh the page to show updated role
-        window.location.reload()
-      } catch (e) {
-        ErrorHandlers.itemOperation("update", e, toast)
-      }
-    })
+  async function toggleRole() {
+    setIsSaving(true)
+    try {
+      const nextRole = isAdmin ? "user" : "admin"
+      await updateUserRole(userId, nextRole)
+      setRole(nextRole)
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Failed to update role")
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
-    <Button
-      size="sm"
-      variant="outline"
-      onClick={handleClick}
-      disabled={isPending}
+    <Button 
+      size="sm" 
+      variant={isAdmin ? "outline" : "default"} 
+      onClick={toggleRole} 
+      disabled={isSaving}
+      className="w-32"
     >
-      {isPending ? "Updating..." : isAdmin ? "Demote" : "Promote"}
+      {isSaving ? "Saving…" : isAdmin ? "Demote to user" : "Promote to admin"}
     </Button>
   )
 } 

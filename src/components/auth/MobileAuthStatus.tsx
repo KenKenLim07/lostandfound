@@ -5,6 +5,7 @@ import { useSupabase } from "@/hooks/useSupabase"
 import { Button } from "@/components/ui/button"
 import { SheetClose } from "@/components/ui/sheet"
 import { LogOut } from "lucide-react"
+import { LoginDialog } from "@/components/auth/LoginDialog"
 
 type Props = {
   initialIsLoggedIn?: boolean
@@ -61,7 +62,14 @@ export function MobileAuthStatus({ initialIsLoggedIn = false }: Props) {
   }
 
   if (!isLoggedIn) {
-    return null
+    return (
+      <LoginDialog 
+        isMobileMenu={true}
+        showTrigger={false}
+        initialMode="signin"
+        note="Sign in to access your reports and post items."
+      />
+    )
   }
 
   return (

@@ -1,8 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
-import type { Database } from "@/types/database"
+import { useSupabase } from "@/hooks/useSupabase"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { FloatingLabelInput } from "@/components/ui/floating-label-input"
@@ -20,7 +19,7 @@ export type LoginDialogProps = {
 
 export function LoginDialog(props: LoginDialogProps = {}) {
   const { open: controlledOpen, onOpenChange, showTrigger = true, initialMode = "signin", note, isMobileMenu = false, onMobileMenuClose } = props
-  const supabase = createClientComponentClient<Database>()
+  const supabase = useSupabase()
   const [open, setOpen] = useState(controlledOpen ?? false)
   const effectiveOpen = controlledOpen !== undefined ? controlledOpen : open
   const setEffectiveOpen = (next: boolean) => {

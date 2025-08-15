@@ -1,11 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useSupabase } from "@/hooks/useSupabase"
-import type { Tables } from "@/types/database"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import type { Database, Tables } from "@/types/database"
 
 export function AdminReturnsList() {
-  const supabase = useSupabase()
+  const supabase = createClientComponentClient<Database>()
   const [data, setData] = useState<Array<Pick<Tables<"items">, "id" | "title" | "name" | "type" | "returned_party" | "returned_year_section" | "returned_at">>>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -54,7 +54,7 @@ export function AdminReturnsList() {
           </div>
         </div>
       )) : (
-        <div className="text-sm text-muted-foreground">No returns.</div>
+        <div className="p-3 text-sm text-muted-foreground">No returns.</div>
       )}
     </div>
   )
