@@ -169,4 +169,4 @@ export function ItemCard(props: ItemCardProps) {
       </div>
     </article>
   )
-}  
+} 

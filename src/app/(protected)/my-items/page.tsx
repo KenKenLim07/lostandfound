@@ -1,428 +1,275 @@
 "use client"
 
-export const dynamic = "force-dynamic"
-
 import { useEffect, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
-import type { Database, Tables } from "@/types/database"
+import { useSupabase } from "@/hooks/useSupabase"
+import type { Tables } from "@/types/database"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
-// removed Separator
-import { Skeleton } from "@/components/ui/skeleton"
-import Image from "next/image"
-import { 
-  Package, 
-  Clock, 
-  User, 
-  Trash2, 
-  CheckCircle, 
-  AlertCircle,
-  Calendar,
-  GraduationCap,
-  Eye
-} from "lucide-react"
+import { ItemCard } from "@/components/items/ItemCard"
+import { ItemCardSkeleton } from "@/components/items/ItemCardSkeleton"
+import { Trash2, CheckCircle, Eye } from "lucide-react"
 import Link from "next/link"
+import { useToast } from "@/components/system/ToastProvider"
+import { ErrorHandlers } from "@/lib/errorHandling"
 
-type Item = Pick<Tables<"items">, "id" | "title" | "name" | "type" | "status" | "image_url" | "created_at" | "returned_party" | "returned_year_section" | "returned_at">
+type Item = Pick<Tables<"items">, "id" | "title" | "name" | "type" | "description" | "date" | "location" | "contact_number" | "image_url" | "status" | "created_at" | "returned_party">
 
 export default function MyItemsPage() {
-  const supabase = createClientComponentClient<Database>()
+  const supabase = useSupabase()
   const router = useRouter()
-  const [isLoadingUser, setIsLoadingUser] = useState(true)
-  const [userId, setUserId] = useState<string | null>(null)
+  const toast = useToast()
   const [items, setItems] = useState<Item[]>([])
-  const [, setError] = useState<string | null>(null)
-  const [isFetching, setIsFetching] = useState(false)
-  const [activeFilter] = useState<"all" | "active" | "returned">("all")
+  const [isLoading, setIsLoading] = useState(true)
+  const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
 
-  // Returned modal state
-  const [returnModalOpen, setReturnModalOpen] = useState(false)
-  const [returningItemId, setReturningItemId] = useState<string | null>(null)
-  const [returnedTo, setReturnedTo] = useState("")
-  const [returnedYearSection, setReturnedYearSection] = useState("")
-  const [returnedDate, setReturnedDate] = useState<string>(new Date().toISOString().slice(0, 10))
-  const [useCustomDate, setUseCustomDate] = useState(false)
-  const [isSubmittingReturn, startSubmittingReturn] = useTransition()
-  const [returningItemType, setReturningItemType] = useState<"lost" | "found" | null>(null)
+  // Dialog states
+  const [markReturnedDialog, setMarkReturnedDialog] = useState<{
+    open: boolean
+    item: Item | null
+  }>({ open: false, item: null })
+  const [returnedParty, setReturnedParty] = useState("")
 
   useEffect(() => {
     let isMounted = true
-    supabase.auth.getSession().then(({ data }) => {
-      if (!isMounted) return
-      const session = data.session
-      if (!session) {
-        router.replace("/")
-        return
+
+    async function loadItems() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          router.replace("/")
+          return
+        }
+
+        const { data, error } = await supabase
+          .from("items")
+          .select("id, title, name, type, description, date, location, contact_number, image_url, status, created_at, returned_party")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+
+        if (error) throw error
+
+        if (isMounted) {
+          setItems(data || [])
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : "Failed to load items")
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false)
+        }
       }
-      setUserId(session.user.id)
-      setIsLoadingUser(false)
-    })
+    }
+
+    loadItems()
+
     return () => {
       isMounted = false
     }
   }, [supabase, router])
 
-  useEffect(() => {
-    if (!userId) return
-    setIsFetching(true)
-    setError(null)
-    
-    async function fetchItems() {
-      if (!userId) return
+  async function markAsReturned(item: Item) {
+    if (!returnedParty.trim()) return
+
+    startTransition(async () => {
       try {
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from("items")
-          .select("id, title, name, type, status, image_url, created_at, returned_party, returned_year_section, returned_at")
-          .eq("user_id", userId)
-          .order("created_at", { ascending: false })
-        
-        if (error) setError(error.message ? error.message : "Failed to load items")
-        setItems(data || [])
-      } catch {
-        setError("Failed to load items")
-      } finally {
-        setIsFetching(false)
-      }
-    }
-    
-    fetchItems()
-  }, [supabase, userId])
+          .update({
+            status: "returned",
+            returned_party: returnedParty.trim()
+          })
+          .eq("id", item.id)
 
-  function openReturnModal(itemId: string) {
-    setReturningItemId(itemId)
-    const it = items.find(x => x.id === itemId)
-    setReturningItemType((it?.type as "lost" | "found") ?? null)
-    setReturnedTo("")
-    setReturnedYearSection("")
-    setReturnedDate(new Date().toISOString().slice(0, 10))
-    setUseCustomDate(false)
-    setReturnModalOpen(true)
-  }
+        if (error) throw error
 
-  function markAsReturned(e: React.FormEvent) {
-    e.preventDefault()
-    if (!returningItemId || !userId) return
-    startSubmittingReturn(async () => {
-      const updatePayload: Partial<Tables<"items">> = {
-        status: "returned",
-        returned_party: returnedTo || null,
-        returned_year_section: returnedYearSection || null,
-        returned_at: useCustomDate ? returnedDate : new Date().toISOString().slice(0, 10)
-      }
+        // Update local state
+        setItems(prev => prev.map(i => 
+          i.id === item.id 
+            ? { ...i, status: "returned" as const, returned_party: returnedParty.trim() }
+            : i
+        ))
 
-      const { error } = await supabase
-        .from("items")
-        .update(updatePayload)
-        .eq("id", returningItemId)
-        .eq("user_id", userId)
-      if (error) {
-        alert(`Failed to mark as returned: ${error.message}`)
-        return
+        setMarkReturnedDialog({ open: false, item: null })
+        setReturnedParty("")
+      } catch (error) {
+        ErrorHandlers.itemOperation("update", error, toast)
       }
-      setItems((prev) => prev.map((it) => 
-        it.id === returningItemId 
-          ? { ...it, status: "returned", returned_party: returnedTo || null, returned_year_section: returnedYearSection || null, returned_at: useCustomDate ? returnedDate : new Date().toISOString().slice(0, 10) }
-          : it
-      ))
-      setReturnModalOpen(false)
     })
   }
 
-  async function handleDelete(itemId: string, imageUrl: string | null) {
-    if (!confirm("Are you sure you want to delete this item? This action cannot be undone.")) return
-    setError(null)
-    
-    try {
-      // Remove storage asset if present
-      if (imageUrl) {
-        const url = new URL(imageUrl)
-        const prefix = "/storage/v1/object/public/items/"
-        const path = url.pathname.startsWith(prefix) ? url.pathname.slice(prefix.length) : url.pathname.split("/items/")[1]
-        if (path) {
-          await supabase.storage.from("items").remove([path])
-        }
-      }
-
-      const { error: delErr } = await supabase.from("items").delete().eq("id", itemId).eq("user_id", userId!)
-      if (delErr) {
-        setError(delErr.message)
-        return
-      }
-      setItems((prev) => prev.filter((it) => it.id !== itemId))
-    } catch {
-      setError("Failed to delete item")
+  async function deleteItem(item: Item) {
+    if (!confirm("Are you sure you want to delete this item? This action cannot be undone.")) {
+      return
     }
-  }
 
-  const filteredItems = items.filter(item => {
-    if (activeFilter === "active") return item.status !== "returned"
-    if (activeFilter === "returned") return item.status === "returned"
-    return true
-  })
+    startTransition(async () => {
+      try {
+        const { error } = await supabase
+          .from("items")
+          .delete()
+          .eq("id", item.id)
 
-  // quick counts (optional) - commented out to avoid unused variable warning
-  // const stats = { total: items.length, active: items.filter(i=>i.status!=="returned").length, returned: items.filter(i=>i.status==="returned").length }
+        if (error) throw error
 
-  function formatDate(dateString: string | null) {
-    if (!dateString) return "—"
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric"
+        // Update local state
+        setItems(prev => prev.filter(i => i.id !== item.id))
+      } catch (error) {
+        ErrorHandlers.itemOperation("delete", error, toast)
+      }
     })
   }
 
-  function getStatusIcon(status: string | null) {
-    if (status === "returned") return <CheckCircle className="h-4 w-4 text-green-600" />
-    return <AlertCircle className="h-4 w-4 text-amber-600" />
-  }
-
-  function getStatusBadge(status: string | null) {
-    if (status === "returned") {
-      return <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200">Returned</Badge>
-    }
-    return <Badge variant="outline">Active</Badge>
-  }
-
-  if (isLoadingUser) {
+  if (error) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-sm text-muted-foreground">Checking authentication...</p>
+      <main className="container mx-auto px-4 sm:px-6 py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-destructive mb-2">Something went wrong</h1>
+          <p className="text-muted-foreground mb-6">Failed to load items: {error}</p>
+          <Button onClick={() => window.location.reload()}>Try Again</Button>
         </div>
-      </div>
+      </main>
     )
   }
 
   return (
-    <div className="flex-1 overflow-x-hidden">
-      <div className="container mx-auto px-4 sm:px-6 py-6">
-        {/* Header */}
-        <header className="mb-6">
-          <h1 className="text-2xl font-bold mb-2">My Reports</h1>
-          <p className="text-muted-foreground">Manage your lost and found reports.</p>
-        </header>
+    <main className="container mx-auto px-2 sm:px-4 py-4 overflow-x-hidden">
+      <header className="mb-4">
+        <h1 className="text-xl font-semibold">My Reports</h1>
+        <p className="text-muted-foreground text-sm">Manage your lost and found item reports.</p>
+      </header>
 
-        {/* Content */}
-        {isFetching ? (
-          <div className="space-y-4">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="bg-card border rounded-lg p-4">
-                <div className="flex items-start gap-4">
-                  <Skeleton className="h-16 w-16 rounded" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-3 w-1/2" />
-                    <Skeleton className="h-3 w-1/4" />
-                  </div>
+      {isLoading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-0.5 sm:gap-1">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <ItemCardSkeleton key={i} />
+          ))}
+        </div>
+      ) : items.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground mb-4">You haven&apos;t posted any items yet.</p>
+          <Button asChild>
+            <Link href="/post">Post your first item</Link>
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-0.5 sm:gap-1">
+          {items.map((item) => (
+            <div key={item.id} className="relative group">
+              <ItemCard
+                id={item.id}
+                title={item.title}
+                name={item.name}
+                type={item.type as "lost" | "found"}
+                description={item.description}
+                date={item.date}
+                location={item.location}
+                contactNumber={item.contact_number}
+                imageUrl={item.image_url}
+                status={item.status as "active" | "returned" | null}
+                createdAt={item.created_at}
+                href={`/items/${item.id}`}
+              />
+              
+              {/* Action buttons overlay */}
+              <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex gap-1">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="h-7 w-7 p-0"
+                    asChild
+                  >
+                    <Link href={`/items/${item.id}`}>
+                      <Eye className="h-3 w-3" />
+                    </Link>
+                  </Button>
+                  
+                  {item.status !== "returned" && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="h-7 w-7 p-0"
+                      onClick={() => setMarkReturnedDialog({ open: true, item })}
+                    >
+                      <CheckCircle className="h-3 w-3" />
+                    </Button>
+                  )}
+                  
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="h-7 w-7 p-0"
+                    onClick={() => deleteItem(item)}
+                    disabled={isPending}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
                 </div>
               </div>
-            ))}
-          </div>
-        ) : items.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-              <Package className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <h3 className="text-lg font-semibold mb-2">No reports found</h3>
-            <p className="text-muted-foreground mb-6">You haven&apos;t posted any reports yet.</p>
-            <Button asChild>
-              <Link href="/post">Create report now?</Link>
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {filteredItems.map((item) => {
-              const isMock = item.image_url?.includes("your-bucket-url.supabase.co") ?? false
-              return (
-                <Card key={item.id} className="overflow-hidden">
-                  <CardContent className="p-0">
-                    <div className="flex gap-4 p-4">
-                      {/* Image */}
-                      <div className="relative h-20 w-20 shrink-0 rounded-lg overflow-hidden bg-muted border">
-                        {item.image_url ? (
-                          <Image 
-                            src={item.image_url} 
-                            alt={item.title ?? item.name} 
-                            fill 
-                            className="object-cover" 
-                            unoptimized={isMock}
-                          />
-                        ) : (
-                          <div className="absolute inset-0 grid place-items-center text-xs text-muted-foreground">
-                            <Package className="h-6 w-6" />
-                          </div>
-                        )}
-                      </div>
 
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <div className="min-w-0 flex-1">
-                            <h3 className="font-semibold truncate">{item.title ?? item.name}</h3>
-                            <p className="text-sm text-muted-foreground">Posted by {item.name}</p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {getStatusIcon(item.status)}
-                            {getStatusBadge(item.status)}
-                          </div>
-                        </div>
-
-                        {/* Return Info */}
-                        {item.status === "returned" && (item.returned_party || item.returned_year_section || item.returned_at) && (
-                          <div className="mb-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                            <div className="flex items-center gap-2 text-sm text-green-700 mb-1">
-                              <CheckCircle className="h-4 w-4" />
-                              <span className="font-medium">Returned</span>
-                            </div>
-                            <div className="space-y-1 text-xs text-green-600">
-                              {item.returned_party && (
-                                <div className="flex items-center gap-1">
-                                  <User className="h-3 w-3" />
-                                  <span>{item.type === "found" ? "To" : "By"}: {item.returned_party}</span>
-                                </div>
-                              )}
-                              {item.returned_year_section && (
-                                <div className="flex items-center gap-1">
-                                  <GraduationCap className="h-3 w-3" />
-                                  <span>{item.returned_year_section}</span>
-                                </div>
-                              )}
-                              {item.returned_at && (
-                                <div className="flex items-center gap-1">
-                                  <Calendar className="h-3 w-3" />
-                                  <span>Date: {formatDate(item.returned_at)}</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Posted Date */}
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground mb-3">
-                          <Clock className="h-3 w-3" />
-                          <span>Posted {formatDate(item.created_at)}</span>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            onClick={() => router.push(`/items/${item.id}`)}
-                            className="w-full sm:w-auto"
-                          >
-                            <Eye className="h-3 w-3 mr-1" />
-                            View
-                          </Button>
-                          
-                          {item.status !== "returned" && (
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              onClick={() => openReturnModal(item.id)}
-                              className="w-full sm:w-auto"
-                            >
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Mark Returned
-                            </Button>
-                          )}
-                          
-                          <Button 
-                            size="sm" 
-                            variant="destructive" 
-                            onClick={() => handleDelete(item.id, item.image_url)}
-                            className="w-full sm:w-auto"
-                          >
-                            <Trash2 className="h-3 w-3 mr-1" />
-                            Delete
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Mark Returned Modal */}
-      <Dialog open={returnModalOpen} onOpenChange={setReturnModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              Mark Item as Returned
-            </DialogTitle>
-          </DialogHeader>
-          <form onSubmit={markAsReturned} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="returned_to">{returningItemType === "found" ? "Returned to (name) *" : "Returned by (name) *"}</Label>
-              <Input 
-                id="returned_to" 
-                value={returnedTo} 
-                onChange={(e) => setReturnedTo(e.target.value)} 
-                placeholder={returningItemType === "found" ? "Owner's name" : "Student who returned the item"} 
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="returned_ys">Year & section (optional)</Label>
-              <Input 
-                id="returned_ys" 
-                value={returnedYearSection} 
-                onChange={(e) => setReturnedYearSection(e.target.value)} 
-                placeholder="e.g., 3rd year – BSIT 3A" 
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <input 
-                  id="use_custom_date" 
-                  type="checkbox" 
-                  checked={useCustomDate} 
-                  onChange={(e) => setUseCustomDate(e.target.checked)} 
-                />
-                <Label htmlFor="use_custom_date">Set custom date</Label>
-              </div>
-              {useCustomDate && (
-                <div className="space-y-2">
-                  <Label htmlFor="returned_at">Date returned</Label>
-                  <Input 
-                    id="returned_at" 
-                    type="date" 
-                    value={returnedDate} 
-                    onChange={(e) => setReturnedDate(e.target.value)} 
-                  />
+              {/* Returned info */}
+              {item.status === "returned" && item.returned_party && (
+                <div className="absolute bottom-2 left-2 right-2">
+                  <div className="bg-green-600/90 text-white text-xs px-2 py-1 rounded text-center">
+                    {item.type === "lost" ? "Returned to" : "Returned by"}: {item.returned_party}
+                  </div>
                 </div>
               )}
             </div>
-            
-            <div className="flex items-center gap-2 pt-1">
-              <Button type="submit" disabled={isSubmittingReturn} className="flex-1">
-                {isSubmittingReturn ? "Updating..." : "Confirm Return"}
-              </Button>
+          ))}
+        </div>
+      )}
+
+      {/* Mark as Returned Dialog */}
+      <Dialog 
+        open={markReturnedDialog.open} 
+        onOpenChange={(open) => setMarkReturnedDialog({ open, item: null })}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              Mark as Returned
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="grid gap-1">
+              <Label htmlFor="returned-party">
+                {markReturnedDialog.item?.type === "lost" ? "Returned to" : "Returned by"}
+              </Label>
+              <Input
+                id="returned-party"
+                value={returnedParty}
+                onChange={(e) => setReturnedParty(e.target.value)}
+                placeholder="Enter name"
+                className="h-9"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
               <Button 
                 type="button" 
-                variant="ghost" 
-                onClick={() => setReturnModalOpen(false)}
+                variant="outline" 
+                onClick={() => setMarkReturnedDialog({ open: false, item: null })}
+                disabled={isPending}
               >
                 Cancel
               </Button>
+              <Button 
+                type="button" 
+                onClick={() => markReturnedDialog.item && markAsReturned(markReturnedDialog.item)}
+                disabled={isPending || !returnedParty.trim()}
+              >
+                {isPending ? "Saving..." : "Save"}
+              </Button>
             </div>
-          </form>
+          </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </main>
   )
 } 

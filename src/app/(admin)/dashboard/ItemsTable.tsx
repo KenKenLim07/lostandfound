@@ -3,363 +3,392 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import type { Database, Tables } from "@/types/database"
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { EditItemDialog, type EditableItem } from "./EditItemDialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
+import Image from "next/image"
+import { 
+  Package, 
+  Clock, 
+  User, 
+  Trash2, 
+  CheckCircle, 
+  AlertCircle,
+  Calendar,
+  GraduationCap,
+  Eye,
+  Search
+} from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useToast } from "@/components/system/ToastProvider"
+import { ErrorHandlers } from "@/lib/errorHandling"
 
-export type AdminItemsTableProps = {
-  pageSize?: number
-}
+type Item = Pick<Tables<"items">, "id" | "title" | "name" | "type" | "status" | "image_url" | "created_at" | "returned_party" | "returned_year_section" | "returned_at">
 
-type Row = Pick<
-  Tables<"items">,
-  | "id"
-  | "title"
-  | "name"
-  | "type"
-  | "status"
-  | "date"
-  | "created_at"
-  | "reporter_year_section"
-  | "image_url"
->
+const PAGE_SIZE = 20
 
-export function ItemsTable({ pageSize = 50 }: AdminItemsTableProps) {
+export default function ItemsTable() {
   const supabase = createClientComponentClient<Database>()
-  const [items, setItems] = useState<Row[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
+  const toast = useToast()
+  const [items, setItems] = useState<Item[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [filter, setFilter] = useState<"all" | "active" | "returned">("all")
   const [cursor, setCursor] = useState<{ created_at: string; id: string } | null>(null)
 
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "returned">("all")
-  const [typeFilter, setTypeFilter] = useState<"all" | "lost" | "found">("all")
-  const [search, setSearch] = useState("")
-  const [input, setInput] = useState("")
-  const debounceRef = useRef<number | null>(null)
+  const observerRef = useRef<HTMLDivElement | null>(null)
 
-  // Action states
-  const [editOpen, setEditOpen] = useState(false)
-  const [editItem, setEditItem] = useState<EditableItem | null>(null)
-
-  const [returnOpen, setReturnOpen] = useState(false)
-  const [returningItemId, setReturningItemId] = useState<string | null>(null)
-  const [returnedTo, setReturnedTo] = useState("")
-  const [returnedYearSection, setReturnedYearSection] = useState("")
-  const [returnedDate, setReturnedDate] = useState<string>(new Date().toISOString().slice(0, 10))
-  const [useCustomDate, setUseCustomDate] = useState(false)
-  const [isSubmittingReturn, setIsSubmittingReturn] = useState(false)
-
+  // Debounce search
+  const [debouncedSearch, setDebouncedSearch] = useState("")
   useEffect(() => {
-    if (debounceRef.current) window.clearTimeout(debounceRef.current)
-    debounceRef.current = window.setTimeout(() => setSearch(input.trim()), 300)
-    return () => {
-      if (debounceRef.current) window.clearTimeout(debounceRef.current)
-    }
-  }, [input])
+    const t = setTimeout(() => setDebouncedSearch(searchTerm.trim()), 250)
+    return () => clearTimeout(t)
+  }, [searchTerm])
 
-  const buildQuery = useCallback(() => {
+  const fetchPage = useCallback(async (opts: { append: boolean; cursor?: { created_at: string; id: string } | null }) => {
+    const { append, cursor } = opts
+    const like = debouncedSearch ? `%${debouncedSearch}%` : null
+
     let query = supabase
       .from("items")
-      .select("id, title, name, type, status, date, created_at, reporter_year_section, image_url")
+      .select("id, title, name, type, status, image_url, created_at, returned_party, returned_year_section, returned_at")
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(PAGE_SIZE)
 
-    if (statusFilter === "active") {
-      query = query.neq("status", "returned")
-    } else if (statusFilter === "returned") {
+    if (like) {
+      query = query.or(`title.ilike.${like},name.ilike.${like}`)
+    }
+
+    if (filter === "active") {
+      query = query.eq("status", "active")
+    } else if (filter === "returned") {
       query = query.eq("status", "returned")
     }
 
-    if (typeFilter !== "all") {
-      query = query.eq("type", typeFilter)
-    }
-
-    if (search) {
-      const like = `%${search}%`
+    if (cursor) {
       query = query.or(
-        `title.ilike.${like},name.ilike.${like},location.ilike.${like},description.ilike.${like}`
+        `created_at.lt.${cursor.created_at},and(created_at.eq.${cursor.created_at},id.lt.${cursor.id})`
       )
     }
 
-    return query
-  }, [statusFilter, typeFilter, search, supabase])
+    const { data, error } = await query
+    if (error) throw error
 
-  const resetAndLoad = useCallback(async () => {
-    setIsLoading(true)
-    setError(null)
-    setCursor(null)
-    try {
-      const { data, error: err } = await buildQuery()
-        .order("created_at", { ascending: false })
-        .limit(pageSize)
-      if (err) throw err
-      const rows = (data ?? []) as Row[]
-      setItems(rows)
-      setHasMore(rows.length === pageSize)
-      if (rows.length > 0) setCursor({ created_at: rows[rows.length - 1].created_at!, id: rows[rows.length - 1].id })
-    } catch (e) {
-      const message = e instanceof Error ? e.message : "Failed to load items"
-      setError(message)
-    } finally {
-      setIsLoading(false)
+    setHasMore((data?.length ?? 0) === PAGE_SIZE)
+
+    if (append) {
+      setItems((prev) => [...prev, ...(data || [])])
+    } else {
+      setItems(data || [])
     }
-  }, [buildQuery, pageSize])
 
-  const loadMore = useCallback(async () => {
-    if (isLoading || !hasMore || !cursor) return
-    setIsLoading(true)
-    setError(null)
-    try {
-      const q = buildQuery()
-        .order("created_at", { ascending: false })
-        .limit(pageSize)
-      if (cursor) {
-        q.lt("created_at", cursor.created_at)
-      }
-      const { data, error: err } = await q
-      if (err) throw err
-      const rows = (data ?? []) as Row[]
-      setItems((prev) => [...prev, ...rows])
-      setHasMore(rows.length === pageSize)
-      if (rows.length > 0) setCursor({ created_at: rows[rows.length - 1].created_at!, id: rows[rows.length - 1].id })
-    } catch (e) {
-      const message = e instanceof Error ? e.message : "Failed to load more"
-      setError(message)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [buildQuery, cursor, hasMore, isLoading, pageSize])
+    const last = (data || [])[data.length - 1]
+    setCursor(last ? { created_at: last.created_at!, id: last.id } : null)
+  }, [debouncedSearch, filter, supabase])
 
+  // Initial fetch and on filter/search change
   useEffect(() => {
-    resetAndLoad()
-  }, [resetAndLoad])
+    setIsLoading(true)
+    setCursor(null)
+    fetchPage({ append: false, cursor: null })
+      .catch(() => {})
+      .finally(() => setIsLoading(false))
+  }, [debouncedSearch, filter, supabase, fetchPage])
 
-  function openEdit(row: Row) {
-    const draft: EditableItem = {
-      id: row.id,
-      title: row.title,
-      description: null,
-      contact_number: null,
-      status: row.status ?? "active",
-    }
-    setEditItem(draft)
-    setEditOpen(true)
-  }
-
-  function onItemSaved(partial: EditableItem) {
-    setItems((prev) => prev.map((it) => (it.id === partial.id ? { ...it, title: partial.title ?? it.title, status: partial.status ?? it.status } : it)))
-  }
-
-  function openReturn(row: Row) {
-    setReturningItemId(row.id)
-    setReturnedTo("")
-    setReturnedYearSection("")
-    setReturnedDate(new Date().toISOString().slice(0, 10))
-    setUseCustomDate(false)
-    setReturnOpen(true)
-  }
-
-  async function submitReturn(e: React.FormEvent) {
-    e.preventDefault()
-    if (!returningItemId) return
-    setIsSubmittingReturn(true)
-    try {
-      const updatePayload: Partial<Tables<"items">> = {
-        status: "returned",
-        returned_party: returnedTo || null,
-        returned_year_section: returnedYearSection || null,
-        returned_at: useCustomDate ? returnedDate : new Date().toISOString().slice(0, 10),
+  // Infinite scroll
+  useEffect(() => {
+    if (!observerRef.current) return
+    const el = observerRef.current
+    const io = new IntersectionObserver((entries) => {
+      const entry = entries[0]
+      if (entry.isIntersecting && hasMore && !isLoading && !isLoadingMore) {
+        setIsLoadingMore(true)
+        fetchPage({ append: true, cursor })
+          .catch(() => {})
+          .finally(() => setIsLoadingMore(false))
       }
-      const { error } = await supabase.from("items").update(updatePayload).eq("id", returningItemId)
+    }, { rootMargin: "200px" })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [hasMore, isLoading, isLoadingMore, cursor, debouncedSearch, filter, fetchPage])
+
+  async function markAsReturned(itemId: string) {
+    try {
+      const { error } = await supabase
+        .from("items")
+        .update({ status: "returned" })
+        .eq("id", itemId)
+
       if (error) throw error
-      setItems((prev) => prev.map((it) => (it.id === returningItemId ? { ...it, status: "returned" } : it)))
-      setReturnOpen(false)
+
+      // Update local state
+      setItems((prev) => prev.map((item) => 
+        item.id === itemId 
+          ? { ...item, status: "returned" as const }
+          : item
+      ))
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed to mark as returned")
-    } finally {
-      setIsSubmittingReturn(false)
+      ErrorHandlers.itemOperation("update", e, toast)
     }
   }
 
-  async function handleDelete(row: Row) {
-    if (!confirm("Delete this item? This cannot be undone.")) return
+  async function deleteItem(itemId: string, imageUrl: string | null) {
+    if (!confirm("Are you sure you want to delete this item? This action cannot be undone.")) {
+      return
+    }
+
     try {
       // Remove storage asset if present
-      if (row.image_url) {
-        const url = new URL(row.image_url)
+      if (imageUrl) {
+        const url = new URL(imageUrl)
         const prefix = "/storage/v1/object/public/items/"
         const path = url.pathname.startsWith(prefix) ? url.pathname.slice(prefix.length) : url.pathname.split("/items/")[1]
         if (path) {
           await supabase.storage.from("items").remove([path])
         }
       }
-      const { error } = await supabase.from("items").delete().eq("id", row.id)
+
+      const { error } = await supabase
+        .from("items")
+        .delete()
+        .eq("id", itemId)
+
       if (error) throw error
-      setItems((prev) => prev.filter((it) => it.id !== row.id))
+
+      // Update local state
+      setItems((prev) => prev.filter((item) => item.id !== itemId))
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed to delete item")
+      ErrorHandlers.itemOperation("delete", e, toast)
     }
   }
 
+  function formatDate(dateString: string | null) {
+    if (!dateString) return "—"
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric"
+    })
+  }
+
+  function getStatusIcon(status: string | null) {
+    if (status === "returned") return <CheckCircle className="h-4 w-4 text-green-600" />
+    return <AlertCircle className="h-4 w-4 text-amber-600" />
+  }
+
+  function getStatusBadge(status: string | null) {
+    if (status === "returned") {
+      return <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200">Returned</Badge>
+    }
+    return <Badge variant="outline">Active</Badge>
+  }
+
   return (
-    <section className="space-y-3">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-muted-foreground">Status</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "returned")}
-              className="h-9 rounded-md border bg-background px-2 text-sm"
-            >
-              <option value="all">All</option>
-              <option value="active">Active</option>
-              <option value="returned">Returned</option>
-            </select>
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-muted-foreground">Type</label>
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value as "all" | "lost" | "found")}
-              className="h-9 rounded-md border bg-background px-2 text-sm"
-            >
-              <option value="all">All</option>
-              <option value="lost">Lost</option>
-              <option value="found">Found</option>
-            </select>
+    <div className="space-y-4">
+      {/* Search and Filter */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex-1">
+          <Label htmlFor="search" className="sr-only">Search items</Label>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              id="search"
+              placeholder="Search items..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Search title, name, location…"
-            className="h-9 w-[220px] rounded-md border bg-background px-2 text-sm"
-          />
-          <button
-            type="button"
-            onClick={() => {
-              setStatusFilter("all"); setTypeFilter("all"); setInput(""); setSearch("")
-            }}
-            className="h-9 rounded-md border px-3 text-sm"
+        <div className="w-full sm:w-48">
+          <Label htmlFor="filter" className="sr-only">Filter by status</Label>
+          <select
+            id="filter"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value as "all" | "active" | "returned")}
+            className="h-9 w-full rounded-md border bg-background px-3 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
-            Reset
-          </button>
+            <option value="all">All Items</option>
+            <option value="active">Active</option>
+            <option value="returned">Returned</option>
+          </select>
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-md border">
-        <table className="w-full text-sm border-collapse">
-          <thead className="bg-muted">
-            <tr className="text-left">
-              <th className="px-3 py-2 border-r border-border/50">Title</th>
-              <th className="px-3 py-2 border-r border-border/50">Type</th>
-              <th className="px-3 py-2 border-r border-border/50">Current Status</th>
-              <th className="px-3 py-2 border-r border-border/50">Posted by</th>
-              <th className="px-3 py-2 border-r border-border/50">Course / Y&S</th>
-              <th className="px-3 py-2 border-r border-border/50">Date</th>
-              <th className="px-3 py-2 border-r border-border/50">Created</th>
-              <th className="px-3 py-2">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.length === 0 && !isLoading ? (
-              <tr>
-                <td className="px-3 py-6 text-muted-foreground border-r border-border/50" colSpan={8}>No items match your filters.</td>
-              </tr>
-            ) : (
-              items.map((item) => (
-                <tr key={item.id} className="border-t border-border/50">
-                  <td className="px-3 py-2 font-medium max-w-[260px] truncate border-r border-border/50">{item.title ?? "—"}</td>
-                  <td className="px-3 py-2 capitalize border-r border-border/50">{item.type}</td>
-                  <td className="px-3 py-2 capitalize border-r border-border/50">{item.status ?? "active"}</td>
-                  <td className="px-3 py-2 border-r border-border/50">{item.name}</td>
-                  <td className="px-3 py-2 border-r border-border/50">{item.reporter_year_section ?? "—"}</td>
-                  <td className="px-3 py-2 border-r border-border/50">{new Date(item.date).toLocaleDateString()}</td>
-                  <td className="px-3 py-2 border-r border-border/50">{item.created_at ? new Date(item.created_at).toLocaleString() : "—"}</td>
-                  <td className="px-3 py-2 border-l border-border/50">
-                    <div className="flex items-center gap-3 h-full">
-                      <Link href={`/items/${item.id}`} className="text-foreground/60 hover:text-foreground underline underline-offset-4">View</Link>
-                      <Button size="sm" variant="outline" onClick={() => openEdit(item)}>Edit</Button>
-                      {item.status !== "returned" ? (
-                        <Button size="sm" variant="outline" onClick={() => openReturn(item)} className="w-28">Mark returned</Button>
+      {/* Items List */}
+      {isLoading ? (
+        <div className="space-y-4">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-4">
+                <div className="flex items-start gap-4">
+                  <Skeleton className="h-16 w-16 rounded" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
+                    <Skeleton className="h-3 w-1/4" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : items.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+            <Package className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-semibold mb-2">No items found</h3>
+          <p className="text-muted-foreground">
+            {searchTerm ? `No items matching "${searchTerm}"` : "No items have been posted yet."}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {items.map((item) => {
+            const isMock = item.image_url?.includes("your-bucket-url.supabase.co") ?? false
+            return (
+              <Card key={item.id} className="overflow-hidden">
+                <CardContent className="p-0">
+                  <div className="flex gap-4 p-4">
+                    {/* Image */}
+                    <div className="relative h-20 w-20 shrink-0 rounded-lg overflow-hidden bg-muted border">
+                      {item.image_url ? (
+                        <Image 
+                          src={item.image_url} 
+                          alt={item.title ?? item.name} 
+                          fill 
+                          className="object-cover" 
+                          unoptimized={isMock}
+                        />
                       ) : (
-                        <span className="inline-flex items-center justify-center h-8 px-3 text-xs text-muted-foreground bg-muted rounded-md border border-border w-28">Returned</span>
+                        <div className="absolute inset-0 grid place-items-center text-xs text-muted-foreground">
+                          <Package className="h-6 w-6" />
+                        </div>
                       )}
-                      <Button size="sm" variant="destructive" onClick={() => handleDelete(item)}>Delete</Button>
                     </div>
-                  </td>
-                </tr>
-              ))
-            )}
-            {isLoading && (
-              <tr>
-                <td className="px-3 py-4 text-muted-foreground border-r border-border/50" colSpan={8}>Loading…</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
 
-      {hasMore && (
-        <div className="flex justify-center pt-2">
-          <button
-            type="button"
-            onClick={loadMore}
-            disabled={isLoading}
-            className="h-9 rounded-md border px-3 text-sm"
-          >
-            {isLoading ? "Loading…" : "Load more"}
-          </button>
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-semibold truncate">{item.title ?? item.name}</h3>
+                          <p className="text-sm text-muted-foreground">Posted by {item.name}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {getStatusIcon(item.status)}
+                          {getStatusBadge(item.status)}
+                        </div>
+                      </div>
+
+                      {/* Return Info */}
+                      {item.status === "returned" && (item.returned_party || item.returned_year_section || item.returned_at) && (
+                        <div className="mb-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                          <div className="flex items-center gap-2 text-sm text-green-700 mb-1">
+                            <CheckCircle className="h-4 w-4" />
+                            <span className="font-medium">Returned</span>
+                          </div>
+                          <div className="space-y-1 text-xs text-green-600">
+                            {item.returned_party && (
+                              <div className="flex items-center gap-1">
+                                <User className="h-3 w-3" />
+                                <span>{item.type === "found" ? "To" : "By"}: {item.returned_party}</span>
+                              </div>
+                            )}
+                            {item.returned_year_section && (
+                              <div className="flex items-center gap-1">
+                                <GraduationCap className="h-3 w-3" />
+                                <span>{item.returned_year_section}</span>
+                              </div>
+                            )}
+                            {item.returned_at && (
+                              <div className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                <span>Date: {formatDate(item.returned_at)}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Posted Date */}
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground mb-3">
+                        <Clock className="h-3 w-3" />
+                        <span>Posted {formatDate(item.created_at)}</span>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline" 
+                          onClick={() => router.push(`/items/${item.id}`)}
+                          className="w-full sm:w-auto"
+                        >
+                          <Eye className="h-3 w-3 mr-1" />
+                          View
+                        </Button>
+                        
+                        {item.status !== "returned" && (
+                          <Button
+                            size="sm"
+                            variant="outline" 
+                            onClick={() => markAsReturned(item.id)}
+                            className="w-full sm:w-auto"
+                          >
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Mark Returned
+                          </Button>
+                        )}
+                        
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => deleteItem(item.id, item.image_url)}
+                          className="w-full sm:w-auto"
+                        >
+                          <Trash2 className="h-3 w-3 mr-1" />
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
+
+          {/* Load more sentinel */}
+          <div ref={observerRef} aria-hidden className="h-10" />
+
+          {/* Loading more skeletons */}
+          {isLoadingMore && (
+            <div className="space-y-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Card key={`more-${i}`}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-4">
+                      <Skeleton className="h-16 w-16 rounded" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-3 w-1/2" />
+                        <Skeleton className="h-3 w-1/4" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       )}
-
-      {error && (
-        <p className="text-sm text-destructive">{error}</p>
-      )}
-
-      {/* Edit Item Dialog */}
-      <EditItemDialog
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        item={editItem}
-        onSaved={onItemSaved}
-      />
-
-      {/* Mark Returned Modal */}
-      <Dialog open={returnOpen} onOpenChange={setReturnOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Mark as Returned</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={submitReturn} className="space-y-3">
-            <div className="grid gap-1">
-              <label className="text-sm">Returned by</label>
-              <input className="h-9 rounded-md border px-2 text-sm" value={returnedTo} onChange={(e) => setReturnedTo(e.target.value)} />
-            </div>
-            <div className="grid gap-1">
-              <label className="text-sm">Course / Year & Section</label>
-              <input className="h-9 rounded-md border px-2 text-sm" value={returnedYearSection} onChange={(e) => setReturnedYearSection(e.target.value)} />
-            </div>
-            <div className="grid gap-1">
-              <label className="text-sm">Use custom date</label>
-              <div className="flex items-center gap-2">
-                <input id="use-custom" type="checkbox" checked={useCustomDate} onChange={(e) => setUseCustomDate(e.target.checked)} />
-                <label htmlFor="use-custom" className="text-sm">Set a specific date</label>
-              </div>
-            </div>
-            <div className="grid gap-1">
-              <label className="text-sm">Returned at</label>
-              <input type="date" className="h-9 rounded-md border px-2 text-sm" value={returnedDate} onChange={(e) => setReturnedDate(e.target.value)} disabled={!useCustomDate} />
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="outline" onClick={() => setReturnOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={isSubmittingReturn}>{isSubmittingReturn ? "Saving…" : "Save"}</Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </section>
+    </div>
   )
 } 

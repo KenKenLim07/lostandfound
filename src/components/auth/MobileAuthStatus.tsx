@@ -1,92 +1,84 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
-import type { Database } from "@/types/database"
+import { useSupabase } from "@/hooks/useSupabase"
 import { Button } from "@/components/ui/button"
-import { LoginDialog } from "@/components/auth/LoginDialog"
-import { useRouter } from "next/navigation"
+import { SheetClose } from "@/components/ui/sheet"
+import { LogOut } from "lucide-react"
 
 type Props = {
-  onMobileMenuClose?: () => void
   initialIsLoggedIn?: boolean
 }
 
-export function MobileAuthStatus({ onMobileMenuClose, initialIsLoggedIn }: Props) {
-  const supabase = createClientComponentClient<Database>()
-  const router = useRouter()
-  const [isLoading, setIsLoading] = useState(initialIsLoggedIn === undefined)
-  const [isLoggedIn, setIsLoggedIn] = useState(!!initialIsLoggedIn)
+export function MobileAuthStatus({ initialIsLoggedIn = false }: Props) {
+  const supabase = useSupabase()
+  const [isLoggedIn, setIsLoggedIn] = useState(initialIsLoggedIn)
+  const [email, setEmail] = useState<string | null>(null)
 
   useEffect(() => {
     let isMounted = true
-    
-    async function load() {
-      try {
-        const { data: { user }, error } = await supabase.auth.getUser()
-        if (!isMounted) return
 
-        if (error) {
-          if (error.message === 'Auth session missing!') {
-            setIsLoggedIn(false)
-          } else {
+    async function init() {
+      try {
+        const { data } = await supabase.auth.getSession()
+        if (!isMounted) return
+        const session = data.session
+        setIsLoggedIn(!!session)
+        setEmail(session?.user?.email ?? null)
+      } catch (error) {
+        if (error instanceof Error && error.message === 'Auth session missing!') {
+          setIsLoggedIn(false)
+          setEmail(null)
+        } else {
           console.error("Auth error:", error)
           setIsLoggedIn(false)
-          }
-        } else {
-          setIsLoggedIn(!!user)
+          setEmail(null)
         }
-        setIsLoading(false)
-      } catch (error) {
-      if (!isMounted) return
-        console.error("Load error:", error)
-        setIsLoggedIn(false)
-      setIsLoading(false)
       }
     }
-    
-    // If server provided an initial state, skip the initial network fetch
-    if (initialIsLoggedIn === undefined) {
-    load()
-    } else {
-      setIsLoading(false)
-    }
-    
+
+    init()
+
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (!isMounted) return
       setIsLoggedIn(!!session)
+      setEmail(session?.user?.email ?? null)
     })
-    
+
     return () => {
       isMounted = false
       sub.subscription.unsubscribe()
     }
-  }, [supabase, initialIsLoggedIn])
+  }, [supabase])
 
-  async function signOut() {
+  async function handleSignOut() {
     try {
       const { error } = await supabase.auth.signOut()
-      if (error) {
-        console.error("Sign out error:", error)
-        return
-      }
-      if (onMobileMenuClose) {
-        onMobileMenuClose()
-      }
-    router.push("/")
-    router.refresh()
+      if (error) throw error
     } catch (error) {
-      console.error("Sign out error", error)
+      console.error("Sign out error:", error)
     }
   }
 
-  if (isLoading) return <div className="text-xs text-muted-foreground">…</div>
-
-  if (!isLoggedIn) return <LoginDialog isMobileMenu={true} onMobileMenuClose={onMobileMenuClose} />
+  if (!isLoggedIn) {
+    return null
+  }
 
   return (
-      <Button variant="outline" size="sm" onClick={signOut} className="w-full">
-        Sign out
-      </Button>
+    <>
+      <div className="px-3 py-2 text-sm text-muted-foreground border-b">
+        {email}
+      </div>
+      <SheetClose asChild>
+        <Button
+          variant="ghost"
+          onClick={handleSignOut}
+          className="w-full justify-start gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+        >
+          <LogOut className="h-4 w-4" />
+          Sign out
+        </Button>
+      </SheetClose>
+    </>
   )
 } 

@@ -1,66 +1,48 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
-import type { Database } from "@/types/database"
+import { useSupabase } from "@/hooks/useSupabase"
 import { Button } from "@/components/ui/button"
-import { LoginDialog } from "@/components/auth/LoginDialog"
-import { useRouter } from "next/navigation"
+import { LogOut } from "lucide-react"
 
 export function AuthStatus() {
-  const supabase = createClientComponentClient<Database>()
-  const router = useRouter()
-  const [isLoading, setIsLoading] = useState(true)
+  const supabase = useSupabase()
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [email, setEmail] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     let isMounted = true
-    
-    async function load() {
+
+    async function init() {
       try {
-        const { data: { user }, error } = await supabase.auth.getUser()
+        const { data } = await supabase.auth.getSession()
         if (!isMounted) return
-        
-        if (error) {
-          // Handle AuthSessionMissingError gracefully
-          if (error.message === 'Auth session missing!') {
-            setIsLoggedIn(false)
-            setEmail(null)
-          } else {
+        const session = data.session
+        setIsLoggedIn(!!session)
+        setEmail(session?.user?.email ?? null)
+      } catch (error) {
+        if (error instanceof Error && error.message === 'Auth session missing!') {
+          setIsLoggedIn(false)
+          setEmail(null)
+        } else {
           console.error("Auth error:", error)
           setIsLoggedIn(false)
           setEmail(null)
-          }
-        } else {
-          setIsLoggedIn(!!user)
-          setEmail(user?.email ?? null)
         }
-        setIsLoading(false)
-      } catch (error) {
-      if (!isMounted) return
-        console.error("Load error:", error)
-        setIsLoggedIn(false)
-        setEmail(null)
-      setIsLoading(false)
+      } finally {
+        if (isMounted) setIsLoading(false)
       }
     }
-    
-    load()
-    
+
+    init()
+
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (!isMounted) return
-      
-      console.log("Auth state change:", event, !!session)
-      const isNowLoggedIn = !!session
-      
-      setIsLoggedIn(isNowLoggedIn)
+      setIsLoggedIn(!!session)
       setEmail(session?.user?.email ?? null)
-      
-      // Note: Removed login redirect to keep users on current page for better UX
-      // Users will stay where they are and can continue browsing
     })
-    
+
     return () => {
       isMounted = false
       sub.subscription.unsubscribe()
@@ -69,33 +51,40 @@ export function AuthStatus() {
 
   async function handleSignOut() {
     try {
-      console.log("Starting sign out...")
+      setIsLoading(true)
       const { error } = await supabase.auth.signOut()
-      if (error) {
-        console.error("Sign out error:", error)
-        return
-      }
-      console.log("Sign out successful")
-    router.push("/")
-    router.refresh()
+      if (error) throw error
     } catch (error) {
       console.error("Sign out error:", error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
   if (isLoading) {
-    return <div className="text-xs text-muted-foreground">…</div>
+    return (
+      <div className="flex items-center gap-2">
+        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+        <span className="text-sm text-muted-foreground">Loading...</span>
+      </div>
+    )
   }
 
   if (!isLoggedIn) {
-    return <LoginDialog />
+    return null
   }
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs sm:text-sm text-green-600">Logged in{email ? ` as ${email}` : ""}</span>
-      <Button size="sm" variant="outline" onClick={handleSignOut}>
-        Sign out
+      <span className="text-sm text-muted-foreground">{email}</span>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleSignOut}
+        disabled={isLoading}
+        className="h-8 px-2"
+      >
+        <LogOut className="h-4 w-4" />
       </Button>
     </div>
   )

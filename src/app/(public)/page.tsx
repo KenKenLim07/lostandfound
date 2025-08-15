@@ -1,12 +1,10 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
-import type { Database, Tables } from "@/types/database"
+import type { Tables } from "@/types/database"
 import { ItemCard } from "@/components/items/ItemCard"
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Plus, Search } from "lucide-react"
+import { Plus } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { LoginDialog } from "@/components/auth/LoginDialog"
 import { ItemsSearchFilterBar } from "@/components/items/ItemsSearchFilterBar"
@@ -15,7 +13,9 @@ import { preloadItemImages } from "@/lib/imageCache"
 import { AnimatedLink } from "@/components/ui/animated-link"
 import { CampusGuardianDialog } from "@/components/leaderboard/CampusGuardianDialog"
 import { PostingRulesDialog } from "@/components/posting/PostingRulesDialog"
-import { ItemCardSkeleton } from "@/components/items/ItemCardSkeleton"
+import { useSupabase } from "@/hooks/useSupabase"
+import { useToast } from "@/components/system/ToastProvider"
+import { ErrorHandlers } from "@/lib/errorHandling"
 
 const HOME_CACHE_KEY = "home_items_v1"
 const HOME_CACHE_TTL_MS = 60_000
@@ -23,11 +23,11 @@ const HOME_CACHE_TTL_MS = 60_000
 type Item = Pick<Tables<"items">, "id" | "title" | "name" | "type" | "description" | "date" | "location" | "contact_number" | "image_url" | "status" | "created_at">
 
 export default function PublicHomePage() {
-  const supabase = createClientComponentClient<Database>()
+  const supabase = useSupabase()
   const router = useRouter()
+  const toast = useToast()
   const [items, setItems] = useState<Item[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [filter, setFilter] = useState<"all" | "lost" | "found" | "returned">("all")
@@ -50,16 +50,12 @@ export default function PublicHomePage() {
           }
         }
       }
-    } catch {
-      // ignore cache errors
-    }
+    } catch {}
   }, [])
 
   useEffect(() => {
     async function fetchItems() {
       try {
-        const supabase = createClientComponentClient<Database>()
-
         const { data, error } = await supabase
           .from("items")
           .select("id, title, name, type, description, date, location, contact_number, image_url, status, created_at")
@@ -70,26 +66,21 @@ export default function PublicHomePage() {
 
         const nextItems = data || []
         setItems(nextItems)
-        setHasAttemptedFetch(true)
 
-        // Update cache
         try {
           sessionStorage.setItem(
             HOME_CACHE_KEY,
             JSON.stringify({ items: nextItems, ts: Date.now() })
           )
-        } catch {
-          // ignore cache write errors
-        }
+        } catch {}
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load items")
       } finally {
         setIsLoading(false)
       }
     }
-
     fetchItems()
-  }, [])
+  }, [supabase])
 
   // Preload images to prevent blinking on navigation back
   useEffect(() => {
@@ -131,7 +122,7 @@ export default function PublicHomePage() {
         }
         
         if (profile?.blocked) {
-          alert("Your account has been blocked. You cannot post new items. Please contact an administrator if you believe this is an error.")
+          ErrorHandlers.permission(new Error("Account blocked"), toast)
           return
         }
         setRulesOpen(true)
@@ -197,72 +188,47 @@ export default function PublicHomePage() {
       <PostingRulesDialog
         open={rulesOpen}
         onOpenChange={setRulesOpen}
-        onContinue={() => {
-          setRulesOpen(false)
-          router.push("/post")
-        }}
+        onContinue={() => router.push("/post")}
       />
 
-      {/* Search & Filter Section */}
-      <section className="container mx-auto px-2 sm:px-4 py-2 pb-5">
-        <div className="max-w-xl mx-auto">
+      {/* Search and Filter Section */}
+      <section className="border-b bg-muted/30">
+        <div className="container mx-auto px-2 sm:px-4 py-3">
           <ItemsSearchFilterBar
             searchTerm={searchTerm}
             onSearchTermChange={setSearchTerm}
             filter={filter}
-            onFilterChange={(next) => setFilter(next)}
+            onFilterChange={setFilter}
           />
         </div>
       </section>
 
-      {/* Items Grid */}
-      <section className="container mx-auto px-0.5 sm:px-4 pb-2">
+      {/* Items Grid Section */}
+      <section className="container mx-auto px-2 sm:px-4 py-4">
         {isLoading ? (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Skeleton className="h-5 w-24" />
-              <div className="flex items-center gap-3">
-              <Skeleton className="h-4 w-20" />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-0.5 sm:gap-1">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <ItemCardSkeleton key={i} />
-              ))}
-            </div>
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-0.5 sm:gap-1">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="aspect-square rounded-lg" />
+            ))}
           </div>
-        ) : filteredItems.length === 0 && hasAttemptedFetch ? (
-          <div className="text-center py-6">
-            <div className="mx-auto w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-3">
-              <Search className="h-6 w-6 text-muted-foreground" />
-            </div>
-            <h3 className="text-base font-semibold mb-2">No items found</h3>
-            <p className="text-muted-foreground text-sm mb-4">
-              {searchTerm ? `No items matching ${"&quot;"}${searchTerm}${"&quot;"}` : "No items have been posted yet."}
-            </p>
-            <Button asChild size="sm">
-              <Link href="/post">Post the first item</Link>
-            </Button>
+        ) : filteredItems.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">No items found.</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold">
-                {filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''} found
-              </h2>
-              <div className="flex items-center gap-3">
-                {searchTerm && (
-                  <p className="text-xs text-muted-foreground">
-                    Filtered by &quot;{searchTerm}&quot;
-                  </p>
-                )}
-                <AnimatedLink href="/items" delay={300} trigger={!isLoading}>
-                  View all items
-                </AnimatedLink>
+          <>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  {filteredItems.length} items found
+                </span>
               </div>
+              <AnimatedLink href="/items" delay={1000} trigger={!isLoading}>
+                View all items
+              </AnimatedLink>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-0.5 sm:gap-1">
-              {filteredItems.map((item) => (
+              {filteredItems.slice(0, 6).map((item) => (
                 <ItemCard
                   key={item.id}
                   id={item.id}
@@ -280,7 +246,7 @@ export default function PublicHomePage() {
                 />
               ))}
             </div>
-          </div>
+          </>
         )}
       </section>
     </main>

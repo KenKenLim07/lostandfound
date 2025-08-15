@@ -1,14 +1,16 @@
 "use client"
 
 import { useState } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
-import type { Database } from "@/types/database"
+import { useSupabase } from "@/hooks/useSupabase"
 import { useRouter } from "next/navigation"
+import { useToast } from "@/components/system/ToastProvider"
+import { ErrorHandlers } from "@/lib/errorHandling"
 
 export function ReportItemLink({ className }: { className?: string }) {
-  const supabase = createClientComponentClient<Database>()
+  const supabase = useSupabase()
   const [isChecking, setIsChecking] = useState(false)
   const router = useRouter()
+  const toast = useToast()
 
   async function handleClick(e: React.MouseEvent) {
     e.preventDefault()
@@ -32,7 +34,7 @@ export function ReportItemLink({ className }: { className?: string }) {
         }
         
         if (profile?.blocked) {
-          alert("Your account has been blocked. You cannot post new items. Please contact an administrator if you believe this is an error.")
+          ErrorHandlers.permission(new Error("Account blocked"), toast)
           return
         }
         

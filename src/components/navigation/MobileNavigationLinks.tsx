@@ -1,8 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
-import type { Database } from "@/types/database"
+import { useSupabase } from "@/hooks/useSupabase"
 import Link from "next/link"
 import { SheetClose } from "@/components/ui/sheet"
 
@@ -12,7 +11,7 @@ type Props = {
 }
 
 export function MobileNavigationLinks({ initialIsLoggedIn = false, initialIsAdmin = false }: Props) {
-  const supabase = createClientComponentClient<Database>()
+  const supabase = useSupabase()
   const [isLoggedIn, setIsLoggedIn] = useState(initialIsLoggedIn)
   const [isAdmin, setIsAdmin] = useState(initialIsAdmin)
 
@@ -35,14 +34,14 @@ export function MobileNavigationLinks({ initialIsLoggedIn = false, initialIsAdmi
     }
 
     async function init() {
-        const { data } = await supabase.auth.getSession()
-        if (!isMounted) return
-        const session = data.session
-        setIsLoggedIn(!!session)
-        if (session?.user?.id) {
-          await loadRole(session.user.id)
-        } else {
-          setIsAdmin(false)
+      const { data } = await supabase.auth.getSession()
+      if (!isMounted) return
+      const session = data.session
+      setIsLoggedIn(!!session)
+      if (session?.user?.id) {
+        await loadRole(session.user.id)
+      } else {
+        setIsAdmin(false)
       }
     }
 

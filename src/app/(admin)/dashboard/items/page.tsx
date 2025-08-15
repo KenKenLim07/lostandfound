@@ -1,12 +1,15 @@
-import { ItemsTable } from "../ItemsTable"
+import ItemsTable from "../ItemsTable"
 
 export const dynamic = "force-dynamic"
 
 export default function AdminItemsPage() {
   return (
-    <div className="space-y-3">
-      <h2 className="text-lg font-semibold">Items</h2>
-      <ItemsTable pageSize={50} />
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Items Management</h1>
+        <p className="text-muted-foreground">Manage all lost and found items.</p>
+      </div>
+      <ItemsTable />
     </div>
   )
 } 

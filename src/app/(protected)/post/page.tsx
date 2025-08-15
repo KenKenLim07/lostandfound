@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic"
 
 import { useEffect, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { useSupabase } from "@/hooks/useSupabase"
 import type { Database, TablesInsert } from "@/types/database"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,7 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { postItem } from "./actions"
 
 export default function PostItemPage() {
-  const supabase = createClientComponentClient<Database>()
+  const supabase = useSupabase()
   const router = useRouter()
 
   const [isLoadingUser, setIsLoadingUser] = useState(true)
