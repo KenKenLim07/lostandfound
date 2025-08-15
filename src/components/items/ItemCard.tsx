@@ -2,15 +2,16 @@ import Image from "next/image"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { Package, MapPin } from "lucide-react"
-import { useImagePreload } from "@/hooks/useImagePreload"
-import { useEffect } from "react"
+import { cardAnimations, getReducedMotionVariants, shouldAnimateOnMount, markAsAnimated, markNavigationTime, getInitialAnimationState } from "@/lib/animations"
+import { imageCache } from "@/lib/imageCache"
+import { useReducedMotion } from "framer-motion"
+import { useEffect, useState } from "react"
 
-// Debug logging for ItemCard
-const DEBUG_ITEM_CARD = true
-function debugItemCard(message: string, data?: unknown) {
-  if (DEBUG_ITEM_CARD && typeof window !== 'undefined') {
-    console.log(`🎴 [ItemCard] ${message}`, data || '')
-  }
+// Detect mobile device
+function isMobile(): boolean {
+  if (typeof window === 'undefined') return false
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+         window.innerWidth <= 768
 }
 
 function formatRelativeTime(isoString: string | null | undefined): string {
@@ -45,8 +46,6 @@ export type ItemCardProps = {
   createdAt?: string | null
   href?: string
   className?: string
-  // New: allow page to tell card to skip fade on mount (for back nav on mobile)
-  preferNoFade?: boolean
 }
 
 export function ItemCard(props: ItemCardProps) {
@@ -61,76 +60,59 @@ export function ItemCard(props: ItemCardProps) {
     createdAt,
     href,
     className,
-    preferNoFade,
   } = props
 
   const typePillClasses = type === "lost" ? "bg-red-600 text-white" : "bg-green-600 text-white"
   const relativeTimeLabel = formatRelativeTime(createdAt ?? date)
   const isMockUrl = imageUrl?.includes("your-bucket-url.supabase.co") ?? false
   
-  // Use the custom hook for image preloading with mobile detection
-  const { isLoaded: imageLoaded, isLoading, isMobile } = useImagePreload(imageUrl)
+  // Animation support
+  const shouldReduceMotion = useReducedMotion()
+  const [imageLoaded, setImageLoaded] = useState(false)
+  const [isMobileDevice] = useState(() => isMobile())
 
-  // Debug image state changes
+  // Track navigation time for animation state management
   useEffect(() => {
-    debugItemCard(`Image state changed for ${name}`, {
-      id: props.id,
-      imageUrl: imageUrl?.substring(0, 50) + '...',
-      imageLoaded,
-      isLoading,
-      isMobile,
-      preferNoFade,
-      timestamp: new Date().toISOString()
-    })
-  }, [props.id, name, imageUrl, imageLoaded, isLoading, isMobile, preferNoFade])
+    markNavigationTime('item-cards')
+  }, [])
 
-  // Debug component mount/unmount
+  // Preload image to prevent blinking on navigation back
   useEffect(() => {
-    debugItemCard(`ItemCard mounted`, { id: props.id, name, imageUrl: !!imageUrl })
-    
-    return () => {
-      debugItemCard(`ItemCard unmounted`, { id: props.id, name, imageUrl: !!imageUrl })
+    if (imageUrl && !isMockUrl) {
+      imageCache.preload(imageUrl).then(() => {
+        setImageLoaded(true)
+      }).catch(() => {
+        // Silently fail preloading
+      })
     }
-  }, [props.id, name, imageUrl])
+  }, [imageUrl, isMockUrl])
 
-  // Determine whether to apply fade
-  const shouldFade = !(preferNoFade && isMobile)
-
-  // Use a more stable approach to prevent image blinking on navigation
   const CardMedia = (
     <div className="relative aspect-square bg-muted overflow-hidden">
       {imageUrl ? (
-        <>
-          <Image
-            src={imageUrl}
-            alt={title ?? name}
-            fill
-            sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 50vw"
-            unoptimized={isMockUrl}
-            priority={false}
-            loading="lazy"
-            className={cn(
-              "object-cover",
-              isMobile 
-                ? "mobile-hardware-accel force-gpu mobile-image-transition mobile-memory-safe"
-                : "image-no-blink image-smooth-transition",
-              shouldFade ? (imageLoaded ? "opacity-100" : "opacity-0") : "opacity-100"
-            )}
-            onError={(e) => {
-              // If image fails, keep it visible to avoid flashes
-              const target = e.currentTarget as HTMLImageElement
-              target.style.opacity = "1"
-            }}
-          />
-          {isLoading && shouldFade && !imageLoaded && (
-            <div className={cn(
-              "absolute inset-0",
-              isMobile 
-                ? "bg-muted/30 animate-pulse mobile-memory-safe" 
-                : "bg-muted/20 animate-pulse"
-            )} />
+        <Image
+          src={imageUrl}
+          alt={title ?? name}
+          fill
+          sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 50vw"
+          unoptimized={isMockUrl}
+          className={cn(
+            "object-cover transition-opacity duration-200",
+            // Mobile: Use different transition timing
+            isMobileDevice ? "transition-opacity duration-100" : "transition-opacity duration-200"
           )}
-        </>
+          priority={isMobileDevice} // Prioritize on mobile
+          loading={isMobileDevice ? "eager" : "lazy"} // Force eager loading on mobile
+          onLoad={(e) => {
+            // Smooth fade-in when image loads
+            const target = e.target as HTMLImageElement
+            target.style.opacity = '1'
+            setImageLoaded(true)
+          }}
+          style={{ 
+            opacity: imageLoaded ? 1 : 0
+          }}
+        />
       ) : (
         <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
           <Package className="h-8 w-8 text-muted-foreground/60 mb-2" />
@@ -170,7 +152,19 @@ export function ItemCard(props: ItemCardProps) {
   )
 
   return (
-    <article className={cn("rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200", className)}>
+    <motion.article
+      className={cn("rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden", className)}
+      variants={getReducedMotionVariants(cardAnimations.item, !!shouldReduceMotion)}
+      whileHover={shouldReduceMotion ? undefined : "hover"}
+      whileTap={shouldReduceMotion ? undefined : "tap"}
+      initial={getInitialAnimationState('item-cards')}
+      animate="visible"
+      onAnimationStart={() => {
+        if (shouldAnimateOnMount('item-cards')) {
+          markAsAnimated('item-cards')
+        }
+      }}
+    >
       {href ? (
         <Link href={href} aria-label={`View details for ${title ?? name}`}>
           {CardMedia}
@@ -194,6 +188,6 @@ export function ItemCard(props: ItemCardProps) {
           )}
         </div>
       </div>
-    </article>
+    </motion.article>
   )
-}
+} 

@@ -1,26 +1,23 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import type { Database, Tables } from "@/types/database"
 import { ItemCard } from "@/components/items/ItemCard"
-import { ItemCardSkeleton } from "@/components/items/ItemCardSkeleton"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Plus, Search } from "lucide-react"
+import { Plus, Trophy, Search } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
 import { LoginDialog } from "@/components/auth/LoginDialog"
 import { ItemsSearchFilterBar } from "@/components/items/ItemsSearchFilterBar"
 import { useRouter } from "next/navigation"
+import { motion } from "framer-motion"
+import { heroAnimations, cardAnimations, getReducedMotionVariants, shouldAnimateOnMount, markAsAnimated, getInitialAnimationState, getInitialAnimationStateSimple, markNavigationTime } from "@/lib/animations"
+import { preloadItemImages } from "@/lib/imageCache"
+import { useReducedMotion } from "framer-motion"
 import { AnimatedLink } from "@/components/ui/animated-link"
 import { CampusGuardianDialog } from "@/components/leaderboard/CampusGuardianDialog"
 import { PostingRulesDialog } from "@/components/posting/PostingRulesDialog"
-import { useBackNav } from "@/hooks/useBackNav"
-
-// Debug logging for home page
-const DEBUG_HOME = true
-function debugHome(message: string, data?: unknown) {
-  if (DEBUG_HOME && typeof window !== 'undefined') {
-    console.log(`🏠 [HomePage] ${message}`, data || '')
-  }
-}
+import { ItemCardSkeleton } from "@/components/items/ItemCardSkeleton"
 
 const HOME_CACHE_KEY = "home_items_v1"
 const HOME_CACHE_TTL_MS = 60_000
@@ -28,72 +25,50 @@ const HOME_CACHE_TTL_MS = 60_000
 type Item = Pick<Tables<"items">, "id" | "title" | "name" | "type" | "description" | "date" | "location" | "contact_number" | "image_url" | "status" | "created_at">
 
 export default function PublicHomePage() {
+  const supabase = createClientComponentClient<Database>()
   const router = useRouter()
   const [items, setItems] = useState<Item[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [filter, setFilter] = useState<"all" | "lost" | "found" | "returned">("all")
-  const { isBack, isMobile } = useBackNav()
 
   // Login dialog control
   const [loginOpen, setLoginOpen] = useState(false)
   const [rulesOpen, setRulesOpen] = useState(false)
 
-  // Debug component lifecycle
-  useEffect(() => {
-    debugHome('HomePage mounted', { 
-      timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent,
-      url: window.location.href,
-      isBack,
-      isMobile,
-    })
-    
-    return () => {
-      debugHome('HomePage unmounted', { 
-        timestamp: new Date().toISOString(),
-        url: window.location.href
-      })
-    }
-  }, [isBack, isMobile])
+  // Animation support
+  const shouldReduceMotion = useReducedMotion()
+  const [useSimpleApproach, setUseSimpleApproach] = useState(true)
 
   // Hydrate from cache immediately to avoid flash when navigating back
   useEffect(() => {
     try {
       const raw = typeof window !== "undefined" ? sessionStorage.getItem(HOME_CACHE_KEY) : null
-      debugHome('Hydrating from cache', { 
-        hasCache: !!raw,
-        cacheSize: raw ? JSON.parse(raw).items?.length : 0
-      })
-      
       if (raw) {
         const cached = JSON.parse(raw) as { items: Item[]; ts: number }
         const isFresh = Date.now() - cached.ts < HOME_CACHE_TTL_MS
-        debugHome('Cache validation', { 
-          isFresh, 
-          ageMs: Date.now() - cached.ts,
-          cacheSize: cached.items?.length
-        })
-        
         if (isFresh && Array.isArray(cached.items)) {
           setItems(cached.items)
           // Only set loading to false if we have items, otherwise keep loading
           if (cached.items.length > 0) {
             setIsLoading(false)
-            debugHome('Cache hydration successful', { itemCount: cached.items.length })
           }
         }
       }
-    } catch (error) {
-      debugHome('Cache hydration error', error)
+    } catch {
+      // ignore cache errors
     }
   }, [])
 
   useEffect(() => {
     async function fetchItems() {
       try {
-        debugHome('Fetching items from Supabase')
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
         const supabase = createClientComponentClient<Database>()
+
         const { data, error } = await supabase
           .from("items")
           .select("id, title, name, type, description, date, location, contact_number, image_url, status, created_at")
@@ -103,12 +78,8 @@ export default function PublicHomePage() {
         if (error) throw error
 
         const nextItems = data || []
-        debugHome('Items fetched successfully', { 
-          itemCount: nextItems.length,
-          hasImages: nextItems.some(item => item.image_url)
-        })
-        
         setItems(nextItems)
+        setHasAttemptedFetch(true)
 
         // Update cache
         try {
@@ -116,142 +87,294 @@ export default function PublicHomePage() {
             HOME_CACHE_KEY,
             JSON.stringify({ items: nextItems, ts: Date.now() })
           )
-          debugHome('Cache updated', { itemCount: nextItems.length })
-        } catch (cacheError) {
-          debugHome('Cache update failed', cacheError)
+        } catch {
+          // ignore cache write errors
         }
-      } catch (err) { // eslint-disable-line @typescript-eslint/no-unused-vars
-        debugHome('Items fetch failed', err)
-        // Handle error silently for better UX
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load items")
       } finally {
         setIsLoading(false)
-        debugHome('Loading state set to false')
       }
     }
 
     fetchItems()
   }, [])
 
-  // Filter items based on search and filter
-  const filteredItems = items.filter((item) => {
-    const matchesSearch = searchTerm === "" || 
-      item.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.location?.toLowerCase().includes(searchTerm.toLowerCase())
+  // Track navigation time for animation state management
+  useEffect(() => {
+    markNavigationTime('home-page')
+  }, [])
 
-    const matchesFilter = filter === "all" || item.type === filter || 
-      (filter === "returned" && item.status === "returned")
-
-    return matchesSearch && matchesFilter
+  // Debug state for development
+  const [debugInfo, setDebugInfo] = useState<{
+    hasAnimated: string | null
+    navTime: string | null
+    hotReloadTime: string | null
+    currentTime: number
+    shouldAnimate: boolean
+    initialState: "hidden" | "visible"
+    initialStateSimple: "hidden" | "visible"
+    useSimpleApproach: boolean
+  }>({
+    hasAnimated: null,
+    navTime: null,
+    hotReloadTime: null,
+    currentTime: 0,
+    shouldAnimate: false,
+    initialState: "hidden",
+    initialStateSimple: "hidden",
+    useSimpleApproach: true
   })
 
-  // Debug filtered items
+  // Preload images to prevent blinking on navigation back
   useEffect(() => {
-    debugHome('Items filtered', { 
-      totalItems: items.length,
-      filteredItems: filteredItems.length,
-      searchTerm,
-      filter
+    if (items.length > 0) {
+      preloadItemImages(items)
+    }
+  }, [items])
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      const info = {
+        hasAnimated: sessionStorage.getItem('animated_home-page'),
+        navTime: sessionStorage.getItem('nav_home-page'),
+        hotReloadTime: sessionStorage.getItem('hot_reload_home-page'),
+        currentTime: Date.now(),
+        shouldAnimate: shouldAnimateOnMount('home-page'),
+        initialState: getInitialAnimationState('home-page'),
+        initialStateSimple: getInitialAnimationStateSimple('home-page'),
+        useSimpleApproach
+      }
+      setDebugInfo(info)
+    }
+  }, [useSimpleApproach])
+
+
+  const filteredItems = useMemo(() => {
+    return items.filter(item => {
+      const matchesSearch = !searchTerm || 
+        (item.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+         item.name.toLowerCase().includes(searchTerm.toLowerCase()))
+
+      const matchesFilter = filter === "all" ||
+        (filter === "lost" && item.type === "lost") ||
+        (filter === "found" && item.type === "found") ||
+        (filter === "returned" && item.status === "returned")
+
+      return matchesSearch && matchesFilter
     })
-  }, [items, filteredItems, searchTerm, filter])
+  }, [items, searchTerm, filter])
 
   async function handleReportClick() {
     try {
-      const supabase = createClientComponentClient<Database>()
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
+      const { data } = await supabase.auth.getSession()
+      if (data.session) {
+        // Check if user is blocked before redirecting
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("blocked")
+          .eq("id", data.session.user.id)
+          .single()
+        
+        if (profileError) {
+          console.error("Error checking user status:", profileError)
+          // If we can't check, allow the user to proceed (fail open)
+          setRulesOpen(true)
+          return
+        }
+        
+        if (profile?.blocked) {
+          // Show blocked message instead of redirecting
+          alert("Your account has been blocked. You cannot post new items. Please contact an administrator if you believe this is an error.")
+          return
+        }
+        
+        // User is not blocked, show rules dialog first
+        setRulesOpen(true)
+      } else {
+        try {
+          sessionStorage.setItem("intent_after_login", "/post")
+        } catch {}
         setLoginOpen(true)
-        return
       }
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("blocked")
-        .eq("id", session.user.id)
-        .single()
-
-      if (profile?.blocked) {
-        alert("Your account has been blocked. You cannot post new items.")
-        return
-      }
-
-      setRulesOpen(true)
-    } catch (error) { // eslint-disable-line @typescript-eslint/no-unused-vars
+    } catch {
+      try {
+        sessionStorage.setItem("intent_after_login", "/post")
+      } catch {}
       setLoginOpen(true)
     }
   }
 
+  if (error) {
+    return (
+      <main className="container mx-auto px-4 sm:px-6 py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-destructive mb-2">Something went wrong</h1>
+          <p className="text-muted-foreground mb-6">Failed to load items: {error}</p>
+          <Button onClick={() => window.location.reload()}>Try Again</Button>
+        </div>
+      </main>
+    )
+  }
+
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen">
+      {/* Debug Panel - Only in development */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="fixed top-4 right-4 bg-black/80 text-white p-4 rounded-lg text-xs font-mono z-50 max-w-xs">
+          <div className="font-bold mb-2">🐛 Debug Info</div>
+          <div>hasAnimated: {debugInfo.hasAnimated || 'null'}</div>
+          <div>navTime: {debugInfo.navTime || 'null'}</div>
+          <div>hotReloadTime: {debugInfo.hotReloadTime || 'null'}</div>
+          <div>currentTime: {debugInfo.currentTime}</div>
+          <div>shouldAnimate: {String(debugInfo.shouldAnimate)}</div>
+          <div>initialState: {debugInfo.initialState}</div>
+          <div>initialStateSimple: {debugInfo.initialStateSimple}</div>
+          <div>useSimpleApproach: {String(debugInfo.useSimpleApproach)}</div>
+          <button 
+            onClick={() => setUseSimpleApproach(!useSimpleApproach)} 
+            className="mt-2 px-2 py-1 bg-green-600 rounded text-xs mr-2"
+          >
+            Toggle Approach
+          </button>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-2 px-2 py-1 bg-blue-600 rounded text-xs"
+          >
+            Reload Page
+          </button>
+        </div>
+      )}
+
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-background to-muted/20">
         <div className="container mx-auto px-2 sm:px-4 py-6">
-          <div className="text-center space-y-3">
-            <h1 className="text-2xl sm:text-3xl font-bold">Welcome, Mosquedian&apos;s</h1>
-            <p className="text-muted-foreground">Browse recently posted lost and found items.</p>
-            <div className="flex flex-col gap-2 items-center">
+          <motion.div 
+            className="text-center space-y-3"
+            variants={getReducedMotionVariants(heroAnimations.container, !!shouldReduceMotion)}
+            initial={useSimpleApproach ? getInitialAnimationStateSimple('home-page') : getInitialAnimationState('home-page')}
+            animate="visible"
+            onAnimationStart={() => {
+              if (shouldAnimateOnMount('home-page')) {
+                markAsAnimated('home-page')
+              }
+            }}
+          >
+            <motion.h1 
+              className="text-2xl sm:text-3xl font-bold tracking-tight"
+              variants={getReducedMotionVariants(heroAnimations.title, !!shouldReduceMotion)}
+            >
+              Welcome, Mosquedian&apos;s
+            </motion.h1>
+            <motion.p 
+              className="text-muted-foreground max-w-xl mx-auto"
+              variants={getReducedMotionVariants(heroAnimations.subtitle, !!shouldReduceMotion)}
+            >
+              Browse recently posted lost and found items.
+            </motion.p>
+            <motion.div 
+              className="flex flex-col gap-2 items-center"
+              variants={getReducedMotionVariants(heroAnimations.buttons, !!shouldReduceMotion)}
+            >
               <CampusGuardianDialog />
               <Button onClick={handleReportClick} size="default" className="gap-2">
-                <Plus className="h-4 w-4" /> Report Item
+                <Plus className="h-4 w-4" />
+                Report Item
               </Button>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
-      {/* Items Grid */}
-      <section className="container mx-auto px-2 sm:px-4 py-6">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold">
-              {isLoading ? (
-                <div className="flex items-center gap-2">
-                  <div className="h-4 w-20 bg-muted rounded animate-pulse" />
-                  <div className="h-4 w-16 bg-muted rounded animate-pulse" />
-                </div>
-              ) : (
-                `${filteredItems.length} item${filteredItems.length !== 1 ? 's' : ''} found`
-              )}
-            </h2>
-            <div className="flex items-center gap-3">
-              {searchTerm && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Search className="h-3 w-3" />
-                  <span>&quot;{searchTerm}&quot;</span>
-                </div>
-              )}
-              <AnimatedLink href="/items" delay={300} trigger={!isLoading}>
-                View all items
-              </AnimatedLink>
-            </div>
-          </div>
+      {/* Auth dialog (controlled) */}
+      <LoginDialog
+        open={loginOpen}
+        onOpenChange={setLoginOpen}
+        showTrigger={false}
+        initialMode="signin"
+        note="Please sign in or create an account to report a lost or found item."
+      />
+
+      {/* Posting rules dialog */}
+      <PostingRulesDialog
+        open={rulesOpen}
+        onOpenChange={setRulesOpen}
+        onContinue={() => {
+          setRulesOpen(false)
+          router.push("/post")
+        }}
+      />
+
+      {/* Search & Filter Section */}
+      <section className="container mx-auto px-2 sm:px-4 py-2 pb-5">
+        <div className="max-w-xl mx-auto">
           <ItemsSearchFilterBar
             searchTerm={searchTerm}
             onSearchTermChange={setSearchTerm}
             filter={filter}
             onFilterChange={(next) => setFilter(next)}
           />
-          
-          {/* Items Grid with Skeleton Loading */}
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-0.5 sm:gap-1">
-            {isLoading ? (
-              // Show skeleton loading while fetching data
-              Array.from({ length: 6 }).map((_, i) => (
-                <ItemCardSkeleton key={i} />
-              ))
-            ) : filteredItems.length === 0 ? (
-              // Show empty state when no items
-              <div className="col-span-full text-center py-12">
-                <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-                  <Search className="h-8 w-8 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">No items found</h3>
-                <p className="text-muted-foreground">Try adjusting your search or filter criteria.</p>
+        </div>
+      </section>
+
+      {/* Items Grid */}
+      <section className="container mx-auto px-0.5 sm:px-4 pb-2">
+        {isLoading ? (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-5 w-24" />
+              <div className="flex items-center gap-3">
+              <Skeleton className="h-4 w-20" />
               </div>
-            ) : (
-              // Show actual items
-              filteredItems.map((item) => (
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-0.5 sm:gap-1">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <ItemCardSkeleton key={i} />
+              ))}
+            </div>
+          </div>
+        ) : filteredItems.length === 0 && hasAttemptedFetch ? (
+          <div className="text-center py-6">
+            <div className="mx-auto w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-3">
+              <Search className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <h3 className="text-base font-semibold mb-2">No items found</h3>
+            <p className="text-muted-foreground text-sm mb-4">
+              {searchTerm ? `No items matching &quot;${searchTerm}&quot;` : "No items have been posted yet."}
+            </p>
+            <Button asChild size="sm">
+              <Link href="/post">Post the first item</Link>
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold">
+                {filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''} found
+              </h2>
+              <div className="flex items-center gap-3">
+                {searchTerm && (
+                  <p className="text-xs text-muted-foreground">
+                    Filtered by &quot;{searchTerm}&quot;
+                  </p>
+                )}
+                <AnimatedLink href="/items" delay={300} trigger={!isLoading}>
+                  View all items
+                </AnimatedLink>
+              </div>
+            </div>
+            <motion.div 
+              className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-0.5 sm:gap-1"
+              variants={getReducedMotionVariants(cardAnimations.container, !!shouldReduceMotion)}
+              initial={useSimpleApproach ? getInitialAnimationStateSimple('home-page') : getInitialAnimationState('home-page')}
+              animate="visible"
+              onAnimationStart={() => {
+                if (shouldAnimateOnMount('home-page')) {
+                  markAsAnimated('home-page')
+                }
+              }}
+            >
+              {filteredItems.map((item) => (
                 <ItemCard
                   key={item.id}
                   id={item.id}
@@ -266,21 +389,12 @@ export default function PublicHomePage() {
                   status={item.status as "active" | "returned" | null}
                   createdAt={item.created_at}
                   href={`/items/${item.id}`}
-                  preferNoFade={isBack && isMobile}
                 />
-              ))
-            )}
+              ))}
+            </motion.div>
           </div>
-        </div>
+        )}
       </section>
-
-      {/* Dialogs */}
-      <LoginDialog open={loginOpen} onOpenChange={setLoginOpen} showTrigger={false} />
-      <PostingRulesDialog
-        open={rulesOpen}
-        onOpenChange={setRulesOpen}
-        onContinue={() => { setRulesOpen(false); router.push("/post") }}
-      />
     </main>
   )
-}
+} 

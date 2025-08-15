@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import type { Database } from "@/types/database"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 
 export function ReportItemLink({ className }: { className?: string }) {

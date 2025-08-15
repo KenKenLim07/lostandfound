@@ -13,7 +13,6 @@ export function AuthStatus() {
   const [isLoading, setIsLoading] = useState(true)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [email, setEmail] = useState<string | null>(null)
-  const [loginOpen, setLoginOpen] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -52,6 +51,7 @@ export function AuthStatus() {
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (!isMounted) return
       
+      console.log("Auth state change:", event, !!session)
       const isNowLoggedIn = !!session
       
       setIsLoggedIn(isNowLoggedIn)
@@ -69,11 +69,13 @@ export function AuthStatus() {
 
   async function handleSignOut() {
     try {
+      console.log("Starting sign out...")
       const { error } = await supabase.auth.signOut()
       if (error) {
         console.error("Sign out error:", error)
         return
       }
+      console.log("Sign out successful")
     router.push("/")
     router.refresh()
     } catch (error) {
@@ -86,16 +88,7 @@ export function AuthStatus() {
   }
 
   if (!isLoggedIn) {
-    return (
-      <>
-        <Button variant="outline" size="sm" onClick={() => setLoginOpen(true)}>
-          Sign In
-        </Button>
-        {loginOpen && (
-          <LoginDialog open={loginOpen} onOpenChange={setLoginOpen} showTrigger={false} />
-        )}
-      </>
-    )
+    return <LoginDialog />
   }
 
   return (
@@ -106,4 +99,4 @@ export function AuthStatus() {
       </Button>
     </div>
   )
-}
+} 
