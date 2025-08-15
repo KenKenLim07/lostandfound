@@ -2,9 +2,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { Package, MapPin } from "lucide-react"
-import { cardAnimations, getReducedMotionVariants, shouldAnimateOnMount, markAsAnimated, markNavigationTime, getInitialAnimationState } from "@/lib/animations"
 import { imageCache } from "@/lib/imageCache"
-import {motion, useReducedMotion } from "framer-motion"
 import { useEffect, useState } from "react"
 
 // Detect mobile device
@@ -66,15 +64,8 @@ export function ItemCard(props: ItemCardProps) {
   const relativeTimeLabel = formatRelativeTime(createdAt ?? date)
   const isMockUrl = imageUrl?.includes("your-bucket-url.supabase.co") ?? false
   
-  // Animation support
-  const shouldReduceMotion = useReducedMotion()
   const [imageLoaded, setImageLoaded] = useState(false)
   const [isMobileDevice] = useState(() => isMobile())
-
-  // Track navigation time for animation state management
-  useEffect(() => {
-    markNavigationTime('item-cards')
-  }, [])
 
   // Preload image to prevent blinking on navigation back
   useEffect(() => {
@@ -105,7 +96,7 @@ export function ItemCard(props: ItemCardProps) {
           loading={isMobileDevice ? "eager" : "lazy"} // Force eager loading on mobile
           onLoad={(e) => {
             // Smooth fade-in when image loads
-            const target = e.target as HTMLImageElement
+            const target = (e.target as HTMLImageElement)
             target.style.opacity = '1'
             setImageLoaded(true)
           }}
@@ -152,19 +143,7 @@ export function ItemCard(props: ItemCardProps) {
   )
 
   return (
-    <motion.article
-      className={cn("rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden", className)}
-      variants={getReducedMotionVariants(cardAnimations.item, !!shouldReduceMotion)}
-      whileHover={shouldReduceMotion ? undefined : "hover"}
-      whileTap={shouldReduceMotion ? undefined : "tap"}
-      initial={getInitialAnimationState('item-cards')}
-      animate="visible"
-      onAnimationStart={() => {
-        if (shouldAnimateOnMount('item-cards')) {
-          markAsAnimated('item-cards')
-        }
-      }}
-    >
+    <article className={cn("rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden", className)}>
       {href ? (
         <Link href={href} aria-label={`View details for ${title ?? name}`}>
           {CardMedia}
@@ -188,6 +167,6 @@ export function ItemCard(props: ItemCardProps) {
           )}
         </div>
       </div>
-    </motion.article>
+    </article>
   )
 }  
