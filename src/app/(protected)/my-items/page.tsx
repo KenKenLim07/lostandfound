@@ -14,7 +14,6 @@ import { Separator } from "@/components/ui/separator"
 import { Trash2, CheckCircle, Eye, Package, MapPin, Calendar, User, ArrowLeft, Plus } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
-import { cn } from "@/lib/utils"
 
 type Item = Pick<Tables<"items">, "id" | "title" | "name" | "type" | "description" | "date" | "location" | "contact_number" | "image_url" | "status" | "created_at" | "returned_party">
 
@@ -25,14 +24,20 @@ export default function MyItemsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   // Dialog states
-  const [markReturnedDialog, setMarkReturnedDialog] = useState<{
+  const [returnDialog, setReturnDialog] = useState<{
     open: boolean
     item: Item | null
   }>({ open: false, item: null })
   const [returnedParty, setReturnedParty] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Show success message and clear it after 3 seconds
+  const showSuccessMessage = (message: string) => {
+    setSuccessMessage(message)
+    setTimeout(() => setSuccessMessage(null), 3000)
+  }
 
   useEffect(() => {
     let isMounted = true
@@ -77,39 +82,33 @@ export default function MyItemsPage() {
   async function markAsReturned(item: Item) {
     if (!returnedParty.trim()) return
 
-    setIsSubmitting(true)
-    
-    try {
-      const { error } = await supabase
-        .from("items")
-        .update({
-          status: "returned",
-          returned_party: returnedParty.trim()
-        })
-        .eq("id", item.id)
+    startTransition(async () => {
+      try {
+        const { error } = await supabase
+          .from("items")
+          .update({
+            status: "returned",
+            returned_party: returnedParty.trim()
+          })
+          .eq("id", item.id)
 
-      if (error) throw error
+        if (error) throw error
 
-      // Update local state
-      setItems(prev => prev.map(i => 
-        i.id === item.id 
-          ? { ...i, status: "returned" as const, returned_party: returnedParty.trim() }
-          : i
-      ))
+        // Update local state
+        setItems(prev => prev.map(i => 
+          i.id === item.id 
+            ? { ...i, status: "returned" as const, returned_party: returnedParty.trim() }
+            : i
+        ))
 
-      // Close dialog and reset form
-      setMarkReturnedDialog({ open: false, item: null })
-      setReturnedParty("")
-      
-      // Show success feedback (you could add a toast here)
-      alert("Item marked as returned!")
-    } catch (error) {
-      console.error("Failed to mark as returned:", error)
-      // You could add error toast here
-      alert("Failed to mark item as returned.")
-    } finally {
-      setIsSubmitting(false)
-    }
+        setReturnDialog({ open: false, item: null })
+        setReturnedParty("")
+        showSuccessMessage("Item marked as returned successfully")
+      } catch (error) {
+        console.error("Failed to mark as returned:", error)
+        alert(`Failed to mark as returned: ${error instanceof Error ? error.message : "Unknown error"}`)
+      }
+    })
   }
 
   async function deleteItem(item: Item) {
@@ -128,11 +127,10 @@ export default function MyItemsPage() {
 
         // Update local state
         setItems(prev => prev.filter(i => i.id !== item.id))
-        alert("Item deleted!")
+        showSuccessMessage("Item deleted successfully")
       } catch (error) {
         console.error("Failed to delete item:", error)
-        // You could add error toast here
-        alert("Failed to delete item.")
+        alert(`Failed to delete item: ${error instanceof Error ? error.message : "Unknown error"}`)
       }
     })
   }
@@ -171,25 +169,32 @@ export default function MyItemsPage() {
 
   return (
     <main className="min-h-screen bg-background">
+      {/* Success Message */}
+      {successMessage && (
+        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-green-600 text-white px-4 py-2 rounded-md shadow-lg">
+          {successMessage}
+        </div>
+      )}
+
       {/* Header */}
       <header className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <div className="px-4 py-4">
+        <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.back()}
-                className="p-2 h-9 w-9"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <div>
-                <h1 className="text-lg font-semibold">My Reports</h1>
-                <p className="text-sm text-muted-foreground">Manage your items</p>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.back()}
+              className="p-2 h-9 w-9"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h1 className="text-lg font-semibold">My Reports</h1>
+                <p className="text-sm text-muted-foreground hidden sm:block">Manage your lost and found items</p>
               </div>
             </div>
-            <Button asChild size="sm" className="text-xs sm:text-sm">
+            <Button asChild size="sm" className="hidden sm:flex">
               <Link href="/post">
                 <Plus className="h-4 w-4 mr-2" />
                 New Report
@@ -200,108 +205,112 @@ export default function MyItemsPage() {
       </header>
 
       {/* Content */}
-      <div className="px-4 py-6">
+      <div className="container mx-auto px-4 py-6">
         {isLoading ? (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {Array.from({ length: 3 }).map((_, i) => (
               <Card key={i} className="animate-pulse">
                 <CardContent className="p-4">
-                  <div className="flex gap-3">
-                    <div className="w-16 h-16 bg-muted rounded-lg flex-shrink-0" />
-                    <div className="flex-1 space-y-2">
-                      <div className="h-4 bg-muted rounded w-3/4" />
-                      <div className="h-3 bg-muted rounded w-1/2" />
-                      <div className="h-3 bg-muted rounded w-2/3" />
-                    </div>
+                <div className="flex gap-4">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-muted rounded-lg flex-shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-muted rounded w-3/4" />
+                    <div className="h-3 bg-muted rounded w-1/2" />
+                    <div className="h-3 bg-muted rounded w-2/3" />
                   </div>
+                </div>
                 </CardContent>
               </Card>
             ))}
           </div>
         ) : items.length === 0 ? (
-          <div className="max-w-2xl mx-auto">
-            <Card className="text-center py-12">
-              <CardContent>
-                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Package className="h-8 w-8 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-medium mb-2">No reports yet</h3>
-                <p className="text-muted-foreground mb-6">Start helping others by posting your first item.</p>
-                <Button asChild>
-                  <Link href="/post">Report Your First Item</Link>
-                </Button>
-              </CardContent>
-            </Card>
+          <div className="text-center py-16">
+            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+              <Package className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-medium mb-2">No reports yet</h3>
+            <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+              Start helping others by posting your first lost or found item.
+            </p>
+            <Button asChild size="lg">
+              <Link href="/post">Post Your First Item</Link>
+            </Button>
           </div>
         ) : (
-          <div className="space-y-3 max-w-2xl mx-auto">
+          <div className="space-y-4">
             {items.map((item) => (
               <Card key={item.id} className="overflow-hidden">
+                {/* Item Header */}
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
                         <Badge 
                           variant={item.type === "lost" ? "destructive" : "default"}
-                          className="text-white"
+                          className="text-xs"
                         >
                           {item.type === "lost" ? "Lost" : "Found"}
                         </Badge>
+                        <Badge 
+                          variant={item.status === "returned" ? "secondary" : "outline"}
+                          className="text-xs"
+                        >
+                          {item.status === "returned" ? "Returned" : "Active"}
+                        </Badge>
                       </div>
-                      <h3 className="font-medium text-foreground line-clamp-2">
+                      <h3 className="font-medium text-foreground line-clamp-2 text-base">
                         {item.title || item.name}
                       </h3>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs text-muted-foreground">
-                        {formatRelativeTime(item.created_at)}
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Posted {formatRelativeTime(item.created_at)}
                       </p>
                     </div>
                   </div>
                 </CardHeader>
 
+                {/* Item Content */}
                 <CardContent className="pt-0">
-                  <div className="flex gap-3">
+                  <div className="flex gap-4">
                     {/* Image */}
-                    <div className="w-16 h-16 bg-muted rounded-lg overflow-hidden flex-shrink-0">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-muted rounded-lg overflow-hidden flex-shrink-0">
                       {item.image_url ? (
                         <Image
                           src={item.image_url}
                           alt={item.title || item.name}
-                          width={64}
-                          height={64}
+                          width={80}
+                          height={80}
                           className="w-full h-full object-cover"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <Package className="h-6 w-6 text-muted-foreground" />
+                          <Package className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
                         </div>
                       )}
                     </div>
 
                     {/* Details */}
-                    <div className="flex-1 min-w-0 space-y-1.5">
+                    <div className="flex-1 min-w-0 space-y-2">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <User className="h-3 w-3" />
+                        <User className="h-3 w-3 flex-shrink-0" />
                         <span className="truncate">{item.name}</span>
                       </div>
                       
                       {item.location && (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <MapPin className="h-3 w-3" />
+                          <MapPin className="h-3 w-3 flex-shrink-0" />
                           <span className="truncate">{item.location}</span>
                         </div>
                       )}
                       
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="h-3 w-3" />
+                        <Calendar className="h-3 w-3 flex-shrink-0" />
                         <span>{item.date}</span>
                       </div>
 
                       {item.status === "returned" && item.returned_party && (
                         <div className="flex items-center gap-2 text-sm">
-                          <CheckCircle className="h-3 w-3 text-green-600" />
-                          <span className="text-green-700 font-medium">
+                          <CheckCircle className="h-3 w-3 text-green-600 flex-shrink-0" />
+                          <span className="text-green-700 font-medium text-xs">
                             {item.type === "lost" ? "Returned to" : "Returned by"}: {item.returned_party}
                           </span>
                         </div>
@@ -309,14 +318,14 @@ export default function MyItemsPage() {
                     </div>
                   </div>
 
-                  <Separator className="my-2" />
+                  <Separator className="my-4" />
 
                   {/* Actions */}
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     <Button
                       size="sm"
                       variant="outline"
-                      className="min-w-[80px] flex-1 sm:flex-none text-xs sm:text-sm"
+                      className="flex-1 min-w-[80px]"
                       asChild
                     >
                       <Link href={`/items/${item.id}`}>
@@ -329,8 +338,8 @@ export default function MyItemsPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="min-w-[120px] flex-1 sm:flex-none text-xs sm:text-sm"
-                        onClick={() => setMarkReturnedDialog({ open: true, item })}
+                        className="flex-1 min-w-[120px]"
+                        onClick={() => setReturnDialog({ open: true, item })}
                         disabled={isPending}
                       >
                         <CheckCircle className="h-4 w-4 mr-2" />
@@ -340,10 +349,10 @@ export default function MyItemsPage() {
                     
                     <Button
                       size="sm"
-                      variant="destructive"
+                      variant="ghost"
                       onClick={() => deleteItem(item)}
                       disabled={isPending}
-                      className="min-w-[60px] flex-1 sm:flex-none text-xs sm:text-sm"
+                      className="px-3 text-destructive hover:text-destructive hover:bg-destructive/10"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -357,67 +366,52 @@ export default function MyItemsPage() {
 
       {/* Mark as Returned Dialog */}
       <Dialog 
-        open={markReturnedDialog.open} 
-        onOpenChange={(open) => {
-          if (!open) {
-            setMarkReturnedDialog({ open: false, item: null })
-            setReturnedParty("")
-          }
-        }}
+        open={returnDialog.open} 
+        onOpenChange={(open) => setReturnDialog({ open, item: null })}
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Mark as Returned</DialogTitle>
             <p className="text-sm text-muted-foreground">
-              {markReturnedDialog.item?.type === "lost" 
-                ? "Who was this item returned to?" 
-                : "Who returned this item?"
+              {returnDialog.item?.type === "lost" 
+                ? "Who did you return this item to?" 
+                : "Who returned this item to you?"
               }
             </p>
           </DialogHeader>
-          
           <div className="space-y-4">
-            <div className="space-y-2">
+            <div className="grid gap-2">
               <Label htmlFor="returned-party">
-                {markReturnedDialog.item?.type === "lost" ? "Returned to" : "Returned by"}
+                {returnDialog.item?.type === "lost" ? "Returned to" : "Returned by"}
               </Label>
               <Input
                 id="returned-party"
                 value={returnedParty}
                 onChange={(e) => setReturnedParty(e.target.value)}
-                placeholder="Enter full name"
+                placeholder="Enter name"
                 className="h-10"
-                autoFocus
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && returnedParty.trim() && !isSubmitting) {
-                    markReturnedDialog.item && markAsReturned(markReturnedDialog.item)
+                  if (e.key === 'Enter' && returnedParty.trim() && returnDialog.item) {
+                    markAsReturned(returnDialog.item)
                   }
                 }}
               />
             </div>
-            
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex justify-end gap-3 pt-2">
               <Button 
                 type="button" 
                 variant="outline" 
-                onClick={() => setMarkReturnedDialog({ open: false, item: null })}
-                disabled={isSubmitting}
+                onClick={() => setReturnDialog({ open: false, item: null })}
+                disabled={isPending}
               >
                 Cancel
               </Button>
               <Button 
                 type="button" 
-                onClick={() => markReturnedDialog.item && markAsReturned(markReturnedDialog.item)}
-                disabled={isSubmitting || !returnedParty.trim()}
+                onClick={() => returnDialog.item && markAsReturned(returnDialog.item)}
+                disabled={isPending || !returnedParty.trim()}
               >
-                {isSubmitting ? (
-                  <>
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2" />
-                    Saving...
-                  </>
-                ) : (
-                  "Mark as Returned"
-                )}
+                {isPending ? "Saving..." : "Mark Returned"}
               </Button>
             </div>
           </div>

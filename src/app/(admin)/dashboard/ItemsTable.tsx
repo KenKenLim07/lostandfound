@@ -1,7 +1,7 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { useCallback, useEffect, useRef, useState, useTransition } from "react"
+import { useSupabase } from "@/hooks/useSupabase"
 import type { Database, Tables } from "@/types/database"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -26,7 +26,7 @@ type Row = Pick<
 >
 
 export function ItemsTable({ pageSize = 50 }: AdminItemsTableProps) {
-  const supabase = createClientComponentClient<Database>()
+  const supabase = useSupabase()
   const [items, setItems] = useState<Row[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [hasMore, setHasMore] = useState(true)

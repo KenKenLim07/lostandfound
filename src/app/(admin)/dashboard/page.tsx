@@ -4,11 +4,10 @@ import { useState } from "react"
 import { ItemsTable } from "./ItemsTable"
 import UsersPanel from "./UsersPanel"
 import { AdminReturnsList } from "./AdminReturnsList"
-import { AdminOverview, useOverviewData } from "./AdminOverview"
+import AdminOverview from "./AdminOverview"
 
 export default function AdminDashboardPage() {
   const [activeSection, setActiveSection] = useState<string>("overview")
-  const { data: overviewData, isLoading: overviewLoading } = useOverviewData()
 
   const sections = [
     { id: "overview", label: "Overview" },
@@ -19,31 +18,11 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Sticky Header with Title and KPIs */}
+      {/* Sticky Header with Title */}
       <div className="sticky top-16 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b pb-2">
         {/* Title Section */}
         <div className="mb-1">
           <h1 className="text-xl font-bold">Admin Dashboard</h1>
-        </div>
-        
-        {/* KPI Cards */}
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 mb-2">
-          <KpiCard 
-            label="Total Items" 
-            value={overviewLoading ? "—" : (overviewData?.totalCount ?? "—")} 
-          />
-          <KpiCard 
-            label="Active" 
-            value={overviewLoading ? "—" : (overviewData?.activeCount ?? "—")} 
-          />
-          <KpiCard 
-            label="Active Lost" 
-            value={overviewLoading ? "—" : (overviewData?.activeLostCount ?? "—")} 
-          />
-          <KpiCard 
-            label="Active Found" 
-            value={overviewLoading ? "—" : (overviewData?.activeFoundCount ?? "—")} 
-          />
         </div>
         
         {/* Sticky Navigation Tabs */}
@@ -86,15 +65,6 @@ export default function AdminDashboardPage() {
           </section>
         )}
       </div>
-    </div>
-  )
-}
-
-function KpiCard({ label, value }: { label: string; value: number | string }) {
-  return (
-    <div className="rounded-md border p-2">
-      <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className="text-xl font-semibold">{value}</div>
     </div>
   )
 } 

@@ -39,6 +39,7 @@ export function LoginDialog(props: LoginDialogProps = {}) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [lastAttemptTime, setLastAttemptTime] = useState<number>(0)
 
   // Validation state
   const [touched, setTouched] = useState({
@@ -46,6 +47,12 @@ export function LoginDialog(props: LoginDialogProps = {}) {
     password: false,
     confirmPassword: false
   })
+
+  // Rate limiting protection - prevent attempts within 2 seconds
+  const canAttemptAuth = () => {
+    const now = Date.now()
+    return now - lastAttemptTime > 2000
+  }
 
   // Validation functions
   const validateEmail = (email: string) => {
@@ -118,8 +125,19 @@ export function LoginDialog(props: LoginDialogProps = {}) {
   // Handle auth
   const handleAuth = (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Prevent multiple rapid submissions
+    if (isPending) return
+    
+    // Rate limiting protection
+    if (!canAttemptAuth()) {
+      setError("Please wait a moment before trying again.")
+      return
+    }
+    
     setError(null)
     setSuccess(null)
+    setLastAttemptTime(Date.now())
 
     if (!isFormValid()) {
       setTouched({ email: true, password: true, confirmPassword: mode === "signup" })
@@ -151,7 +169,6 @@ export function LoginDialog(props: LoginDialogProps = {}) {
           const { error } = await supabase.auth.signUp({ email, password })
           if (error) throw error
           
-          // Show success immediately
           setSuccess("Account created! Please check your email to confirm.")
           
           // Close mobile menu if provided
@@ -168,7 +185,16 @@ export function LoginDialog(props: LoginDialogProps = {}) {
           }
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred")
+        const errorMessage = err instanceof Error ? err.message : "An error occurred"
+        
+        // Handle rate limiting specifically
+        if (errorMessage.includes("rate limit") || errorMessage.includes("too many requests")) {
+          setError("Too many login attempts. Please wait 15-30 minutes before trying again.")
+        } else if (errorMessage.includes("Invalid login credentials")) {
+          setError("Invalid email or password. Please check your credentials.")
+        } else {
+          setError(errorMessage)
+        }
       }
     })
   }

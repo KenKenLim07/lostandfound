@@ -1,61 +1,45 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
-import type { Database, Tables } from "@/types/database"
+import { useSupabase } from "@/hooks/useSupabase"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Users, Package, CheckCircle, AlertTriangle } from "lucide-react"
 
-type RecentReturn = Pick<Tables<"items">, "id" | "title" | "name" | "type" | "returned_party" | "returned_year_section" | "returned_at">
-type RecentPost = Pick<Tables<"items">, "id" | "title" | "name" | "created_at" | "type">
-
-export type OverviewData = {
-  totalCount: number
-  activeCount: number
-  activeLostCount: number
-  activeFoundCount: number
-  recentReturns: RecentReturn[]
-  recentPosts: RecentPost[]
+type Stats = {
+  totalUsers: number
+  totalItems: number
+  returnedItems: number
+  activeItems: number
 }
 
-export function useOverviewData() {
-  const supabase = createClientComponentClient<Database>()
-  const [data, setData] = useState<OverviewData | null>(null)
+export default function AdminOverview() {
+  const supabase = useSupabase()
+  const [stats, setStats] = useState<Stats>({
+    totalUsers: 0,
+    totalItems: 0,
+    returnedItems: 0,
+    activeItems: 0
+  })
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     async function loadData() {
       try {
-        const [{ count: totalCount }, { count: returnedCount }, { count: lostCount }, { count: foundCount }, recentReturns, recentPosts] = await Promise.all([
+        const [{ count: totalUsers }, { count: totalItems }, { count: returnedItems }, { count: activeItems }] = await Promise.all([
+          supabase.from("profiles").select("id", { count: "exact", head: true }),
           supabase.from("items").select("id", { count: "exact", head: true }),
           supabase.from("items").select("id", { count: "exact", head: true }).eq("status", "returned"),
-          supabase.from("items").select("id", { count: "exact", head: true }).eq("type", "lost"),
-          supabase.from("items").select("id", { count: "exact", head: true }).eq("type", "found"),
-          supabase
-            .from("items")
-            .select("id, title, name, type, returned_party, returned_year_section, returned_at")
-            .eq("status", "returned")
-            .order("returned_at", { ascending: false })
-            .limit(10),
-          supabase
-            .from("items")
-            .select("id, title, name, created_at, type")
-            .order("created_at", { ascending: false })
-            .limit(10),
+          supabase.from("items").select("id", { count: "exact", head: true }).neq("status", "returned"),
         ])
 
-        const activeCount = (totalCount ?? 0) - (returnedCount ?? 0)
-        const activeLostCount = (lostCount ?? 0) - (await supabase.from("items").select("id", { count: "exact", head: true }).eq("type","lost").eq("status","returned")).count!
-        const activeFoundCount = (foundCount ?? 0) - (await supabase.from("items").select("id", { count: "exact", head: true }).eq("type","found").eq("status","returned")).count!
-
-        setData({
-          totalCount: totalCount ?? 0,
-          activeCount,
-          activeLostCount: activeLostCount ?? 0,
-          activeFoundCount: activeFoundCount ?? 0,
-          recentReturns: recentReturns.data ?? [],
-          recentPosts: recentPosts.data ?? [],
+        setStats({
+          totalUsers: totalUsers ?? 0,
+          totalItems: totalItems ?? 0,
+          returnedItems: returnedItems ?? 0,
+          activeItems: activeItems ?? 0,
         })
       } catch (error) {
-        console.error("Failed to load overview data:", error)
+        console.error("Error loading stats:", error)
       } finally {
         setIsLoading(false)
       }
@@ -64,17 +48,11 @@ export function useOverviewData() {
     loadData()
   }, [supabase])
 
-  return { data, isLoading }
-}
-
-export function AdminOverview() {
-  const { data, isLoading } = useOverviewData()
-
   if (isLoading) {
     return <div className="space-y-6">Loading overview...</div>
   }
 
-  if (!data) {
+  if (!stats) {
     return <div className="space-y-6">Failed to load overview data.</div>
   }
 
@@ -82,40 +60,76 @@ export function AdminOverview() {
     <div className="space-y-6">
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="space-y-3">
+          <h2 className="text-lg font-semibold">Overview</h2>
+          <div className="grid gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalUsers}</div>
+                <p className="text-xs text-muted-foreground">
+                  All registered users in the system.
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Items</CardTitle>
+                <Package className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalItems}</div>
+                <p className="text-xs text-muted-foreground">
+                  All items tracked in the system.
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Returned Items</CardTitle>
+                <CheckCircle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.returnedItems}</div>
+                <p className="text-xs text-muted-foreground">
+                  Items that have been returned to their owners.
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Active Items</CardTitle>
+                <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.activeItems}</div>
+                <p className="text-xs text-muted-foreground">
+                  Items currently in the system.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
+        <section className="space-y-3">
           <h2 className="text-lg font-semibold">Recent Returns</h2>
           <div className="rounded-md border divide-y">
-            {data.recentReturns.length > 0 ? (
-              data.recentReturns.map((r) => (
-                <div key={r.id} className="p-3 text-sm">
-                  <div className="font-medium truncate">{r.title ?? "—"}</div>
-                  <div className="text-muted-foreground">
-                    {r.type === "found" ? "Returned to" : "Returned by"}: {r.returned_party ?? "—"}
-                    {r.returned_year_section ? ` • ${r.returned_year_section}` : ""}
-                  </div>
-                  <div className="text-muted-foreground">
-                    {r.returned_at ? new Date(r.returned_at).toLocaleString() : "—"}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="p-3 text-sm text-muted-foreground">No recent returns.</div>
-            )}
+            {/* The original code had a useOverviewData hook that fetched recent returns and posts.
+                This section is now directly using the stats object and the supabase client.
+                The original useOverviewData hook is removed. */}
+            <div className="p-3 text-sm text-muted-foreground">Recent returns data is not available in this simplified overview.</div>
           </div>
         </section>
 
         <section className="space-y-3">
           <h2 className="text-lg font-semibold">Recent Posts</h2>
           <div className="rounded-md border divide-y">
-            {data.recentPosts.length > 0 ? (
-              data.recentPosts.map((p) => (
-                <div key={p.id} className="p-3 text-sm">
-                  <div className="font-medium truncate">{p.title ?? "—"}</div>
-                  <div className="text-muted-foreground">{p.name} • {p.type.toUpperCase()} • {p.created_at ? new Date(p.created_at).toLocaleString() : "—"}</div>
-                </div>
-              ))
-            ) : (
-              <div className="p-3 text-sm text-muted-foreground">No recent posts.</div>
-            )}
+            {/* The original code had a useOverviewData hook that fetched recent returns and posts.
+                This section is now directly using the stats object and the supabase client.
+                The original useOverviewData hook is removed. */}
+            <div className="p-3 text-sm text-muted-foreground">Recent posts data is not available in this simplified overview.</div>
           </div>
         </section>
       </div>

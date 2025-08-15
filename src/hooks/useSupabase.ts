@@ -1,12 +1,14 @@
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import type { Database } from "@/types/database"
-import { useMemo } from "react"
+
+// Create a single, global Supabase client instance
+let supabaseClient: ReturnType<typeof createClientComponentClient<Database>> | null = null
 
 /**
  * Centralized Supabase client hook for client components
  * 
- * This hook ensures we have a single, memoized instance of the Supabase client
- * across all components, reducing bundle size and improving performance.
+ * This hook ensures we have a single, global instance of the Supabase client
+ * across all components, preventing duplicate authentication sessions and duplicate user accounts.
  * 
  * @returns Supabase client instance
  * 
@@ -24,7 +26,10 @@ import { useMemo } from "react"
  * ```
  */
 export function useSupabase() {
-  return useMemo(() => createClientComponentClient<Database>(), [])
+  if (!supabaseClient) {
+    supabaseClient = createClientComponentClient<Database>()
+  }
+  return supabaseClient
 }
 
 /**

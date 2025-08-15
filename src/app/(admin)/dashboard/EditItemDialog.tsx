@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { useEffect, useState, useTransition } from "react"
+import { useSupabase } from "@/hooks/useSupabase"
 import type { Database, Tables } from "@/types/database"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -22,7 +22,7 @@ export function EditItemDialog({
   item: EditableItem | null
   onSaved: (next: EditableItem) => void
 }) {
-  const supabase = createClientComponentClient<Database>()
+  const supabase = useSupabase()
   const [title, setTitle] = useState(item?.title ?? "")
   const [description, setDescription] = useState(item?.description ?? "")
   const [contact, setContact] = useState(item?.contact_number ?? "")

@@ -1,12 +1,12 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { useSupabase } from "@/hooks/useSupabase"
 import type { Database } from "@/types/database"
 import { CheckCircle, LogOut } from "lucide-react"
 
 export function AuthEventBanner() {
-  const supabase = createClientComponentClient<Database>()
+  const supabase = useSupabase()
   const [visible, setVisible] = useState(false)
   const [message, setMessage] = useState<string>("")
   const [variant, setVariant] = useState<"in" | "out">("in")
