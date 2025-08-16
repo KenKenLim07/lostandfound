@@ -18,6 +18,8 @@ import { hasAgreedToPostingRules } from "@/lib/posting-rules"
 
 const HOME_CACHE_KEY = "home_items_v1"
 const HOME_CACHE_TTL_MS = 60_000
+const LEADERBOARD_CACHE_KEY = "leaderboard_v1"
+const LEADERBOARD_CACHE_TTL_MS = 300_000 // 5 minutes
 
 type Item = Pick<Tables<"items">, "id" | "title" | "name" | "type" | "description" | "date" | "location" | "contact_number" | "image_url" | "status" | "created_at">
 
@@ -33,6 +35,46 @@ export default function PublicHomePage() {
   // Login dialog control
   const [loginOpen, setLoginOpen] = useState(false)
   const [rulesOpen, setRulesOpen] = useState(false)
+
+  // Preload campus guardian data
+  useEffect(() => {
+    async function preloadLeaderboard() {
+      try {
+        // Check cache first
+        const cached = sessionStorage.getItem(LEADERBOARD_CACHE_KEY)
+        if (cached) {
+          const parsed = JSON.parse(cached)
+          if (Date.now() - parsed.ts < LEADERBOARD_CACHE_TTL_MS) {
+            return // Data is fresh, no need to preload
+          }
+        }
+
+        // Preload in background
+        fetch("/api/leaderboard")
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.leaderboard) {
+              sessionStorage.setItem(
+                LEADERBOARD_CACHE_KEY,
+                JSON.stringify({ 
+                  leaderboard: data.leaderboard, 
+                  ts: Date.now() 
+                })
+              )
+            }
+          })
+          .catch(() => {
+            // Silently fail - this is just preloading
+          })
+      } catch {
+        // Silently fail - this is just preloading
+      }
+    }
+
+    // Preload after a short delay to not block initial page load
+    const timer = setTimeout(preloadLeaderboard, 1000)
+    return () => clearTimeout(timer)
+  }, [])
 
   // Hydrate from cache immediately to avoid flash when navigating back
   useEffect(() => {
@@ -78,6 +120,43 @@ export default function PublicHomePage() {
       }
     }
     fetchItems()
+  }, [supabase])
+
+  // Listen for item status changes to refresh data
+  useEffect(() => {
+    const handleItemStatusChange = async () => {
+      // Clear cache and force refresh
+      sessionStorage.removeItem(HOME_CACHE_KEY)
+      setIsLoading(true)
+      
+      try {
+        // Refresh items
+        const { data, error } = await supabase
+          .from("items")
+          .select("id, title, name, type, description, date, location, contact_number, image_url, status, created_at")
+          .order("created_at", { ascending: false })
+          .limit(50)
+        
+        if (error) throw error
+        
+        const nextItems = data || []
+        setItems(nextItems)
+        
+        try {
+          sessionStorage.setItem(
+            HOME_CACHE_KEY,
+            JSON.stringify({ items: nextItems, ts: Date.now() })
+          )
+        } catch {}
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load items")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    window.addEventListener("itemStatusChanged", handleItemStatusChange)
+    return () => window.removeEventListener("itemStatusChanged", handleItemStatusChange)
   }, [supabase])
 
   // Preload images to prevent blinking on navigation back

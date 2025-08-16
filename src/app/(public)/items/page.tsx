@@ -1,17 +1,21 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
 import { createClient } from "@supabase/supabase-js"
 import type { Database, Tables } from "@/types/database"
 import { ItemCard } from "@/components/items/ItemCard"
 import { ItemCardSkeleton } from "@/components/items/ItemCardSkeleton"
 import { ItemsSearchFilterBar } from "@/components/items/ItemsSearchFilterBar"
+import { Button } from "@/components/ui/button"
+import { ArrowLeft } from "lucide-react"
 
- type Item = Pick<Tables<"items">, "id" | "title" | "name" | "type" | "description" | "date" | "location" | "contact_number" | "image_url" | "status" | "created_at">
+type Item = Pick<Tables<"items">, "id" | "title" | "name" | "type" | "description" | "date" | "location" | "contact_number" | "image_url" | "status" | "created_at">
 
 const PAGE_SIZE = 24
 
 export default function AllItemsPage() {
+  const router = useRouter()
   const [items, setItems] = useState<Item[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
@@ -104,9 +108,21 @@ export default function AllItemsPage() {
 
   return (
     <main className="container mx-auto px-2 sm:px-4 py-4">
-      <header className="mb-3">
-        <h1 className="text-xl font-semibold">All Items</h1>
-        <p className="text-muted-foreground text-sm">Browse all posted lost and found items.</p>
+      <header className="mb-6">
+        <div className="flex items-center gap-3 mb-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.back()}
+            className="p-2 h-9 w-9"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-xl font-semibold">All Items</h1>
+            <p className="text-muted-foreground text-sm">Browse all posted lost and found items.</p>
+          </div>
+        </div>
       </header>
 
       <section className="mb-3 max-w-2xl">

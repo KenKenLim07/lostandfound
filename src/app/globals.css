@@ -8,6 +8,72 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Mobile Input Optimization - Prevents zoom on iOS */
+@media screen and (max-width: 768px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="search"],
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  input[type="number"],
+  textarea,
+  select {
+    font-size: 16px !important; /* Prevents zoom on iOS Safari */
+    -webkit-appearance: none; /* Removes default iOS styling */
+    border-radius: 0; /* Removes default iOS border radius */
+  }
+  
+  /* Ensure proper touch targets for main forms, but allow mobile menu to be more compact */
+  form:not([class*="mobile"]) input, 
+  form:not([class*="mobile"]) textarea, 
+  form:not([class*="mobile"]) select, 
+  form:not([class*="mobile"]) button {
+    min-height: 44px; /* Apple's recommended minimum touch target */
+  }
+  
+  /* Mobile menu inputs can be more compact */
+  .mobile-menu input,
+  .mobile-menu textarea,
+  .mobile-menu select,
+  .mobile-menu button {
+    min-height: 36px; /* More compact for mobile menu */
+  }
+  
+  /* Additional mobile menu styling for better UX */
+  .mobile-menu .floating-label-input {
+    padding: 8px 12px;
+    border-radius: 6px;
+  }
+  
+  .mobile-menu .floating-label-input input {
+    padding: 0;
+    height: 20px;
+    line-height: 20px;
+  }
+  
+  .mobile-menu .floating-label-input label {
+    font-size: 12px;
+    line-height: 1;
+  }
+  
+  /* Prevent horizontal scrolling */
+  body {
+    overflow-x: hidden;
+    width: 100%;
+  }
+  
+  /* Ensure form containers don't overflow */
+  form {
+    max-width: 100vw;
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

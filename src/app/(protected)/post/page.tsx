@@ -346,7 +346,8 @@ export default function PostItemPage() {
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter your full name"
               required
-              className="h-10 text-sm"
+              className="h-10 text-base sm:text-sm"
+              style={{ fontSize: '16px' }} // Prevents zoom on iOS
             />
           </div>
 
@@ -360,7 +361,8 @@ export default function PostItemPage() {
               value={reporterYearSection}
               onChange={(e) => setReporterYearSection(e.target.value)}
               placeholder="e.g., BSIT 3A, BSHM 2B (leave blank if faculty/staff)"
-              className="h-10 text-sm"
+              className="h-10 text-base sm:text-sm"
+              style={{ fontSize: '16px' }} // Prevents zoom on iOS
             />
           </div>
 
@@ -373,7 +375,8 @@ export default function PostItemPage() {
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g., iPhone 17 Pro Max 1TB Fully Paid."
               required
-              className="h-10 text-sm"
+              className="h-10 text-base sm:text-sm"
+              style={{ fontSize: '16px' }} // Prevents zoom on iOS
             />
           </div>
 
@@ -385,7 +388,8 @@ export default function PostItemPage() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe the item in detail (color, brand, identifying marks, etc.)"
-              className="min-h-[80px] text-sm"
+              className="min-h-[80px] text-base sm:text-sm"
+              style={{ fontSize: '16px' }} // Prevents zoom on iOS
             />
           </div>
 
@@ -398,7 +402,8 @@ export default function PostItemPage() {
               value={date}
               onChange={(e) => setDate(e.target.value)}
               required
-              className="h-10 text-sm"
+              className="h-10 text-base sm:text-sm"
+              style={{ fontSize: '16px' }} // Prevents zoom on iOS
             />
           </div>
 
@@ -410,7 +415,8 @@ export default function PostItemPage() {
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               placeholder="Where was it lost/found?"
-              className="h-10 text-sm"
+              className="h-10 text-base sm:text-sm"
+              style={{ fontSize: '16px' }} // Prevents zoom on iOS
             />
           </div>
 
@@ -419,10 +425,12 @@ export default function PostItemPage() {
             <Label htmlFor="contact" className="text-sm font-medium">Contact Number</Label>
             <Input
               id="contact"
+              type="tel"
               value={contactNumber}
               onChange={(e) => setContactNumber(e.target.value)}
               placeholder="Your phone number for contact"
-              className="h-10 text-sm"
+              className="h-10 text-base sm:text-sm"
+              style={{ fontSize: '16px' }} // Prevents zoom on iOS
             />
           </div>
 

@@ -43,7 +43,7 @@ const FloatingLabelInput = React.forwardRef<HTMLInputElement, FloatingLabelInput
     return (
       <div 
         className={cn(
-          "relative border rounded-md px-3 py-3 focus-within:border-ring cursor-text transition-colors",
+          "relative border rounded-md px-3 py-3 focus-within:border-ring cursor-text transition-colors floating-label-input",
           "border-input focus-within:border-ring",
           error && "border-destructive focus-within:border-destructive",
           className
@@ -73,8 +73,11 @@ const FloatingLabelInput = React.forwardRef<HTMLInputElement, FloatingLabelInput
           className={cn(
             // Use 16px on mobile to prevent iOS zoom, fall back to sm on md+
             "w-full bg-transparent focus:outline-none text-base md:text-sm text-foreground placeholder-transparent",
-            icon && "pl-7"
+            icon && "pl-7",
+            // Mobile menu specific styling
+            "mobile-menu:h-9 mobile-menu:text-sm"
           )}
+          style={{ fontSize: '16px' }} // Prevents zoom on iOS Safari
           placeholder={label}
           ref={(node) => {
             // Handle both refs

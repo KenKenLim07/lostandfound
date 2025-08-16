@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { useSupabase } from "@/hooks/useSupabase"
+import { useRealTimeUpdates } from "@/hooks/useRealTimeUpdates"
 import type { Tables } from "@/types/database"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,15 +12,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Trash2, CheckCircle, Eye, Package, MapPin, Calendar, User, ArrowLeft, Plus } from "lucide-react"
+import { Trash2, CheckCircle, Eye, Package, MapPin, Calendar, User, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
+import { cn } from "@/lib/utils"
 
-type Item = Pick<Tables<"items">, "id" | "title" | "name" | "type" | "description" | "date" | "location" | "contact_number" | "image_url" | "status" | "created_at" | "returned_party">
+type Item = Pick<Tables<"items">, "id" | "title" | "name" | "type" | "description" | "date" | "location" | "contact_number" | "image_url" | "status" | "created_at" | "returned_party" | "returned_year_section" | "returned_at">
 
 export default function MyItemsPage() {
   const supabase = useSupabase()
   const router = useRouter()
+  const { notifyItemStatusChange, invalidateCaches } = useRealTimeUpdates()
+  
   const [items, setItems] = useState<Item[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isPending, startTransition] = useTransition()
@@ -32,11 +36,28 @@ export default function MyItemsPage() {
     item: Item | null
   }>({ open: false, item: null })
   const [returnedParty, setReturnedParty] = useState("")
+  const [returnedYearSection, setReturnedYearSection] = useState("")
+  const [returnedDate, setReturnedDate] = useState("")
 
   // Show success message and clear it after 3 seconds
   const showSuccessMessage = (message: string) => {
     setSuccessMessage(message)
     setTimeout(() => setSuccessMessage(null), 3000)
+  }
+
+  // Reset return dialog form
+  const resetReturnDialog = () => {
+    setReturnedParty("")
+    setReturnedYearSection("")
+    setReturnedDate(new Date().toISOString().split('T')[0]) // Default to today
+  }
+
+  // Open return dialog with default values
+  const openReturnDialog = (item: Item) => {
+    setReturnedDate(new Date().toISOString().split('T')[0]) // Default to today
+    setReturnedParty("")
+    setReturnedYearSection("")
+    setReturnDialog({ open: true, item })
   }
 
   useEffect(() => {
@@ -52,7 +73,7 @@ export default function MyItemsPage() {
 
         const { data, error } = await supabase
           .from("items")
-          .select("id, title, name, type, description, date, location, contact_number, image_url, status, created_at, returned_party")
+          .select("id, title, name, type, description, date, location, contact_number, image_url, status, created_at, returned_party, returned_year_section, returned_at")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false })
 
@@ -88,7 +109,9 @@ export default function MyItemsPage() {
           .from("items")
           .update({
             status: "returned",
-            returned_party: returnedParty.trim()
+            returned_party: returnedParty.trim(),
+            returned_year_section: returnedYearSection.trim() || null,
+            returned_at: returnedDate || new Date().toISOString()
           })
           .eq("id", item.id)
 
@@ -97,12 +120,22 @@ export default function MyItemsPage() {
         // Update local state
         setItems(prev => prev.map(i => 
           i.id === item.id 
-            ? { ...i, status: "returned" as const, returned_party: returnedParty.trim() }
+            ? { 
+                ...i, 
+                status: "returned" as const, 
+                returned_party: returnedParty.trim(),
+                returned_year_section: returnedYearSection.trim() || null,
+                returned_at: returnedDate || new Date().toISOString()
+              }
             : i
         ))
 
+        // Notify other components and invalidate caches
+        notifyItemStatusChange(item.id, "returned")
+        invalidateCaches()
+
         setReturnDialog({ open: false, item: null })
-        setReturnedParty("")
+        resetReturnDialog()
         showSuccessMessage("Item marked as returned successfully")
       } catch (error) {
         console.error("Failed to mark as returned:", error)
@@ -110,6 +143,8 @@ export default function MyItemsPage() {
       }
     })
   }
+
+
 
   async function deleteItem(item: Item) {
     if (!confirm("Are you sure you want to delete this item? This action cannot be undone.")) {
@@ -127,6 +162,11 @@ export default function MyItemsPage() {
 
         // Update local state
         setItems(prev => prev.filter(i => i.id !== item.id))
+        
+        // Notify other components and invalidate caches
+        notifyItemStatusChange(item.id, "deleted")
+        invalidateCaches()
+        
         showSuccessMessage("Item deleted successfully")
       } catch (error) {
         console.error("Failed to delete item:", error)
@@ -178,8 +218,7 @@ export default function MyItemsPage() {
 
       {/* Header */}
       <header className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+        <div className="px-4 py-4">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
@@ -191,40 +230,33 @@ export default function MyItemsPage() {
             </Button>
             <div>
               <h1 className="text-lg font-semibold">My Reports</h1>
-                <p className="text-sm text-muted-foreground hidden sm:block">Manage your lost and found items</p>
-              </div>
+              <p className="text-sm text-muted-foreground hidden sm:block">Manage your lost and found items</p>
             </div>
-            <Button asChild size="sm" className="hidden sm:flex">
-              <Link href="/post">
-                <Plus className="h-4 w-4 mr-2" />
-                New Report
-              </Link>
-            </Button>
           </div>
         </div>
       </header>
 
       {/* Content */}
-      <div className="container mx-auto px-4 py-6">
+      <div className="px-4 py-6">
         {isLoading ? (
-          <div className="space-y-4">
+          <div className="space-y-4 max-w-2xl mx-auto">
             {Array.from({ length: 3 }).map((_, i) => (
               <Card key={i} className="animate-pulse">
                 <CardContent className="p-4">
-                <div className="flex gap-4">
+                  <div className="flex gap-4">
                     <div className="w-16 h-16 sm:w-20 sm:h-20 bg-muted rounded-lg flex-shrink-0" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-muted rounded w-3/4" />
-                    <div className="h-3 bg-muted rounded w-1/2" />
-                    <div className="h-3 bg-muted rounded w-2/3" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-muted rounded w-3/4" />
+                      <div className="h-3 bg-muted rounded w-1/2" />
+                      <div className="h-3 bg-muted rounded w-2/3" />
+                    </div>
                   </div>
-                </div>
                 </CardContent>
               </Card>
             ))}
           </div>
         ) : items.length === 0 ? (
-          <div className="text-center py-16">
+          <div className="text-center py-16 max-w-2xl mx-auto">
             <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
               <Package className="h-8 w-8 text-muted-foreground" />
             </div>
@@ -237,31 +269,30 @@ export default function MyItemsPage() {
             </Button>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4 max-w-2xl mx-auto">
             {items.map((item) => (
-              <Card key={item.id} className="overflow-hidden">
+              <Card key={item.id} className="overflow-hidden border">
                 {/* Item Header */}
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <div className="flex items-center gap-2 mb-2">
                         <Badge 
                           variant={item.type === "lost" ? "destructive" : "default"}
-                          className="text-xs"
+                          className={cn(
+                            "text-xs",
+                            item.type === "lost" ? "bg-red-600 text-white hover:bg-red-700" : "bg-green-600 text-white hover:bg-green-700"
+                          )}
                         >
                           {item.type === "lost" ? "Lost" : "Found"}
-                        </Badge>
-                        <Badge 
-                          variant={item.status === "returned" ? "secondary" : "outline"}
-                          className="text-xs"
-                        >
-                          {item.status === "returned" ? "Returned" : "Active"}
                         </Badge>
                       </div>
                       <h3 className="font-medium text-foreground line-clamp-2 text-base">
                         {item.title || item.name}
                       </h3>
-                      <p className="text-xs text-muted-foreground mt-1">
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-xs text-muted-foreground">
                         Posted {formatRelativeTime(item.created_at)}
                       </p>
                     </div>
@@ -308,11 +339,27 @@ export default function MyItemsPage() {
                       </div>
 
                       {item.status === "returned" && item.returned_party && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <CheckCircle className="h-3 w-3 text-green-600 flex-shrink-0" />
-                          <span className="text-green-700 font-medium text-xs">
-                            {item.type === "lost" ? "Returned to" : "Returned by"}: {item.returned_party}
-                          </span>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-sm">
+                            <CheckCircle className="h-3 w-3 text-green-600 flex-shrink-0" />
+                            <span className="text-green-700 font-medium text-xs">
+                              {item.type === "lost" ? "Returned to" : "Returned by"}: {item.returned_party}
+                            </span>
+                          </div>
+                          {item.returned_year_section && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="text-muted-foreground text-xs ml-5">
+                                {item.returned_year_section}
+                              </span>
+                            </div>
+                          )}
+                          {item.returned_at && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="text-muted-foreground text-xs ml-5">
+                                {new Date(item.returned_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -325,7 +372,7 @@ export default function MyItemsPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="flex-1 min-w-[80px]"
+                      className="flex-shrink-0"
                       asChild
                     >
                       <Link href={`/items/${item.id}`}>
@@ -338,8 +385,8 @@ export default function MyItemsPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="flex-1 min-w-[120px]"
-                        onClick={() => setReturnDialog({ open: true, item })}
+                        className="flex-shrink-0"
+                        onClick={() => openReturnDialog(item)}
                         disabled={isPending}
                       >
                         <CheckCircle className="h-4 w-4 mr-2" />
@@ -349,12 +396,13 @@ export default function MyItemsPage() {
                     
                     <Button
                       size="sm"
-                      variant="ghost"
+                      variant="outline"
                       onClick={() => deleteItem(item)}
                       disabled={isPending}
-                      className="px-3 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      className="flex-shrink-0 text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
                     </Button>
                   </div>
                 </CardContent>
@@ -367,29 +415,36 @@ export default function MyItemsPage() {
       {/* Mark as Returned Dialog */}
       <Dialog 
         open={returnDialog.open} 
-        onOpenChange={(open) => setReturnDialog({ open, item: null })}
+        onOpenChange={(open) => {
+          if (!open) {
+            setReturnDialog({ open: false, item: null })
+            resetReturnDialog()
+          }
+        }}
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Mark as Returned</DialogTitle>
             <p className="text-sm text-muted-foreground">
               {returnDialog.item?.type === "lost" 
-                ? "Who did you return this item to?" 
-                : "Who returned this item to you?"
+                ? "Who returned this item to you?" 
+                : "Who did you return this item to?"
               }
             </p>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Returned Party */}
             <div className="grid gap-2">
               <Label htmlFor="returned-party">
-                {returnDialog.item?.type === "lost" ? "Returned to" : "Returned by"}
+                {returnDialog.item?.type === "lost" ? "Returned by" : "Returned to"}
               </Label>
               <Input
                 id="returned-party"
                 value={returnedParty}
                 onChange={(e) => setReturnedParty(e.target.value)}
-                placeholder="Enter name"
+                placeholder="Enter full name"
                 className="h-10"
+                autoFocus
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && returnedParty.trim() && returnDialog.item) {
                     markAsReturned(returnDialog.item)
@@ -397,11 +452,44 @@ export default function MyItemsPage() {
                 }}
               />
             </div>
+
+            {/* Year and Section */}
+            <div className="grid gap-2">
+              <Label htmlFor="returned-year-section">
+                Course Year & Section (Optional)
+              </Label>
+              <Input
+                id="returned-year-section"
+                value={returnedYearSection}
+                onChange={(e) => setReturnedYearSection(e.target.value)}
+                placeholder="e.g., 2nd Year BSIT-A, 1st Year BSCS-B"
+                className="h-10"
+              />
+            </div>
+
+            {/* Return Date */}
+            <div className="grid gap-2">
+              <Label htmlFor="returned-date">
+                Return Date
+              </Label>
+              <Input
+                id="returned-date"
+                type="date"
+                value={returnedDate}
+                onChange={(e) => setReturnedDate(e.target.value)}
+                className="h-10"
+                max={new Date().toISOString().split('T')[0]} // Can't be in the future
+              />
+            </div>
+
             <div className="flex justify-end gap-3 pt-2">
               <Button 
                 type="button" 
                 variant="outline" 
-                onClick={() => setReturnDialog({ open: false, item: null })}
+                onClick={() => {
+                  setReturnDialog({ open: false, item: null })
+                  resetReturnDialog()
+                }}
                 disabled={isPending}
               >
                 Cancel

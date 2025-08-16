@@ -208,18 +208,12 @@ export function LoginDialog(props: LoginDialogProps = {}) {
           <h3 className="text-lg font-semibold">
             {mode === "signin" ? "Welcome back" : "Create account"}
           </h3>
-          <p className="text-sm text-muted-foreground">
-            {mode === "signin" 
-              ? "Enter your credentials to access your account" 
-              : "Fill in your details to create a new account"
-            }
-          </p>
           {note && (
             <p className="text-xs text-foreground mt-1">{note}</p>
           )}
         </div>
         
-        <form onSubmit={handleAuth} className="space-y-4">
+        <form onSubmit={handleAuth} className="space-y-4 mobile-menu">
           {/* Email field */}
           <div className="space-y-1">
             <FloatingLabelInput

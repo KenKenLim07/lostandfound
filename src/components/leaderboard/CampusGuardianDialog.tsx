@@ -3,7 +3,10 @@
 import * as React from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Trophy, X } from "lucide-react"
+import { Trophy, X, Info, Search, HandHeart } from "lucide-react"
+
+const LEADERBOARD_CACHE_KEY = "leaderboard_v1"
+const LEADERBOARD_CACHE_TTL_MS = 300_000 // 5 minutes
 
 type Leader = {
   actor: string
@@ -29,22 +32,110 @@ export function CampusGuardianDialog({ triggerClassName }: { triggerClassName?: 
   const [data, setData] = React.useState<Leader[] | null>(null)
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const hasLoadedRef = React.useRef(false)
 
   React.useEffect(() => {
-    if (!open || data) return
-    setLoading(true)
-    fetch("/api/leaderboard")
-      .then((r) => r.json() as Promise<ApiResp>)
-      .then((json) => {
-        if (json.error) {
-          setError(json.error)
-        } else {
-          setData((json.leaderboard ?? []).slice(0, 20))
+    if (!open) return
+
+    // Try to get preloaded data first
+    try {
+      const cached = sessionStorage.getItem(LEADERBOARD_CACHE_KEY)
+      if (cached) {
+        const parsed = JSON.parse(cached)
+        if (Date.now() - parsed.ts < LEADERBOARD_CACHE_TTL_MS && parsed.leaderboard) {
+          setData(parsed.leaderboard.slice(0, 20))
+          hasLoadedRef.current = true
+          return // Use cached data, no need to fetch
         }
-      })
-      .catch(() => setError("Failed to load leaderboard"))
-      .finally(() => setLoading(false))
-  }, [open, data])
+      }
+    } catch {
+      // Ignore cache errors, fall back to API
+    }
+
+    // Fall back to API call if no cached data and not already loaded
+    if (!hasLoadedRef.current) {
+      setLoading(true)
+      fetch("/api/leaderboard")
+        .then((r) => r.json() as Promise<ApiResp>)
+        .then((json) => {
+          if (json.error) {
+            setError(json.error)
+          } else {
+            const leaderboard = json.leaderboard ?? []
+            setData(leaderboard.slice(0, 20))
+            hasLoadedRef.current = true
+            
+            // Cache the fresh data
+            try {
+              sessionStorage.setItem(
+                LEADERBOARD_CACHE_KEY,
+                JSON.stringify({ 
+                  leaderboard, 
+                  ts: Date.now() 
+                })
+              )
+            } catch {
+              // Ignore cache errors
+            }
+          }
+        })
+        .catch(() => setError("Failed to load leaderboard"))
+        .finally(() => setLoading(false))
+    }
+  }, [open]) // Removed 'data' from dependency array
+
+  // Listen for item status changes to refresh data
+  React.useEffect(() => {
+    const handleItemStatusChange = () => {
+      // Clear cache and force refresh
+      sessionStorage.removeItem(LEADERBOARD_CACHE_KEY)
+      hasLoadedRef.current = false
+      
+      // If dialog is open, refresh data
+      if (open) {
+        setLoading(true)
+        fetch("/api/leaderboard")
+          .then((r) => r.json() as Promise<ApiResp>)
+          .then((json) => {
+            if (json.error) {
+              setError(json.error)
+            } else {
+              const leaderboard = json.leaderboard ?? []
+              setData(leaderboard.slice(0, 20))
+              hasLoadedRef.current = true
+              
+              // Cache the fresh data
+              try {
+                sessionStorage.setItem(
+                  LEADERBOARD_CACHE_KEY,
+                  JSON.stringify({ 
+                    leaderboard, 
+                    ts: Date.now() 
+                  })
+                )
+              } catch {
+                // Ignore cache errors
+              }
+            }
+          })
+          .catch(() => setError("Failed to load leaderboard"))
+          .finally(() => setLoading(false))
+      }
+    }
+
+    window.addEventListener("itemStatusChanged", handleItemStatusChange)
+    return () => window.removeEventListener("itemStatusChanged", handleItemStatusChange)
+  }, [open])
+
+  // Reset data when dialog closes to ensure fresh data on next open
+  React.useEffect(() => {
+    if (!open) {
+      setData(null)
+      setError(null)
+      setLoading(false)
+      hasLoadedRef.current = false
+    }
+  }, [open])
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -53,7 +144,7 @@ export function CampusGuardianDialog({ triggerClassName }: { triggerClassName?: 
           <Trophy className="h-4 w-4 mr-2" /> Campus Guardian
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-xs w-full mx-auto">
+      <DialogContent className="max-w-sm w-full mx-auto boder-4">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Trophy className="h-5 w-5 text-yellow-500" /> Campus Guardian
@@ -98,18 +189,36 @@ export function CampusGuardianDialog({ triggerClassName }: { triggerClassName?: 
                       )}
                     </div>
                   </div>
-                  <div className="text-xs text-muted-foreground tabular-nums">{entry.count} returns</div>
+                  <div className="text-right">
+                    <div className="text-sm font-bold">{entry.count}</div>
+                    <div className="text-[10px] text-muted-foreground">returns</div>
+                  </div>
                 </li>
               ))}
             </ol>
           )}
-          <div className="text-[11px] text-muted-foreground">
-            <div>Notes:</div>
-            <ul className="list-disc pl-5 space-y-1 mt-1">
-              <li>For lost reports, we credit the person who returned the item and show the owner as recipient.</li>
-              <li>For found reports, we credit the original reporter (finder) and show the owner as recipient.</li>
-              <li>This can be refined by capturing an explicit “Returned by” name universally.</li>
-            </ul>
+        </div>
+
+        {/* Sticky Footer with Notes */}
+        <div className="border-t pt-4 mt-4">
+          <div className="text-xs text-muted-foreground space-y-3">
+            <div className="flex items-center gap-2 font-medium text-foreground mb-2">
+              <Info className="h-3 w-3" />
+              How rankings work:
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-start gap-2">
+                <Search className="h-3 w-3 text-blue-500 mt-0.5 flex-shrink-0" />
+                <span><strong>Lost reports:</strong> Credit goes to the person who returned the item to the owner</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <HandHeart className="h-3 w-3 text-green-500 mt-0.5 flex-shrink-0" />
+                <span><strong>Found reports:</strong> Credit goes to the finder who returned the item to the owner</span>
+              </div>
+            </div>
+            <div className="text-[10px] text-muted-foreground mt-3 pt-2 border-t border-border/50">
+              Rankings are based on total confirmed returns. The system automatically credits the person who performed the return action.
+            </div>
           </div>
         </div>
       </DialogContent>

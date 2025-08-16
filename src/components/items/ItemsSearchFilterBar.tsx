@@ -2,9 +2,7 @@
 
 import { Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import { Select } from "@/components/ui/select"
-
-
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export type ItemsSearchFilterBarProps = {
   searchTerm: string
@@ -33,16 +31,16 @@ export function ItemsSearchFilterBar({
           aria-label="Search items"
         />
       </div>
-      <Select 
-        value={filter}
-        onChange={(e) => onFilterChange(e.target.value as typeof filter)}
-        className="w-full sm:w-[130px] h-10"
-        aria-label="Filter items"
-      >
-        <option value="all">All Items</option>
-        <option value="lost">Lost</option>
-        <option value="found">Found</option>
-        <option value="returned">Returned</option>
+      <Select value={filter} onValueChange={onFilterChange}>
+        <SelectTrigger className="w-full sm:w-[130px] h-10">
+          <SelectValue placeholder="Filter items" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Items</SelectItem>
+          <SelectItem value="lost">Lost</SelectItem>
+          <SelectItem value="found">Found</SelectItem>
+          <SelectItem value="returned">Returned</SelectItem>
+        </SelectContent>
       </Select>
     </div>
   )

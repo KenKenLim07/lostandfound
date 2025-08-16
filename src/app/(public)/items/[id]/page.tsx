@@ -4,7 +4,7 @@ import Image from "next/image"
 import type { Database, Tables } from "@/types/database"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { X, Calendar, MapPin, Phone, CheckCircle, User, GraduationCap, Tag } from "lucide-react"
+import { ArrowLeft, Calendar, MapPin, Phone, CheckCircle, User, GraduationCap, Tag } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -39,10 +39,11 @@ export default async function ItemDetailsPage({ params }: { params: Promise<{ id
 
   return (
     <main className="mx-auto w-full md:max-w-3xl mx-2 px-3 sm:px-4 md:px-6 py-4 space-y-4">
-      <div className="fixed right-2 top-2 z-10">
-        <Button asChild size="icon" variant="ghost">
-          <Link href="/" aria-label="Close details">
-            <X className="size-4" aria-hidden="true" />
+      {/* Back Button */}
+      <div className="flex items-center gap-3 mb-4">
+        <Button asChild variant="ghost" size="sm" className="p-2 h-9 w-9">
+          <Link href="/items">
+            <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
       </div>

@@ -12,6 +12,17 @@ type Stats = {
   activeItems: number
 }
 
+type RecentItem = {
+  id: string
+  title: string | null
+  name: string
+  type: string
+  status: string | null
+  created_at: string | null
+  returned_party?: string | null
+  returned_at?: string | null
+}
+
 export default function AdminOverview() {
   const supabase = useSupabase()
   const [stats, setStats] = useState<Stats>({
@@ -20,16 +31,27 @@ export default function AdminOverview() {
     returnedItems: 0,
     activeItems: 0
   })
+  const [recentPosts, setRecentPosts] = useState<RecentItem[]>([])
+  const [recentReturns, setRecentReturns] = useState<RecentItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     async function loadData() {
       try {
-        const [{ count: totalUsers }, { count: totalItems }, { count: returnedItems }, { count: activeItems }] = await Promise.all([
+        const [
+          { count: totalUsers }, 
+          { count: totalItems }, 
+          { count: returnedItems }, 
+          { count: activeItems },
+          { data: recentPostsData },
+          { data: recentReturnsData }
+        ] = await Promise.all([
           supabase.from("profiles").select("id", { count: "exact", head: true }),
           supabase.from("items").select("id", { count: "exact", head: true }),
           supabase.from("items").select("id", { count: "exact", head: true }).eq("status", "returned"),
           supabase.from("items").select("id", { count: "exact", head: true }).neq("status", "returned"),
+          supabase.from("items").select("id, title, name, type, status, created_at").order("created_at", { ascending: false }).limit(5),
+          supabase.from("items").select("id, title, name, type, status, created_at, returned_party, returned_at").eq("status", "returned").order("returned_at", { ascending: false }).limit(5)
         ])
 
         setStats({
@@ -38,6 +60,9 @@ export default function AdminOverview() {
           returnedItems: returnedItems ?? 0,
           activeItems: activeItems ?? 0,
         })
+        
+        setRecentPosts(recentPostsData || [])
+        setRecentReturns(recentReturnsData || [])
       } catch (error) {
         console.error("Error loading stats:", error)
       } finally {
@@ -46,6 +71,47 @@ export default function AdminOverview() {
     }
 
     loadData()
+  }, [supabase])
+
+  // Listen for item status changes to refresh data
+  useEffect(() => {
+    const handleItemStatusChange = async () => {
+      setIsLoading(true)
+      try {
+        const [
+          { count: totalUsers }, 
+          { count: totalItems }, 
+          { count: returnedItems }, 
+          { count: activeItems },
+          { data: recentPostsData },
+          { data: recentReturnsData }
+        ] = await Promise.all([
+          supabase.from("profiles").select("id", { count: "exact", head: true }),
+          supabase.from("items").select("id", { count: "exact", head: true }),
+          supabase.from("items").select("id", { count: "exact", head: true }).eq("status", "returned"),
+          supabase.from("items").select("id", { count: "exact", head: true }).neq("status", "returned"),
+          supabase.from("items").select("id, title, name, type, status, created_at").order("created_at", { ascending: false }).limit(5),
+          supabase.from("items").select("id, title, name, type, status, created_at, returned_party, returned_at").eq("status", "returned").order("returned_at", { ascending: false }).limit(5)
+        ])
+
+        setStats({
+          totalUsers: totalUsers ?? 0,
+          totalItems: totalItems ?? 0,
+          returnedItems: returnedItems ?? 0,
+          activeItems: activeItems ?? 0,
+        })
+        
+        setRecentPosts(recentPostsData || [])
+        setRecentReturns(recentReturnsData || [])
+      } catch (error) {
+        console.error("Error refreshing stats:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    window.addEventListener("itemStatusChanged", handleItemStatusChange)
+    return () => window.removeEventListener("itemStatusChanged", handleItemStatusChange)
   }, [supabase])
 
   if (isLoading) {
@@ -116,20 +182,54 @@ export default function AdminOverview() {
         <section className="space-y-3">
           <h2 className="text-lg font-semibold">Recent Returns</h2>
           <div className="rounded-md border divide-y">
-            {/* The original code had a useOverviewData hook that fetched recent returns and posts.
-                This section is now directly using the stats object and the supabase client.
-                The original useOverviewData hook is removed. */}
-            <div className="p-3 text-sm text-muted-foreground">Recent returns data is not available in this simplified overview.</div>
+            {recentReturns.length === 0 ? (
+              <div className="p-3 text-sm text-muted-foreground">No recent returns</div>
+            ) : (
+              recentReturns.map((item) => (
+                <div key={item.id} className="p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">
+                        {item.title || item.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Returned to {item.returned_party || "Unknown"} • {item.type}
+                      </p>
+                    </div>
+                    <div className="text-xs text-muted-foreground ml-2">
+                      {item.returned_at ? new Date(item.returned_at).toLocaleDateString() : "Unknown date"}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </section>
 
         <section className="space-y-3">
           <h2 className="text-lg font-semibold">Recent Posts</h2>
           <div className="rounded-md border divide-y">
-            {/* The original code had a useOverviewData hook that fetched recent returns and posts.
-                This section is now directly using the stats object and the supabase client.
-                The original useOverviewData hook is removed. */}
-            <div className="p-3 text-sm text-muted-foreground">Recent posts data is not available in this simplified overview.</div>
+            {recentPosts.length === 0 ? (
+              <div className="p-3 text-sm text-muted-foreground">No recent posts</div>
+            ) : (
+              recentPosts.map((item) => (
+                <div key={item.id} className="p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">
+                        {item.title || item.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Posted by {item.name} • {item.type} • {item.status}
+                      </p>
+                    </div>
+                    <div className="text-xs text-muted-foreground ml-2">
+                      {item.created_at ? new Date(item.created_at).toLocaleDateString() : "Unknown date"}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </section>
       </div>
