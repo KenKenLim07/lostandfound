@@ -16,14 +16,19 @@ type Row = Pick<
   Tables<"items">,
   | "id"
   | "title"
-  | "name"
   | "type"
   | "status"
   | "date"
   | "created_at"
-  | "reporter_year_section"
   | "image_url"
->
+  | "user_id"
+> & {
+  profile?: {
+    full_name: string | null
+    school_id: string | null
+    year_section: string | null
+  } | null
+}
 
 export function ItemsTable({ pageSize = 50 }: AdminItemsTableProps) {
   const supabase = useSupabase()
@@ -62,7 +67,7 @@ export function ItemsTable({ pageSize = 50 }: AdminItemsTableProps) {
   const buildQuery = useCallback(() => {
     let query = supabase
       .from("items")
-      .select("id, title, name, type, status, date, created_at, reporter_year_section, image_url")
+      .select("id, title, type, status, date, created_at, image_url, user_id")
 
     if (statusFilter === "active") {
       query = query.neq("status", "returned")
@@ -77,7 +82,7 @@ export function ItemsTable({ pageSize = 50 }: AdminItemsTableProps) {
     if (search) {
       const like = `%${search}%`
       query = query.or(
-        `title.ilike.${like},name.ilike.${like},location.ilike.${like},description.ilike.${like}`
+        `title.ilike.${like},description.ilike.${like}`
       )
     }
 
@@ -94,16 +99,32 @@ export function ItemsTable({ pageSize = 50 }: AdminItemsTableProps) {
         .limit(pageSize)
       if (err) throw err
       const rows = (data ?? []) as Row[]
-      setItems(rows)
-      setHasMore(rows.length === pageSize)
-      if (rows.length > 0) setCursor({ created_at: rows[rows.length - 1].created_at!, id: rows[rows.length - 1].id })
+      
+      // Fetch profile data for each item
+      const itemsWithProfiles: Row[] = await Promise.all(
+        rows.map(async (item) => {
+          if (item.user_id) {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("full_name, school_id, year_section")
+              .eq("id", item.user_id)
+              .single()
+            return { ...item, profile: profile || undefined }
+          }
+          return { ...item, profile: undefined }
+        })
+      )
+      
+      setItems(itemsWithProfiles)
+      setHasMore(itemsWithProfiles.length === pageSize)
+      if (itemsWithProfiles.length > 0) setCursor({ created_at: itemsWithProfiles[itemsWithProfiles.length - 1].created_at!, id: itemsWithProfiles[itemsWithProfiles.length - 1].id })
     } catch (e) {
       const message = e instanceof Error ? e.message : "Failed to load items"
       setError(message)
     } finally {
       setIsLoading(false)
     }
-  }, [buildQuery, pageSize])
+  }, [buildQuery, pageSize, supabase])
 
   const loadMore = useCallback(async () => {
     if (isLoading || !hasMore || !cursor) return
@@ -119,16 +140,32 @@ export function ItemsTable({ pageSize = 50 }: AdminItemsTableProps) {
       const { data, error: err } = await q
       if (err) throw err
       const rows = (data ?? []) as Row[]
-      setItems((prev) => [...prev, ...rows])
-      setHasMore(rows.length === pageSize)
-      if (rows.length > 0) setCursor({ created_at: rows[rows.length - 1].created_at!, id: rows[rows.length - 1].id })
+      
+      // Fetch profile data for each item
+      const itemsWithProfiles: Row[] = await Promise.all(
+        rows.map(async (item) => {
+          if (item.user_id) {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("full_name, school_id, year_section")
+              .eq("id", item.user_id)
+              .single()
+            return { ...item, profile: profile || undefined }
+          }
+          return { ...item, profile: undefined }
+        })
+      )
+      
+      setItems((prev) => [...prev, ...itemsWithProfiles])
+      setHasMore(itemsWithProfiles.length === pageSize)
+      if (itemsWithProfiles.length > 0) setCursor({ created_at: itemsWithProfiles[itemsWithProfiles.length - 1].created_at!, id: itemsWithProfiles[itemsWithProfiles.length - 1].id })
     } catch (e) {
       const message = e instanceof Error ? e.message : "Failed to load more"
       setError(message)
     } finally {
       setIsLoading(false)
     }
-  }, [buildQuery, cursor, hasMore, isLoading, pageSize])
+  }, [buildQuery, cursor, hasMore, isLoading, pageSize, supabase])
 
   useEffect(() => {
     resetAndLoad()
@@ -139,7 +176,6 @@ export function ItemsTable({ pageSize = 50 }: AdminItemsTableProps) {
       id: row.id,
       title: row.title,
       description: null,
-      contact_number: null,
       status: row.status ?? "active",
     }
     setEditItem(draft)
@@ -274,8 +310,8 @@ export function ItemsTable({ pageSize = 50 }: AdminItemsTableProps) {
                   <td className="px-3 py-2 font-medium max-w-[260px] truncate border-r border-border/50">{item.title ?? "—"}</td>
                   <td className="px-3 py-2 capitalize border-r border-border/50">{item.type}</td>
                   <td className="px-3 py-2 capitalize border-r border-border/50">{item.status ?? "active"}</td>
-                  <td className="px-3 py-2 border-r border-border/50">{item.name}</td>
-                  <td className="px-3 py-2 border-r border-border/50">{item.reporter_year_section ?? "—"}</td>
+                  <td className="px-3 py-2 border-r border-border/50">{item.profile?.full_name ?? "—"}</td>
+                  <td className="px-3 py-2 border-r border-border/50">{item.profile?.year_section ?? "—"}</td>
                   <td className="px-3 py-2 border-r border-border/50">{new Date(item.date).toLocaleDateString()}</td>
                   <td className="px-3 py-2 border-r border-border/50">{item.created_at ? new Date(item.created_at).toLocaleString() : "—"}</td>
                   <td className="px-3 py-2 border-l border-border/50">

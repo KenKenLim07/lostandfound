@@ -67,7 +67,7 @@ export function MobileAuthStatus({ initialIsLoggedIn = false }: Props) {
         isMobileMenu={true}
         showTrigger={false}
         initialMode="signin"
-        note="Sign in to access your reports and post items."
+        note="Sign in to access your reports, profile, and post items."
       />
     )
   }

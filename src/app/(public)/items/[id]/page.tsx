@@ -11,10 +11,19 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 
+type ItemWithProfile = Tables<"items"> & {
+  profile?: {
+    full_name: string | null
+    school_id: string | null
+    year_section: string | null
+    contact_number: string | null
+  } | null
+}
+
 export default function ItemDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [item, setItem] = useState<Tables<"items"> | null>(null)
+  const [item, setItem] = useState<ItemWithProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -66,7 +75,7 @@ export default function ItemDetailsPage({ params }: { params: Promise<{ id: stri
 
   const isMockUrl = item?.image_url?.includes("your-bucket-url.supabase.co") ?? false
   const isReturned = item?.status === "returned"
-  const contactHref = item?.contact_number ? `tel:${item.contact_number.replace(/\s+/g, "")}` : null
+  const contactHref = item?.profile?.contact_number ? `tel:${item.profile.contact_number.replace(/\s+/g, "")}` : null
 
   if (isLoading) {
     return (
@@ -111,7 +120,7 @@ export default function ItemDetailsPage({ params }: { params: Promise<{ id: stri
         {item.image_url ? (
           <Image
             src={item.image_url}
-            alt={item.title ?? item.name}
+            alt={item.title ?? (item.profile?.full_name || "Unknown Item")}
             fill
             sizes="(min-width:1024px) 1024px, 100vw"
             unoptimized={isMockUrl}
@@ -127,7 +136,7 @@ export default function ItemDetailsPage({ params }: { params: Promise<{ id: stri
         <CardHeader className="p-4 sm:p-6 pb-2 text-center space-y-2">
           {/* Removed type/returned pills above title */}
           <h1 className="text-base sm:text-lg md:text-xl font-bold tracking-tight">
-            {item.title ?? item.name}
+            {item.title ?? (item.profile?.full_name || "Unknown Item")}
           </h1>
         </CardHeader>
 
@@ -154,16 +163,16 @@ export default function ItemDetailsPage({ params }: { params: Promise<{ id: stri
                   <User className="h-4 w-4" />
                   <span>Posted by</span>
                 </dt>
-                <dd className="font-medium flex-1">{item.name}</dd>
+                <dd className="font-medium flex-1">{item.profile?.full_name || "Unknown User"}</dd>
               </div>
 
-              {item.reporter_year_section && (
+              {item.profile?.year_section && (
                 <div className="flex items-center gap-3 py-2 first:pt-0 last:pb-0">
                   <dt className="flex items-center gap-2 text-muted-foreground min-w-0 flex-shrink-0">
                     <GraduationCap className="h-4 w-4" />
                     <span>Course / Year & Section</span>
                   </dt>
-                  <dd className="font-medium flex-1">{item.reporter_year_section}</dd>
+                  <dd className="font-medium flex-1">{item.profile.year_section}</dd>
                 </div>
               )}
 
@@ -201,7 +210,7 @@ export default function ItemDetailsPage({ params }: { params: Promise<{ id: stri
                 </div>
               )}
 
-              {item.contact_number && (
+              {item.profile?.contact_number && (
                 <div className="flex items-center gap-3 py-2 first:pt-0 last:pb-0">
                   <dt className="flex items-center gap-2 text-muted-foreground min-w-0 flex-shrink-0">
                     <Phone className="h-4 w-4" />
@@ -210,10 +219,10 @@ export default function ItemDetailsPage({ params }: { params: Promise<{ id: stri
                   <dd className="flex-1">
                     {contactHref ? (
                       <a href={contactHref} className="font-medium underline underline-offset-4 hover:text-foreground">
-                        {item.contact_number}
+                        {item.profile.contact_number}
                       </a>
                     ) : (
-                      <span className="font-medium">{item.contact_number}</span>
+                      <span className="font-medium">{item.profile.contact_number}</span>
                     )}
                   </dd>
                 </div>

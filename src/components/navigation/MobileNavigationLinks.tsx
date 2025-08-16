@@ -81,14 +81,24 @@ export function MobileNavigationLinks({ initialIsLoggedIn = false, initialIsAdmi
         </Link>
       </SheetClose>
       {isLoggedIn && (
-        <SheetClose asChild>
-          <Link 
-            href="/my-items" 
-            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-          >
-            Reports
-          </Link>
-        </SheetClose>
+        <>
+          <SheetClose asChild>
+            <Link 
+              href="/my-items" 
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+            >
+              My Reports
+            </Link>
+          </SheetClose>
+          <SheetClose asChild>
+            <Link 
+              href="/profile" 
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+            >
+              My Profile
+            </Link>
+          </SheetClose>
+        </>
       )}
       {isAdmin && (
         <SheetClose asChild>

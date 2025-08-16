@@ -10,7 +10,14 @@ import { ItemsSearchFilterBar } from "@/components/items/ItemsSearchFilterBar"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 
- type Item = Pick<Tables<"items">, "id" | "title" | "name" | "type" | "description" | "date" | "location" | "contact_number" | "image_url" | "status" | "created_at">
+type Item = Pick<Tables<"items">, "id" | "title" | "type" | "description" | "date" | "location" | "image_url" | "status" | "created_at" | "user_id"> & {
+  profile?: {
+    full_name: string | null
+    school_id: string | null
+    year_section: string | null
+    contact_number: string | null
+  } | null
+}
 
 const PAGE_SIZE = 24
 
@@ -44,13 +51,13 @@ export default function AllItemsPage() {
 
     let query = supabase
       .from("items")
-      .select("id, title, name, type, description, date, location, contact_number, image_url, status, created_at")
+      .select("id, title, type, description, date, location, image_url, status, created_at, user_id")
       .order("created_at", { ascending: false })
       .order("id", { ascending: false })
       .limit(PAGE_SIZE)
 
     if (like) {
-      query = query.or(`title.ilike.${like},name.ilike.${like}`)
+      query = query.or(`title.ilike.${like},description.ilike.${like}`)
     }
 
     if (filter === "lost" || filter === "found") {
@@ -68,15 +75,30 @@ export default function AllItemsPage() {
     const { data, error } = await query
     if (error) throw error
 
-    setHasMore((data?.length ?? 0) === PAGE_SIZE)
+    // Fetch profile data for each item
+    const itemsWithProfiles: Item[] = await Promise.all(
+      (data || []).map(async (item) => {
+        if (item.user_id) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("full_name, school_id, year_section, contact_number")
+            .eq("id", item.user_id)
+            .single()
+          return { ...item, profile: profile || undefined }
+        }
+        return { ...item, profile: undefined }
+      })
+    )
+
+    setHasMore((itemsWithProfiles?.length ?? 0) === PAGE_SIZE)
 
     if (append) {
-      setItems((prev) => [...prev, ...(data || [])])
+      setItems((prev) => [...prev, ...itemsWithProfiles])
     } else {
-      setItems(data || [])
+      setItems(itemsWithProfiles)
     }
 
-    const last = (data || [])[data.length - 1]
+    const last = itemsWithProfiles[itemsWithProfiles.length - 1]
     setCursor(last ? { created_at: last.created_at!, id: last.id } : null)
   }, [debouncedSearch, filter, supabase])
 
@@ -152,12 +174,12 @@ export default function AllItemsPage() {
                 key={item.id}
                 id={item.id}
                 title={item.title}
-                name={item.name}
+                name={item.profile?.full_name || "Unknown User"}
                 type={item.type as "lost" | "found"}
                 description={item.description}
                 date={item.date}
                 location={item.location}
-                contactNumber={item.contact_number}
+                contactNumber={item.profile?.contact_number || null}
                 imageUrl={item.image_url}
                 status={item.status as "active" | "returned" | null}
                 createdAt={item.created_at}

@@ -21,7 +21,14 @@ const HOME_CACHE_TTL_MS = 60_000
 const LEADERBOARD_CACHE_KEY = "leaderboard_v1"
 const LEADERBOARD_CACHE_TTL_MS = 300_000 // 5 minutes
 
-type Item = Pick<Tables<"items">, "id" | "title" | "name" | "type" | "description" | "date" | "location" | "contact_number" | "image_url" | "status" | "created_at">
+type Item = Pick<Tables<"items">, "id" | "title" | "type" | "description" | "date" | "location" | "image_url" | "status" | "created_at" | "user_id"> & {
+  profile?: {
+    full_name: string | null
+    school_id: string | null
+    year_section: string | null
+    contact_number: string | null
+  } | null
+}
 
 export default function PublicHomePage() {
   const supabase = useSupabase()
@@ -98,19 +105,33 @@ export default function PublicHomePage() {
       try {
         const { data, error } = await supabase
           .from("items")
-          .select("id, title, name, type, description, date, location, contact_number, image_url, status, created_at")
+          .select("id, title, type, description, date, location, image_url, status, created_at, user_id")
           .order("created_at", { ascending: false })
           .limit(50)
 
         if (error) throw error
 
-        const nextItems = data || []
-        setItems(nextItems)
+        // Fetch profile data for each item
+        const itemsWithProfiles: Item[] = await Promise.all(
+          (data || []).map(async (item) => {
+            if (item.user_id) {
+              const { data: profile } = await supabase
+                .from("profiles")
+                .select("full_name, school_id, year_section, contact_number")
+                .eq("id", item.user_id)
+                .single()
+              return { ...item, profile: profile || undefined }
+            }
+            return { ...item, profile: undefined }
+          })
+        )
+
+        setItems(itemsWithProfiles)
 
         try {
           sessionStorage.setItem(
             HOME_CACHE_KEY,
-            JSON.stringify({ items: nextItems, ts: Date.now() })
+            JSON.stringify({ items: itemsWithProfiles, ts: Date.now() })
           )
         } catch {}
       } catch (err) {
@@ -133,19 +154,33 @@ export default function PublicHomePage() {
         // Refresh items
         const { data, error } = await supabase
           .from("items")
-          .select("id, title, name, type, description, date, location, contact_number, image_url, status, created_at")
+          .select("id, title, type, description, date, location, image_url, status, created_at, user_id")
           .order("created_at", { ascending: false })
           .limit(50)
         
         if (error) throw error
         
-        const nextItems = data || []
-        setItems(nextItems)
+        // Fetch profile data for each item
+        const itemsWithProfiles: Item[] = await Promise.all(
+          (data || []).map(async (item) => {
+            if (item.user_id) {
+              const { data: profile } = await supabase
+                .from("profiles")
+                .select("full_name, school_id, year_section, contact_number")
+                .eq("id", item.user_id)
+                .single()
+              return { ...item, profile: profile || undefined }
+            }
+            return { ...item, profile: undefined }
+          })
+        )
+        
+        setItems(itemsWithProfiles)
         
         try {
           sessionStorage.setItem(
             HOME_CACHE_KEY,
-            JSON.stringify({ items: nextItems, ts: Date.now() })
+            JSON.stringify({ items: itemsWithProfiles, ts: Date.now() })
           )
         } catch {}
       } catch (err) {
@@ -170,7 +205,7 @@ export default function PublicHomePage() {
     return items.filter(item => {
       const matchesSearch = !searchTerm || 
         (item.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-         item.name.toLowerCase().includes(searchTerm.toLowerCase()))
+         item.profile?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()))
 
       const matchesFilter = filter === "all" ||
         (filter === "lost" && item.type === "lost") ||
@@ -325,12 +360,12 @@ export default function PublicHomePage() {
                   key={item.id}
                   id={item.id}
                   title={item.title}
-                  name={item.name}
+                  name={item.profile?.full_name || "Unknown User"}
                   type={item.type as "lost" | "found"}
                   description={item.description}
                   date={item.date}
                   location={item.location}
-                  contactNumber={item.contact_number}
+                  contactNumber={item.profile?.contact_number || null}
                   imageUrl={item.image_url}
                   status={item.status as "active" | "returned" | null}
                   createdAt={item.created_at}

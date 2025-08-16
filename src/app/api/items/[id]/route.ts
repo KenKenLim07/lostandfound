@@ -11,9 +11,9 @@ export async function GET(
     const { id } = await params
     const supabase = createRouteHandlerClient<Database>({ cookies })
 
-    const { data, error } = await supabase
+    const { data: item, error } = await supabase
       .from("items")
-      .select("id, title, name, type, description, date, location, contact_number, image_url, status, created_at, returned_party, returned_year_section, returned_at, reporter_year_section")
+      .select("id, title, type, description, date, location, image_url, status, created_at, returned_party, returned_year_section, returned_at, user_id")
       .eq("id", id)
       .single()
 
@@ -25,7 +25,24 @@ export async function GET(
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json(data)
+    // Fetch profile data if user_id exists
+    let profile = null
+    if (item.user_id) {
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("full_name, school_id, year_section, contact_number")
+        .eq("id", item.user_id)
+        .single()
+      profile = profileData
+    }
+
+    // Return item with profile data
+    const itemWithProfile = {
+      ...item,
+      profile
+    }
+
+    return NextResponse.json(itemWithProfile)
   } catch (error) {
     return NextResponse.json(
       { error: "Internal server error" },

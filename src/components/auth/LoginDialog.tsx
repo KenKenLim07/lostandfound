@@ -226,6 +226,7 @@ export function LoginDialog(props: LoginDialogProps = {}) {
               error={!isEmailValid && touched.email}
               required
               autoComplete="email"
+              className="h-12" // Perfect height for mobile menu
             />
             {!isEmailValid && touched.email && (
               <p className="text-xs text-destructive ml-3">Please enter a valid email address</p>
@@ -245,6 +246,7 @@ export function LoginDialog(props: LoginDialogProps = {}) {
                 error={!isPasswordValid && touched.password}
                 required
                 autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                className="h-12" // Perfect height for mobile menu
               />
               <Button
                 type="button"
@@ -280,6 +282,7 @@ export function LoginDialog(props: LoginDialogProps = {}) {
                   error={!isConfirmPasswordValid && touched.confirmPassword}
                   required
                   autoComplete="new-password"
+                  className="h-12" // Perfect height for mobile menu
                 />
                 <Button
                   type="button"
@@ -394,6 +397,7 @@ export function LoginDialog(props: LoginDialogProps = {}) {
               error={!isEmailValid && touched.email}
               required
               autoComplete="email"
+              className="h-12" // Perfect height for mobile menu
             />
             {!isEmailValid && touched.email && (
               <p className="text-xs text-destructive ml-3">Please enter a valid email address</p>
@@ -413,6 +417,7 @@ export function LoginDialog(props: LoginDialogProps = {}) {
                 error={!isPasswordValid && touched.password}
                 required
                 autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                className="h-12" // Perfect height for mobile menu
               />
               <Button
                 type="button"
@@ -448,6 +453,7 @@ export function LoginDialog(props: LoginDialogProps = {}) {
                   error={!isConfirmPasswordValid && touched.confirmPassword}
                   required
                   autoComplete="new-password"
+                  className="h-12" // Perfect height for mobile menu
                 />
                 <Button
                   type="button"

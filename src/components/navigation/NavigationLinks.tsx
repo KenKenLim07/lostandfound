@@ -80,7 +80,7 @@ export function NavigationLinks({ initialIsLoggedIn = false, initialIsAdmin = fa
           href="/my-items" 
           className="text-foreground/60 transition-colors hover:text-foreground"
         >
-          Reports
+          My Reports
         </Link>
       )}
       {isAdmin && (

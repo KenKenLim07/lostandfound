@@ -15,12 +15,17 @@ type Stats = {
 type RecentItem = {
   id: string
   title: string | null
-  name: string
   type: string
   status: string | null
   created_at: string | null
   returned_party?: string | null
   returned_at?: string | null
+  user_id: string | null
+  profile?: {
+    full_name: string | null
+    school_id: string | null
+    year_section: string | null
+  }
 }
 
 export default function AdminOverview() {
@@ -50,9 +55,39 @@ export default function AdminOverview() {
           supabase.from("items").select("id", { count: "exact", head: true }),
           supabase.from("items").select("id", { count: "exact", head: true }).eq("status", "returned"),
           supabase.from("items").select("id", { count: "exact", head: true }).neq("status", "returned"),
-          supabase.from("items").select("id, title, name, type, status, created_at").order("created_at", { ascending: false }).limit(5),
-          supabase.from("items").select("id, title, name, type, status, created_at, returned_party, returned_at").eq("status", "returned").order("returned_at", { ascending: false }).limit(5)
+          supabase.from("items").select("id, title, type, status, created_at, user_id").order("created_at", { ascending: false }).limit(5),
+          supabase.from("items").select("id, title, type, status, created_at, returned_party, returned_at, user_id").eq("status", "returned").order("returned_at", { ascending: false }).limit(5)
         ])
+
+        // Fetch profile data for recent posts
+        const recentPostsWithProfiles: RecentItem[] = await Promise.all(
+          (recentPostsData || []).map(async (item) => {
+            if (item.user_id) {
+              const { data: profile } = await supabase
+                .from("profiles")
+                .select("full_name, school_id, year_section")
+                .eq("id", item.user_id)
+                .single()
+              return { ...item, profile: profile || undefined }
+            }
+            return { ...item, profile: undefined }
+          })
+        )
+
+        // Fetch profile data for recent returns
+        const recentReturnsWithProfiles: RecentItem[] = await Promise.all(
+          (recentReturnsData || []).map(async (item) => {
+            if (item.user_id) {
+              const { data: profile } = await supabase
+                .from("profiles")
+                .select("full_name, school_id, year_section")
+                .eq("id", item.user_id)
+                .single()
+              return { ...item, profile: profile || undefined }
+            }
+            return { ...item, profile: undefined }
+          })
+        )
 
         setStats({
           totalUsers: totalUsers ?? 0,
@@ -61,8 +96,8 @@ export default function AdminOverview() {
           activeItems: activeItems ?? 0,
         })
         
-        setRecentPosts(recentPostsData || [])
-        setRecentReturns(recentReturnsData || [])
+        setRecentPosts(recentPostsWithProfiles)
+        setRecentReturns(recentReturnsWithProfiles)
       } catch (error) {
         console.error("Error loading stats:", error)
       } finally {
@@ -90,9 +125,39 @@ export default function AdminOverview() {
           supabase.from("items").select("id", { count: "exact", head: true }),
           supabase.from("items").select("id", { count: "exact", head: true }).eq("status", "returned"),
           supabase.from("items").select("id", { count: "exact", head: true }).neq("status", "returned"),
-          supabase.from("items").select("id, title, name, type, status, created_at").order("created_at", { ascending: false }).limit(5),
-          supabase.from("items").select("id, title, name, type, status, created_at, returned_party, returned_at").eq("status", "returned").order("returned_at", { ascending: false }).limit(5)
+          supabase.from("items").select("id, title, type, status, created_at, user_id").order("created_at", { ascending: false }).limit(5),
+          supabase.from("items").select("id, title, type, status, created_at, returned_party, returned_at, user_id").eq("status", "returned").order("returned_at", { ascending: false }).limit(5)
         ])
+
+        // Fetch profile data for recent posts
+        const recentPostsWithProfiles: RecentItem[] = await Promise.all(
+          (recentPostsData || []).map(async (item) => {
+            if (item.user_id) {
+              const { data: profile } = await supabase
+                .from("profiles")
+                .select("full_name, school_id, year_section")
+                .eq("id", item.user_id)
+                .single()
+              return { ...item, profile: profile || undefined }
+            }
+            return { ...item, profile: undefined }
+          })
+        )
+
+        // Fetch profile data for recent returns
+        const recentReturnsWithProfiles: RecentItem[] = await Promise.all(
+          (recentReturnsData || []).map(async (item) => {
+            if (item.user_id) {
+              const { data: profile } = await supabase
+                .from("profiles")
+                .select("full_name, school_id, year_section")
+                .eq("id", item.user_id)
+                .single()
+              return { ...item, profile: profile || undefined }
+            }
+            return { ...item, profile: undefined }
+          })
+        )
 
         setStats({
           totalUsers: totalUsers ?? 0,
@@ -101,8 +166,8 @@ export default function AdminOverview() {
           activeItems: activeItems ?? 0,
         })
         
-        setRecentPosts(recentPostsData || [])
-        setRecentReturns(recentReturnsData || [])
+        setRecentPosts(recentPostsWithProfiles)
+        setRecentReturns(recentReturnsWithProfiles)
       } catch (error) {
         console.error("Error refreshing stats:", error)
       } finally {
@@ -190,7 +255,7 @@ export default function AdminOverview() {
                   <div className="flex items-center justify-between">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium truncate">
-                        {item.title || item.name}
+                        {item.title || item.profile?.full_name || "Unknown Item"}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Returned to {item.returned_party || "Unknown"} • {item.type}
@@ -217,10 +282,10 @@ export default function AdminOverview() {
                   <div className="flex items-center justify-between">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium truncate">
-                        {item.title || item.name}
+                        {item.title || item.profile?.full_name || "Unknown Item"}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Posted by {item.name} • {item.type} • {item.status}
+                        Posted by {item.profile?.full_name || "Unknown User"} • {item.type} • {item.status}
                       </p>
                     </div>
                     <div className="text-xs text-muted-foreground ml-2">

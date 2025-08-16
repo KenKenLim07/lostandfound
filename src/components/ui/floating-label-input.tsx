@@ -43,9 +43,10 @@ const FloatingLabelInput = React.forwardRef<HTMLInputElement, FloatingLabelInput
     return (
       <div 
         className={cn(
-          "relative border rounded-md px-3 py-3 focus-within:border-ring cursor-text transition-colors floating-label-input",
-          "border-input focus-within:border-ring",
-          error && "border-destructive focus-within:border-destructive",
+          "relative border-2 rounded-md px-3 py-3 cursor-text transition-colors floating-label-input",
+          "border-input",
+          error && "border-destructive",
+          isFocused && "border-blue-500", // Custom focus state with your preferred color
           className
         )}
         onClick={() => inputRef.current?.focus()}
@@ -61,7 +62,7 @@ const FloatingLabelInput = React.forwardRef<HTMLInputElement, FloatingLabelInput
             "absolute left-3 px-1 text-sm transition-all duration-200 pointer-events-none",
             icon && "left-10",
             shouldFloat
-              ? "-top-2 text-xs text-foreground bg-background"
+              ? "floating text-xs text-foreground bg-background" // Using custom CSS class for precise positioning
               : "top-3 text-muted-foreground"
           )}
         >
@@ -71,16 +72,24 @@ const FloatingLabelInput = React.forwardRef<HTMLInputElement, FloatingLabelInput
           type={type}
           id={id}
           className={cn(
-            // Use 16px on mobile to prevent iOS zoom, fall back to sm on md+
             "w-full bg-transparent focus:outline-none text-base md:text-sm text-foreground placeholder-transparent",
             icon && "pl-7",
-            // Mobile menu specific styling
             "mobile-menu:h-9 mobile-menu:text-sm"
           )}
-          style={{ fontSize: '16px' }} // Prevents zoom on iOS Safari
+          style={{ 
+            height: '36px', // Reduced from 48px to 36px for more compact size
+            lineHeight: '36px', // Match the height for proper text centering
+            padding: '0',
+            margin: '0',
+            position: 'absolute',
+            top: '50%', // Perfect centering using transform
+            left: '16px', // Increased left margin for better centering
+            right: '16px', // Increased right margin for better centering
+            width: 'calc(100% - 32px)', // Explicit width calculation to prevent overflow
+            transform: 'translateY(-50%)' // Perfect vertical centering
+          }}
           placeholder={label}
           ref={(node) => {
-            // Handle both refs
             if (typeof ref === 'function') {
               ref(node)
             } else if (ref) {

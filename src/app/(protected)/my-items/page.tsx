@@ -17,7 +17,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 
-type Item = Pick<Tables<"items">, "id" | "title" | "name" | "type" | "description" | "date" | "location" | "contact_number" | "image_url" | "status" | "created_at" | "returned_party" | "returned_year_section" | "returned_at">
+type Item = Pick<Tables<"items">, "id" | "title" | "type" | "description" | "date" | "location" | "image_url" | "status" | "created_at" | "returned_party" | "returned_year_section" | "returned_at">
 
 export default function MyItemsPage() {
   const supabase = useSupabase()
@@ -73,7 +73,7 @@ export default function MyItemsPage() {
 
         const { data, error } = await supabase
           .from("items")
-          .select("id, title, name, type, description, date, location, contact_number, image_url, status, created_at, returned_party, returned_year_section, returned_at")
+          .select("id, title, type, description, date, location, image_url, status, created_at, returned_party, returned_year_section, returned_at")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false })
 
@@ -288,7 +288,7 @@ export default function MyItemsPage() {
                         </Badge>
                       </div>
                       <h3 className="font-medium text-foreground line-clamp-2 text-base">
-                        {item.title || item.name}
+                        {item.title || "Untitled Item"}
                       </h3>
                     </div>
                     <div className="text-right flex-shrink-0">
@@ -307,7 +307,7 @@ export default function MyItemsPage() {
                       {item.image_url ? (
                         <Image
                           src={item.image_url}
-                          alt={item.title || item.name}
+                          alt={item.title || "Item image"}
                           width={80}
                           height={80}
                           className="w-full h-full object-cover"
@@ -323,7 +323,7 @@ export default function MyItemsPage() {
                     <div className="flex-1 min-w-0 space-y-2">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <User className="h-3 w-3 flex-shrink-0" />
-                        <span className="truncate">{item.name}</span>
+                        <span className="truncate">{item.title || "Untitled"}</span>
                       </div>
                       
                       {item.location && (

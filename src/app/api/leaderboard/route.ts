@@ -5,7 +5,13 @@ import type { Database, Tables } from "@/types/database"
 
 export const dynamic = "force-dynamic"
 
-type ItemLite = Pick<Tables<"items">, "id" | "name" | "type" | "status" | "returned_party" | "returned_at">
+type ItemLite = Pick<Tables<"items">, "id" | "type" | "status" | "returned_party" | "returned_at" | "user_id"> & {
+  profile?: {
+    full_name: string | null
+    school_id: string | null
+    year_section: string | null
+  } | null
+}
 
 type Leader = {
   actor: string
@@ -16,9 +22,9 @@ type Leader = {
 
 function getActorAndRecipient(item: ItemLite): { actor: string | null; recipient: string | null } {
   if (item.type === "lost") {
-    return { actor: item.returned_party ?? null, recipient: item.name ?? null }
+    return { actor: item.returned_party ?? null, recipient: item.profile?.full_name ?? null }
   }
-  return { actor: item.name ?? null, recipient: item.returned_party ?? null }
+  return { actor: item.profile?.full_name ?? null, recipient: item.returned_party ?? null }
 }
 
 export async function GET() {
@@ -27,7 +33,7 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from("items")
-      .select("id, name, type, status, returned_party, returned_at")
+      .select("id, type, status, returned_party, returned_at, user_id")
       .eq("status", "returned")
       .order("returned_at", { ascending: false })
       .limit(500)
@@ -36,10 +42,23 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    const rows = (data ?? []) as ItemLite[]
+    // Fetch profile data for each item
+    const itemsWithProfiles: ItemLite[] = await Promise.all(
+      (data || []).map(async (item) => {
+        if (item.user_id) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("full_name, school_id, year_section")
+            .eq("id", item.user_id)
+            .single()
+          return { ...item, profile: profile || undefined }
+        }
+        return { ...item, profile: undefined }
+      })
+    )
 
     const map = new Map<string, Leader>()
-    for (const r of rows) {
+    for (const r of itemsWithProfiles) {
       const { actor, recipient } = getActorAndRecipient(r)
       if (!actor) continue
       const existing = map.get(actor)

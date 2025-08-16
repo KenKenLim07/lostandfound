@@ -17,6 +17,8 @@ import Image from "next/image"
 import { Skeleton } from "@/components/ui/skeleton"
 import { postItem } from "./actions"
 import { CustomTopLoader } from "@/components/system/CustomTopLoader"
+import { ProfileGuard } from "@/components/auth/ProfileGuard"
+import { Loader2 } from "lucide-react"
 
 export default function PostItemPage() {
   const supabase = useSupabase()
@@ -30,15 +32,12 @@ export default function PostItemPage() {
   const [isBlocked, setIsBlocked] = useState(false)
   const [isCheckingStatus, setIsCheckingStatus] = useState(true)
 
-  // Form state
+  // Form state - removed redundant fields
   const [type, setType] = useState<"lost" | "found">("lost")
-  const [name, setName] = useState("")
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [date, setDate] = useState("")
   const [location, setLocation] = useState("")
-  const [contactNumber, setContactNumber] = useState("")
-  const [reporterYearSection, setReporterYearSection] = useState("")
 
   // Image state
   const [compressedFile, setCompressedFile] = useState<File | null>(null)
@@ -196,12 +195,9 @@ export default function PostItemPage() {
         const formData = new FormData()
         formData.append("type", type)
         formData.append("title", title || "")
-        formData.append("name", name || "")
         formData.append("description", description || "")
         formData.append("date", date || new Date().toISOString().slice(0, 10))
         formData.append("location", location || "")
-        formData.append("contactNumber", contactNumber || "")
-        formData.append("reporterYearSection", reporterYearSection || "")
         if (image_url) {
           formData.append("image_url", image_url)
         }
@@ -297,259 +293,204 @@ export default function PostItemPage() {
   }
 
   return (
-    <main className="container mx-auto px-3 sm:px-6 py-4">
-      {/* Custom Top Loader for internal loading states */}
-      <CustomTopLoader 
-        isLoading={isCheckingStatus || isUploading || isCompressing || isPending} 
-        color="#000000"
-        height={3}
-        duration={300}
-      />
-      
-      <div className="max-w-xl mx-auto">
-        {/* Header */}
-        <header className="mb-4">
-          <h1 className="text-xl font-bold mb-1">Post Lost/Found Item</h1>
-          <p className="text-muted-foreground text-sm">Help someone find their lost item or return a found item to its owner.</p>
-        </header>
+    <ProfileGuard>
+      <main className="container mx-auto px-3 sm:px-6 py-4">
+        {/* Custom Top Loader for internal loading states */}
+        <CustomTopLoader 
+          isLoading={isCheckingStatus || isUploading || isCompressing || isPending} 
+          color="#000000"
+          height={3}
+          duration={300}
+        />
+        
+        <div className="max-w-xl mx-auto">
+          {/* Header */}
+          <header className="mb-4">
+            <h1 className="text-xl font-bold mb-1">Post Lost/Found Item</h1>
+            <p className="text-muted-foreground text-sm">Help someone find their lost item or return a found item to its owner.</p>
+          </header>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Type Selection */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Item Type</Label>
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                type="button"
-                variant={type === "lost" ? "default" : "outline"}
-                onClick={() => setType("lost")}
-                className="h-10 text-sm"
-              >
-                Lost Item
-              </Button>
-              <Button
-                type="button"
-                variant={type === "found" ? "default" : "outline"}
-                onClick={() => setType("found")}
-                className="h-10 text-sm"
-              >
-                Found Item
-              </Button>
-            </div>
-          </div>
-
-          {/* Your Name */}
-          <div className="space-y-1.5">
-            <Label htmlFor="name" className="text-sm font-medium">Your Name *</Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter your full name"
-              required
-              className="h-10 text-base sm:text-sm"
-              style={{ fontSize: '16px' }} // Prevents zoom on iOS
-            />
-          </div>
-
-          {/* Course/Year/Section */}
-          <div className="space-y-1.5">
-            <Label htmlFor="reporter_year_section" className="text-sm font-medium">
-              Course / Year & Section <span className="text-muted-foreground font-normal">(Optional)</span>
-            </Label>
-            <Input
-              id="reporter_year_section"
-              value={reporterYearSection}
-              onChange={(e) => setReporterYearSection(e.target.value)}
-              placeholder="e.g., BSIT 3A, BSHM 2B (leave blank if faculty/staff)"
-              className="h-10 text-base sm:text-sm"
-              style={{ fontSize: '16px' }} // Prevents zoom on iOS
-            />
-          </div>
-
-          {/* Item Title */}
-          <div className="space-y-1.5">
-            <Label htmlFor="title" className="text-sm font-medium">Item Title *</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g., iPhone 17 Pro Max 1TB Fully Paid."
-              required
-              className="h-10 text-base sm:text-sm"
-              style={{ fontSize: '16px' }} // Prevents zoom on iOS
-            />
-          </div>
-
-          {/* Description */}
-          <div className="space-y-1.5">
-            <Label htmlFor="description" className="text-sm font-medium">Description</Label>
-            <Input
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe the item in detail (color, brand, identifying marks, etc.)"
-              className="min-h-[80px] text-base sm:text-sm"
-              style={{ fontSize: '16px' }} // Prevents zoom on iOS
-            />
-          </div>
-
-          {/* Date */}
-          <div className="space-y-1.5">
-            <Label htmlFor="date" className="text-sm font-medium">Date Lost/Found *</Label>
-            <Input
-              id="date"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              required
-              className="h-10 text-base sm:text-sm"
-              style={{ fontSize: '16px' }} // Prevents zoom on iOS
-            />
-          </div>
-
-          {/* Location */}
-          <div className="space-y-1.5">
-            <Label htmlFor="location" className="text-sm font-medium">Location</Label>
-            <Input
-              id="location"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="Where was it lost/found?"
-              className="h-10 text-base sm:text-sm"
-              style={{ fontSize: '16px' }} // Prevents zoom on iOS
-            />
-          </div>
-
-          {/* Contact Number */}
-          <div className="space-y-1.5">
-            <Label htmlFor="contact" className="text-sm font-medium">Contact Number</Label>
-            <Input
-              id="contact"
-              type="tel"
-              value={contactNumber}
-              onChange={(e) => setContactNumber(e.target.value)}
-              placeholder="Your phone number for contact"
-              className="h-10 text-base sm:text-sm"
-              style={{ fontSize: '16px' }} // Prevents zoom on iOS
-            />
-          </div>
-
-          {/* Image Upload */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Photo (Optional)</Label>
-            
-            {!imagePreview ? (
-              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center hover:border-muted-foreground/50 transition-colors">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
-                  className="hidden"
-                  id="image-upload"
-                />
-                <label htmlFor="image-upload" className="cursor-pointer">
-                  <Upload className="mx-auto h-8 w-8 text-muted-foreground mb-3" />
-                  <p className="text-muted-foreground text-sm mb-1">Click to upload an image</p>
-                  <p className="text-xs text-muted-foreground">PNG, JPG up to 10MB</p>
-                </label>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Type Selection */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Item Type</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant={type === "lost" ? "default" : "outline"}
+                  onClick={() => setType("lost")}
+                  className="h-10 text-sm"
+                >
+                  Lost Item
+                </Button>
+                <Button
+                  type="button"
+                  variant={type === "found" ? "default" : "outline"}
+                  onClick={() => setType("found")}
+                  className="h-10 text-sm"
+                >
+                  Found Item
+                </Button>
               </div>
-            ) : (
-              <div className="space-y-2">
-                <div className="relative">
-                                  <Image
-                  src={imagePreview}
-                  alt="Preview"
-                  width={400}
-                  height={160}
-                  className="w-full h-40 object-cover rounded-lg"
-                  unoptimized
-                />
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="destructive"
-                    onClick={removeImage}
-                    className="absolute top-2 right-2"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-                
-                {isCompressing && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <div className="h-4 w-4 rounded-full bg-muted" aria-hidden />
-                    Compressing image...
-                  </div>
-                )}
+            </div>
 
-                {compressionInfo && (
-                  <div className="text-xs text-muted-foreground space-y-1">
-                    <div className="flex justify-between">
-                      <span>Original:</span>
-                      <span>{formatFileSize(compressionInfo.originalSize)}</span>
+            {/* Item Title */}
+            <div className="space-y-1.5">
+              <Label htmlFor="title" className="text-sm font-medium">Item Title *</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g., iPhone 17 Pro Max 1TB Fully Paid."
+                required
+                className="h-10 text-base sm:text-sm"
+                style={{ fontSize: '16px' }} // Prevents zoom on iOS
+              />
+            </div>
+
+            {/* Description */}
+            <div className="space-y-1.5">
+              <Label htmlFor="description" className="text-sm font-medium">Description</Label>
+              <Input
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Describe the item in detail (color, brand, identifying marks, etc.)"
+                className="min-h-[80px] text-base sm:text-sm"
+                style={{ fontSize: '16px' }} // Prevents zoom on iOS
+              />
+            </div>
+
+            {/* Date */}
+            <div className="space-y-1.5">
+              <Label htmlFor="date" className="text-sm font-medium">Date Lost/Found *</Label>
+              <Input
+                id="date"
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                required
+                className="h-10 text-base sm:text-sm"
+                style={{ fontSize: '16px' }} // Prevents zoom on iOS
+              />
+            </div>
+
+            {/* Location */}
+            <div className="space-y-1.5">
+              <Label htmlFor="location" className="text-sm font-medium">Location</Label>
+              <Input
+                id="location"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Where was the item lost/found?"
+                className="h-10 text-base sm:text-sm"
+                style={{ fontSize: '16px' }} // Prevents zoom on iOS
+              />
+            </div>
+
+            {/* Image Upload */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Item Image (Optional)</Label>
+              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center">
+                {!imagePreview ? (
+                  <div className="space-y-2">
+                    <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        Click to upload or drag and drop
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        PNG, JPG up to 5MB
+                      </p>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Compressed:</span>
-                      <span>{formatFileSize(compressionInfo.compressedSize)}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
+                      className="hidden"
+                      id="image-upload"
+                    />
+                    <label htmlFor="image-upload">
+                      <Button type="button" variant="outline" size="sm" className="cursor-pointer">
+                        Choose File
+                      </Button>
+                    </label>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="relative inline-block">
+                      <Image
+                        src={imagePreview}
+                        alt="Preview"
+                        width={200}
+                        height={200}
+                        className="rounded-lg object-cover"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        onClick={removeImage}
+                        className="absolute -top-2 -right-2 h-6 w-6 p-0 rounded-full"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Saved:</span>
-                      <span className="text-green-600">{compressionInfo.compressionRatio.toFixed(1)}%</span>
-                    </div>
+                    {compressionInfo && (
+                      <div className="text-xs text-muted-foreground">
+                        <p>Original: {formatFileSize(compressionInfo.originalSize)}</p>
+                        <p>Compressed: {formatFileSize(compressionInfo.compressedSize)}</p>
+                        <p>Reduced by: {compressionInfo.compressionRatio.toFixed(1)}%</p>
+                      </div>
+                    )}
                   </div>
                 )}
+              </div>
+            </div>
+
+            {/* Error Message */}
+            {error && (
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                <p className="text-sm text-destructive">{error}</p>
               </div>
             )}
-          </div>
+
+            {/* Success Message */}
+            {success && (
+              <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-md">
+                <p className="text-sm text-green-600">{success}</p>
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              disabled={isPending || isUploading || isCompressing}
+              className="w-full h-10"
+            >
+              {isPending || isUploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {isUploading ? "Uploading..." : "Posting..."}
+                </>
+              ) : (
+                "Post Item"
+              )}
+            </Button>
+          </form>
 
           {/* Upload Progress */}
           {isUploading && (
-            <div className="space-y-2">
+            <div className="mt-4 space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Uploading image...</span>
                 <span>{uploadProgress}%</span>
               </div>
-              <Progress value={uploadProgress} max={100} />
+              <Progress value={uploadProgress} className="h-2" />
             </div>
           )}
-
-          {/* Error/Success Messages */}
-          {error && (
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive">
-              <AlertCircle className="h-4 w-4" />
-              <span className="text-sm">{error}</span>
-            </div>
-          )}
-
-          {success && (
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-green-600/10 border border-green-600/20 text-green-600">
-              <CheckCircle className="h-4 w-4" />
-              <span className="text-sm">{success}</span>
-            </div>
-          )}
-
-          {/* Submit Button */}
-          <div className="pt-3">
-            <Button
-              type="submit"
-              disabled={isPending || isCompressing || isUploading || isBlocked}
-              className="w-full h-11 text-sm font-medium"
-            >
-              {isPending || isUploading ? (
-                <>
-                  <span className="mr-2" aria-hidden>…</span>
-                  {isUploading ? "Uploading..." : "Posting..."}
-                </>
-              ) : (
-                <>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Post Item
-                </>
-              )}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </main>
+        </div>
+      </main>
+    </ProfileGuard>
   )
 } 

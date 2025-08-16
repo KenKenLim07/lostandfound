@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 
 export type EditableItem = Pick<
   Tables<"items">,
-  "id" | "title" | "description" | "contact_number" | "status"
+  "id" | "title" | "description" | "status"
 >
 
 export function EditItemDialog({
@@ -25,7 +25,6 @@ export function EditItemDialog({
   const supabase = useSupabase()
   const [title, setTitle] = useState(item?.title ?? "")
   const [description, setDescription] = useState(item?.description ?? "")
-  const [contact, setContact] = useState(item?.contact_number ?? "")
   const [status, setStatus] = useState(item?.status ?? "active")
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -35,7 +34,6 @@ export function EditItemDialog({
     if (open && item) {
     setTitle(item.title ?? "")
     setDescription(item.description ?? "")
-    setContact(item.contact_number ?? "")
     setStatus(item.status ?? "active")
   }
   }, [open, item])
@@ -48,12 +46,11 @@ export function EditItemDialog({
       const payload: Partial<Tables<"items">> = {
         title: title || null,
         description: description || null,
-        contact_number: contact || null,
         status: status || null,
       }
       const { error } = await supabase.from("items").update(payload).eq("id", item.id)
       if (error) throw error
-      onSaved({ id: item.id, title: payload.title ?? null, description: payload.description ?? null, contact_number: payload.contact_number ?? null, status: payload.status ?? null })
+      onSaved({ id: item.id, title: payload.title ?? null, description: payload.description ?? null, status: payload.status ?? null })
       onOpenChange(false)
     } catch (e) {
       const message = e instanceof Error ? e.message : "Failed to save item"
@@ -77,10 +74,6 @@ export function EditItemDialog({
           <div className="grid gap-1">
             <label className="text-sm">Description</label>
             <textarea className="min-h-[80px] rounded-md border px-2 py-1 text-sm" value={description ?? ""} onChange={(e) => setDescription(e.target.value)} />
-          </div>
-          <div className="grid gap-1">
-            <label className="text-sm">Contact Number</label>
-            <input className="h-9 rounded-md border px-2 text-sm" value={contact ?? ""} onChange={(e) => setContact(e.target.value)} />
           </div>
           <div className="grid gap-1">
             <label className="text-sm">Status</label>

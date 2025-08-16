@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
@@ -16,15 +16,12 @@ export type Database = {
     Tables: {
       items: {
         Row: {
-          contact_number: string | null
           created_at: string | null
           date: string
           description: string | null
           id: string
           image_url: string | null
           location: string | null
-          name: string
-          reporter_year_section: string | null
           returned_at: string | null
           returned_party: string | null
           returned_year_section: string | null
@@ -34,15 +31,12 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
-          contact_number?: string | null
           created_at?: string | null
           date?: string
           description?: string | null
           id?: string
           image_url?: string | null
           location?: string | null
-          name: string
-          reporter_year_section?: string | null
           returned_at?: string | null
           returned_party?: string | null
           returned_year_section?: string | null
@@ -52,15 +46,12 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
-          contact_number?: string | null
           created_at?: string | null
           date?: string
           description?: string | null
           id?: string
           image_url?: string | null
           location?: string | null
-          name?: string
-          reporter_year_section?: string | null
           returned_at?: string | null
           returned_party?: string | null
           returned_year_section?: string | null
@@ -74,24 +65,42 @@ export type Database = {
       profiles: {
         Row: {
           blocked: boolean | null
+          contact_number: string | null
           created_at: string | null
+          email: string | null
           full_name: string | null
           id: string
+          profile_complete: boolean | null
           role: string | null
+          school_id: string | null
+          updated_at: string | null
+          year_section: string | null
         }
         Insert: {
           blocked?: boolean | null
+          contact_number?: string | null
           created_at?: string | null
+          email?: string | null
           full_name?: string | null
           id: string
+          profile_complete?: boolean | null
           role?: string | null
+          school_id?: string | null
+          updated_at?: string | null
+          year_section?: string | null
         }
         Update: {
           blocked?: boolean | null
+          contact_number?: string | null
           created_at?: string | null
+          email?: string | null
           full_name?: string | null
           id?: string
+          profile_complete?: boolean | null
           role?: string | null
+          school_id?: string | null
+          updated_at?: string | null
+          year_section?: string | null
         }
         Relationships: []
       }
