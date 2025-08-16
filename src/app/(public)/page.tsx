@@ -284,7 +284,7 @@ export default function PublicHomePage() {
       />
 
       {/* Search and Filter Section */}
-      <section className="px-5 bg-muted/30">
+      <section className="px-5">
         <div className="container mx-auto px-2 sm:px-4 py-3">
           <ItemsSearchFilterBar
             searchTerm={searchTerm}

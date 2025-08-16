@@ -27,12 +27,12 @@ export function ItemsSearchFilterBar({
           value={searchTerm}
           onChange={(e) => onSearchTermChange(e.target.value)}
           placeholder="Search items by title or name..."
-          className="pl-10 h-10 bg-background"
+          className="pl-10 h-10 bg-card border-border"
           aria-label="Search items"
         />
       </div>
       <Select value={filter} onValueChange={onFilterChange}>
-        <SelectTrigger className="w-full sm:w-[130px] h-10">
+        <SelectTrigger className="w-full sm:w-[130px] h-10 bg-card border-border">
           <SelectValue placeholder="Filter items" />
         </SelectTrigger>
         <SelectContent>
