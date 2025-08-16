@@ -10,7 +10,7 @@ import { ItemsSearchFilterBar } from "@/components/items/ItemsSearchFilterBar"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 
-type Item = Pick<Tables<"items">, "id" | "title" | "name" | "type" | "description" | "date" | "location" | "contact_number" | "image_url" | "status" | "created_at">
+ type Item = Pick<Tables<"items">, "id" | "title" | "name" | "type" | "description" | "date" | "location" | "contact_number" | "image_url" | "status" | "created_at">
 
 const PAGE_SIZE = 24
 
@@ -107,7 +107,7 @@ export default function AllItemsPage() {
   }, [hasMore, isLoading, isLoadingMore, cursor, debouncedSearch, filter, fetchPage])
 
   return (
-    <main className="container mx-auto px-2 sm:px-4 py-4">
+    <main className="container mx-auto px-0.5 sm:px-4 py-4">
       <header className="mb-6">
         <div className="flex items-center gap-3 mb-3">
           <Button
@@ -119,8 +119,8 @@ export default function AllItemsPage() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-xl font-semibold">All Items</h1>
-            <p className="text-muted-foreground text-sm">Browse all posted lost and found items.</p>
+        <h1 className="text-xl font-semibold">All Items</h1>
+        <p className="text-muted-foreground text-sm">Browse all posted lost and found items.</p>
           </div>
         </div>
       </header>
@@ -135,7 +135,7 @@ export default function AllItemsPage() {
       </section>
 
       {isLoading ? (
-        <section className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-0.5 sm:gap-1" aria-busy>
+        <section className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-1" aria-busy>
           {Array.from({ length: 12 }).map((_, i) => (
             <ItemCardSkeleton key={i} />
           ))}
@@ -146,7 +146,7 @@ export default function AllItemsPage() {
         </div>
       ) : (
         <>
-          <section className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-0.5 sm:gap-1">
+          <section className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-1">
             {items.map((item) => (
               <ItemCard
                 key={item.id}
@@ -161,7 +161,7 @@ export default function AllItemsPage() {
                 imageUrl={item.image_url}
                 status={item.status as "active" | "returned" | null}
                 createdAt={item.created_at}
-                href={`/items/${item.id}`}
+                href={`/items/${item.id}?from=items`}
               />
             ))}
           </section>
@@ -183,7 +183,7 @@ export default function AllItemsPage() {
 
           {/* Loading more skeletons */}
           {isLoadingMore && (
-            <section className="mt-3 grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-0.5 sm:gap-1" aria-busy>
+            <section className="mt-3 grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-1" aria-busy>
               {Array.from({ length: 6 }).map((_, i) => (
                 <ItemCardSkeleton key={`more-${i}`} />
               ))}

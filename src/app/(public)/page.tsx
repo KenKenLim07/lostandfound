@@ -284,7 +284,7 @@ export default function PublicHomePage() {
       />
 
       {/* Search and Filter Section */}
-      <section className="border-b bg-muted/30">
+      <section className="px-5 bg-muted/30">
         <div className="container mx-auto px-2 sm:px-4 py-3">
           <ItemsSearchFilterBar
             searchTerm={searchTerm}
@@ -296,9 +296,9 @@ export default function PublicHomePage() {
       </section>
 
       {/* Items Grid Section */}
-      <section className="container mx-auto px-2 sm:px-4 py-4">
+      <section className="container mx-auto px-0.5 sm:px-4 py-1.5">
         {isLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-0.5 sm:gap-1">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-1">
             {Array.from({ length: 6 }).map((_, i) => (
               <Skeleton key={i} className="aspect-square rounded-lg" />
             ))}
@@ -309,7 +309,7 @@ export default function PublicHomePage() {
           </div>
         ) : (
           <>
-            <div className="flex items-center justify-between mb-3">
+            <div className="pl-2 flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">
                   {filteredItems.length} items found
@@ -319,7 +319,7 @@ export default function PublicHomePage() {
                 View all items
               </AnimatedLink>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-0.5 sm:gap-1">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-1">
               {filteredItems.slice(0, 6).map((item) => (
                 <ItemCard
                   key={item.id}
@@ -334,7 +334,7 @@ export default function PublicHomePage() {
                   imageUrl={item.image_url}
                   status={item.status as "active" | "returned" | null}
                   createdAt={item.created_at}
-                  href={`/items/${item.id}`}
+                  href={`/items/${item.id}?from=home`}
                 />
               ))}
             </div>

@@ -144,18 +144,20 @@ export function CampusGuardianDialog({ triggerClassName }: { triggerClassName?: 
           <Trophy className="h-4 w-4 mr-2" /> Campus Guardian
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-sm w-full mx-auto boder-4">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+      <DialogContent className="max-w-sm w-full mx-auto max-h-[90vh] sm:max-h-[85vh] flex flex-col rounded-2xl shadow-2xl border-0 animate-in fade-in-0 zoom-in-95 duration-200">
+        <DialogHeader className="flex-shrink-0 pb-3 px-4 pt-4">
+          <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
             <Trophy className="h-5 w-5 text-yellow-500" /> Campus Guardian
           </DialogTitle>
           <DialogClose asChild>
-            <button aria-label="Close" className="absolute right-3 top-3 rounded p-1 text-muted-foreground hover:text-foreground">
+            <button aria-label="Close" className="absolute right-3 top-3 rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
               <X className="h-4 w-4" />
             </button>
           </DialogClose>
         </DialogHeader>
-        <div className="max-h-[70vh] overflow-y-auto space-y-3">
+        
+        {/* Scrollable Content Area */}
+        <div className="flex-1 min-h-0 overflow-y-auto space-y-3 px-4 scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 relative">
           {loading && (
             <div className="space-y-2">
               {Array.from({ length: 6 }).map((_, i) => (
@@ -170,37 +172,44 @@ export function CampusGuardianDialog({ triggerClassName }: { triggerClassName?: 
             <div className="text-sm text-muted-foreground">No returns yet.</div>
           )}
           {!loading && !error && data && data.length > 0 && (
-            <ol className="rounded-md border overflow-hidden">
-              {data.map((entry, idx) => (
-                <li key={entry.actor} className="flex items-center justify-between px-3 py-2 border-b last:border-b-0 bg-card">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="h-7 w-7 shrink-0 grid place-items-center rounded-full bg-muted">
-                      <span className="text-xs font-semibold tabular-nums">{idx + 1}</span>
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 min-w-0">
-                        {idx < 3 && <Trophy className={`h-4 w-4 ${trophyColor(idx)}`} />}
-                        <span className="font-semibold truncate">{entry.actor}</span>
+            <>
+              <ol className="rounded-xl border overflow-hidden shadow-sm">
+                {data.map((entry, idx) => (
+                  <li key={entry.actor} className="flex items-center justify-between px-3 py-1.5 border-b last:border-b-0 bg-card hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-6 w-6 shrink-0 grid place-items-center rounded-full bg-muted">
+                        <span className="text-xs font-semibold tabular-nums">{idx + 1}</span>
                       </div>
-                      {entry.lastRecipient && (
-                        <div className="text-[11px] text-muted-foreground truncate">
-                          returned to <span className="font-medium">{entry.lastRecipient}</span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 min-w-0">
+                          {idx < 3 && <Trophy className={`h-3.5 w-3.5 ${trophyColor(idx)}`} />}
+                          <span className="font-semibold truncate text-sm">{entry.actor}</span>
                         </div>
-                      )}
+                        {entry.lastRecipient && (
+                          <div className="text-[10px] text-muted-foreground truncate">
+                            returned to <span className="font-medium">{entry.lastRecipient}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-bold">{entry.count}</div>
-                    <div className="text-[10px] text-muted-foreground">returns</div>
-                  </div>
-                </li>
-              ))}
-            </ol>
+                    <div className="text-right">
+                      <div className="text-sm font-bold">{entry.count}</div>
+                      <div className="text-[9px] text-muted-foreground">returns</div>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </>
+          )}
+          
+          {/* Subtle fade indicator for scrollable content */}
+          {!loading && !error && data && data.length > 6 && (
+            <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-background to-transparent pointer-events-none" />
           )}
         </div>
 
         {/* Sticky Footer with Notes */}
-        <div className="border-t pt-4 mt-4">
+        <div className="flex-shrink-0 border-t pt-4 mt-4 px-4 pb-4">
           <div className="text-xs text-muted-foreground space-y-3">
             <div className="flex items-center gap-2 font-medium text-foreground mb-2">
               <Info className="h-3 w-3" />

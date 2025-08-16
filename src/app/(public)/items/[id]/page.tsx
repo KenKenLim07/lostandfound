@@ -1,50 +1,108 @@
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+"use client"
+
+import { useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
-import type { Database, Tables } from "@/types/database"
-import { notFound } from "next/navigation"
-import Link from "next/link"
+import type { Tables } from "@/types/database"
 import { ArrowLeft, Calendar, MapPin, Phone, CheckCircle, User, GraduationCap, Tag } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
 
-function getErrorMessage(err: unknown): string {
-  if (err && typeof err === "object" && "message" in err) {
-    const msg = (err as { message: unknown }).message
-    return typeof msg === "string" ? msg : "Failed to load item"
-  }
-  return "Failed to load item"
-}
+export default function ItemDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [item, setItem] = useState<Tables<"items"> | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-export default async function ItemDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+  useEffect(() => {
+    async function loadItem() {
+      try {
   const { id } = await params
-  const supabase = createServerComponentClient<Database>({ cookies })
+        const response = await fetch(`/api/items/${id}`)
+        
+        if (!response.ok) {
+          if (response.status === 404) {
+            setError("Item not found")
+          } else {
+            setError("Failed to load item")
+          }
+          return
+        }
+        
+        const data = await response.json()
+        setItem(data)
+      } catch (err) {
+        setError("Failed to load item")
+      } finally {
+        setIsLoading(false)
+      }
+    }
 
-  const { data, error } = await supabase
-    .from("items")
-    .select("id, title, name, type, description, date, location, contact_number, image_url, status, created_at, returned_party, returned_year_section, returned_at, reporter_year_section")
-    .eq("id", id)
-    .single()
+    loadItem()
+  }, [params])
 
-  if (error?.code === "PGRST116" || !data) return notFound()
-  if (error) throw new Error(getErrorMessage(error))
+  const handleBackNavigation = () => {
+    // Check if user came from home page via search params
+    const fromHome = searchParams.get('from')
+    
+    if (fromHome === 'home') {
+      router.push('/')
+    } else if (fromHome === 'items') {
+      router.push('/items')
+    } else {
+      // Fallback: try to go back in browser history
+      if (window.history.length > 1) {
+        router.back()
+      } else {
+        // If no history, default to items page
+        router.push('/items')
+      }
+    }
+  }
 
-  const item = data as Tables<"items">
-  const isMockUrl = item.image_url?.includes("your-bucket-url.supabase.co") ?? false
-  const isReturned = item.status === "returned"
+  const isMockUrl = item?.image_url?.includes("your-bucket-url.supabase.co") ?? false
+  const isReturned = item?.status === "returned"
+  const contactHref = item?.contact_number ? `tel:${item.contact_number.replace(/\s+/g, "")}` : null
 
-  const contactHref = item.contact_number ? `tel:${item.contact_number.replace(/\s+/g, "")}` : null
+  if (isLoading) {
+    return (
+      <main className="mx-auto w-full md:max-w-3xl mx-2 px-3 sm:px-4 md:px-6 py-4 space-y-4">
+        <div className="flex items-center gap-3 mb-4">
+          <Skeleton className="h-9 w-9 rounded-md" />
+        </div>
+        <Skeleton className="w-full aspect-square rounded-lg" />
+        <Skeleton className="w-full h-64 rounded-lg" />
+      </main>
+    )
+  }
+
+  if (error || !item) {
+    return (
+      <main className="mx-auto w-full md:max-w-3xl mx-2 px-3 sm:px-4 md:px-6 py-4 space-y-4">
+        <div className="text-center py-16">
+          <h1 className="text-2xl font-bold text-destructive mb-2">Something went wrong</h1>
+          <p className="text-muted-foreground mb-6">{error || "Failed to load item"}</p>
+          <Button onClick={() => router.push('/')}>Go Home</Button>
+        </div>
+      </main>
+    )
+  }
 
   return (
     <main className="mx-auto w-full md:max-w-3xl mx-2 px-3 sm:px-4 md:px-6 py-4 space-y-4">
       {/* Back Button */}
       <div className="flex items-center gap-3 mb-4">
-        <Button asChild variant="ghost" size="sm" className="p-2 h-9 w-9">
-          <Link href="/items">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="p-2 h-9 w-9"
+          onClick={handleBackNavigation}
+        >
+          <ArrowLeft className="h-4 w-4" />
         </Button>
       </div>
 

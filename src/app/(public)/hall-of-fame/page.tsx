@@ -65,7 +65,7 @@ export default function CampusGuardianPage() {
         setError("Failed to load leaderboard")
       } finally {
         setIsLoading(false)
-      }
+  }
     }
 
     loadLeaderboard()
@@ -150,10 +150,10 @@ export default function CampusGuardianPage() {
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
-          <div className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 bg-gradient-to-r from-yellow-50 to-amber-50">
-            <Trophy className="h-5 w-5 text-yellow-500" />
-            <h1 className="text-xl sm:text-2xl font-bold">Campus Guardian</h1>
-          </div>
+        <div className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 bg-gradient-to-r from-yellow-50 to-amber-50">
+          <Trophy className="h-5 w-5 text-yellow-500" />
+          <h1 className="text-xl sm:text-2xl font-bold">Campus Guardian</h1>
+        </div>
         </div>
         <p className="text-sm text-muted-foreground">
           Recognizing contributors who helped return items successfully. Rankings are based on total confirmed returns.
@@ -170,32 +170,32 @@ export default function CampusGuardianPage() {
         <div className="text-center py-12 text-muted-foreground">No returns yet.</div>
       ) : (
         <>
-          <ol className="rounded-xl border overflow-hidden">
-            {leaderboard.map((entry, idx) => (
-              <li key={entry.actor} className="flex items-center justify-between px-3 sm:px-4 py-3 sm:py-3 border-b last:border-b-0 bg-card">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="h-8 w-8 shrink-0 grid place-items-center rounded-full bg-muted">
+        <ol className="rounded-xl border overflow-hidden">
+          {leaderboard.map((entry, idx) => (
+            <li key={entry.actor} className="flex items-center justify-between px-3 sm:px-4 py-3 sm:py-3 border-b last:border-b-0 bg-card">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="h-8 w-8 shrink-0 grid place-items-center rounded-full bg-muted">
                     <span className="text-sm font-semibold tabular-nums">{idx + 1}</span>
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 min-w-0">
-                      {idx < 3 && <Trophy className={`h-4 w-4 ${trophyColor(idx)}`} />}
-                      <span className="font-semibold truncate">{entry.actor}</span>
-                    </div>
-                    {entry.lastRecipient && (
-                      <div className="text-xs text-muted-foreground truncate">
-                        returned to <span className="font-medium">{entry.lastRecipient}</span>
-                      </div>
-                    )}
-                  </div>
                 </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    {idx < 3 && <Trophy className={`h-4 w-4 ${trophyColor(idx)}`} />}
+                    <span className="font-semibold truncate">{entry.actor}</span>
+                  </div>
+                  {entry.lastRecipient && (
+                    <div className="text-xs text-muted-foreground truncate">
+                      returned to <span className="font-medium">{entry.lastRecipient}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
                 <div className="text-right">
                   <div className="text-lg font-bold">{entry.count}</div>
                   <div className="text-xs text-muted-foreground">returns</div>
-                </div>
-              </li>
-            ))}
-          </ol>
+              </div>
+            </li>
+          ))}
+        </ol>
 
           {/* Sticky Footer with Notes */}
           <div className="mt-8 p-4 rounded-lg border bg-muted/30">

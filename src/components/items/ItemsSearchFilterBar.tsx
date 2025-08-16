@@ -27,7 +27,7 @@ export function ItemsSearchFilterBar({
           value={searchTerm}
           onChange={(e) => onSearchTermChange(e.target.value)}
           placeholder="Search items by title or name..."
-          className="pl-10 h-10"
+          className="pl-10 h-10 bg-background"
           aria-label="Search items"
         />
       </div>

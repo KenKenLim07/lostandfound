@@ -198,7 +198,7 @@ export default function AdminOverview() {
                     </div>
                     <div className="text-xs text-muted-foreground ml-2">
                       {item.returned_at ? new Date(item.returned_at).toLocaleDateString() : "Unknown date"}
-                    </div>
+                  </div>
                   </div>
                 </div>
               ))
