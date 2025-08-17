@@ -5,20 +5,16 @@ export const dynamic = "force-dynamic"
 import { useEffect, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { useSupabase } from "@/hooks/useSupabase"
-import type { Database, TablesInsert } from "@/types/database"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Progress } from "@/components/ui/progress"
 import { compressImage, formatFileSize } from "@/lib/image-utils"
-import { Upload, X, CheckCircle, AlertCircle, Image as ImageIcon } from "lucide-react"
+import { Upload, X, AlertCircle } from "lucide-react"
 import Image from "next/image"
 import { Skeleton } from "@/components/ui/skeleton"
 import { postItem } from "./actions"
 import { CustomTopLoader } from "@/components/system/CustomTopLoader"
 import { ProfileGuard } from "@/components/auth/ProfileGuard"
-import { Loader2 } from "lucide-react"
 
 // Custom CSS for perfect circle button
 const circleButtonStyles = `
@@ -66,8 +62,7 @@ export default function PostItemPage() {
     compressionRatio: number
   } | null>(null)
 
-  // Upload progress
-  const [uploadProgress, setUploadProgress] = useState(0)
+  // Upload state
   const [isUploading, setIsUploading] = useState(false)
 
   useEffect(() => {
@@ -180,7 +175,6 @@ export default function PostItemPage() {
     startTransition(async () => {
       try {
         setIsUploading(true)
-        setUploadProgress(0)
 
         // 1) Upload image if provided
         let image_url: string | null = null
@@ -189,21 +183,12 @@ export default function PostItemPage() {
         if (compressedFile) {
           const fileExt = compressedFile.name.split(".").pop()
           const fileName = `${crypto.randomUUID()}.${fileExt}`
-          
-          // Simulate upload progress
-          const progressInterval = setInterval(() => {
-            setUploadProgress(prev => Math.min(prev + 10, 90))
-          }, 100)
 
           const { error: uploadError } = await supabase.storage
             .from(bucket)
             .upload(fileName, compressedFile, { upsert: false })
 
-          clearInterval(progressInterval)
-          
           if (uploadError) throw uploadError
-          
-          setUploadProgress(100)
           const { data: publicUrl } = supabase.storage.from(bucket).getPublicUrl(fileName)
           image_url = publicUrl.publicUrl
         }
@@ -228,7 +213,6 @@ export default function PostItemPage() {
         setError(message)
       } finally {
         setIsUploading(false)
-        setUploadProgress(0)
       }
     })
   }
@@ -252,16 +236,59 @@ export default function PostItemPage() {
         />
         
         <div className="max-w-xl mx-auto">
-          <div className="space-y-4">
+          {/* Header skeleton */}
+          <header className="mb-4 space-y-2">
             <Skeleton className="h-6 w-48" />
             <Skeleton className="h-4 w-80" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
+          </header>
+          
+          {/* Form skeleton */}
+          <div className="space-y-4">
+            {/* Type Selection skeleton */}
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-20" />
+              <div className="grid grid-cols-2 gap-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            </div>
+            
+            {/* Title skeleton */}
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-16" />
               <Skeleton className="h-10 w-full" />
+            </div>
+            
+            {/* Description skeleton */}
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-24 w-full" />
+            </div>
+            
+            {/* Date skeleton */}
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-12" />
               <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
+            </div>
+            
+            {/* Location skeleton */}
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            
+            {/* Image Upload skeleton */}
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-24" />
+              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
+                <Skeleton className="h-12 w-12 mx-auto mb-2" />
+                <Skeleton className="h-4 w-32 mx-auto mb-1" />
+                <Skeleton className="h-3 w-24 mx-auto" />
+                <Skeleton className="h-8 w-24 mx-auto mt-3" />
+              </div>
+            </div>
+            
+            {/* Submit button skeleton */}
             <Skeleton className="h-10 w-full" />
           </div>
         </div>
@@ -408,11 +435,24 @@ export default function PostItemPage() {
               />
             </div>
 
-            {/* Image Upload */}
+                        {/* Image Upload */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">Item Image (Optional)</Label>
               <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center">
-                {!imagePreview ? (
+                {isCompressing ? (
+                  /* Compression skeleton state */
+                  <div className="space-y-3">
+                    <Skeleton className="h-8 w-8 mx-auto" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-32 mx-auto" />
+                      <Skeleton className="h-3 w-24 mx-auto" />
+                    </div>
+                    <div className="flex items-center justify-center gap-2">
+                      <Skeleton className="h-4 w-4 rounded-full animate-pulse" />
+                      <Skeleton className="h-3 w-20" />
+                    </div>
+                  </div>
+                ) : !imagePreview ? (
                   <div className="space-y-2">
                     <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
                     <div>
@@ -437,7 +477,7 @@ export default function PostItemPage() {
                       className="cursor-pointer"
                       onClick={() => document.getElementById('image-upload')?.click()}
                     >
-                      Choose File
+                        Choose File
                     </Button>
                   </div>
                 ) : (
@@ -491,10 +531,12 @@ export default function PostItemPage() {
               className="w-full h-10"
             >
               {isPending || isUploading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  {isUploading ? "Uploading..." : "Posting..."}
-                </>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-4 w-4 rounded-full animate-pulse" />
+                    <Skeleton className="h-4 w-20" />
+                  </div>
+                </div>
               ) : (
                 "Post Item"
               )}
@@ -503,12 +545,18 @@ export default function PostItemPage() {
 
           {/* Upload Progress */}
           {isUploading && (
-            <div className="mt-4 space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Uploading image...</span>
-                <span>{uploadProgress}%</span>
+            <div className="mt-4 space-y-3">
+              <div className="flex justify-between items-center">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-8" />
               </div>
-              <Progress value={uploadProgress} className="h-2" />
+              <div className="space-y-2">
+                <Skeleton className="h-2 w-full rounded-full" />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <Skeleton className="h-3 w-12" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+              </div>
             </div>
           )}
         </div>

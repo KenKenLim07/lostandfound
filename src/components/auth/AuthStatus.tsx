@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useSupabase } from "@/hooks/useSupabase"
 import { Button } from "@/components/ui/button"
 import { LogOut } from "lucide-react"
+import { LoginDialog } from "@/components/auth/LoginDialog"
 
 export function AuthStatus() {
   const supabase = useSupabase()
@@ -71,7 +72,13 @@ export function AuthStatus() {
   }
 
   if (!isLoggedIn) {
-    return null
+    return (
+      <LoginDialog 
+        showTrigger={true}
+        initialMode="signin"
+        note="Sign in to access your reports, profile, and post items."
+      />
+    )
   }
 
   return (

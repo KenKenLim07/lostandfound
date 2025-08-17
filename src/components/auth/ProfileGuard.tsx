@@ -42,7 +42,10 @@ export function ProfileGuard({
 
   const handleProfileComplete = () => {
     setShowProfileSetup(false)
+    // Add a small delay to ensure the profile update has been processed
+    setTimeout(() => {
     refreshProfile()
+    }, 100)
   }
 
   const handleProfileCancel = () => {

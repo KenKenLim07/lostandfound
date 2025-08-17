@@ -5,7 +5,7 @@ import { useSupabase } from "@/hooks/useSupabase"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { FloatingLabelInput } from "@/components/ui/floating-label-input"
-import { Eye, EyeOff, Loader2 } from "lucide-react"
+import { Eye, EyeOff, Loader2, User } from "lucide-react"
 import { ProfileSetupDialog } from "@/components/auth/ProfileSetupDialog"
 
 export type LoginDialogProps = {
@@ -54,6 +54,7 @@ export function LoginDialog(props: LoginDialogProps = {}) {
   
   // Profile setup state
   const [showProfileSetup, setShowProfileSetup] = useState(false)
+  const [signupCompleted, setSignupCompleted] = useState(false)
 
   // Validation state
   const [touched, setTouched] = useState({
@@ -61,6 +62,8 @@ export function LoginDialog(props: LoginDialogProps = {}) {
     password: false,
     confirmPassword: false
   })
+
+
 
   // Rate limiting protection - prevent attempts within 2 seconds
   const canAttemptAuth = () => {
@@ -112,6 +115,8 @@ export function LoginDialog(props: LoginDialogProps = {}) {
     setError(null)
     setSuccess(null)
     setForgotPasswordMessage(null)
+    setShowProfileSetup(false)
+    setSignupCompleted(false)
     setTouched({
       email: false,
       password: false,
@@ -157,6 +162,7 @@ export function LoginDialog(props: LoginDialogProps = {}) {
     setError(null)
     setSuccess(null)
     setForgotPasswordMessage(null)
+    setSignupCompleted(false)
   }
 
   // Handle auth
@@ -165,6 +171,12 @@ export function LoginDialog(props: LoginDialogProps = {}) {
     
     // Prevent multiple rapid submissions
     if (isPending) return
+    
+    // Prevent re-submission if signup is already completed
+    if (mode === "signup" && signupCompleted) {
+      setError("Signup already completed. Please close this dialog.")
+      return
+    }
     
     // Rate limiting protection
     if (!canAttemptAuth()) {
@@ -441,44 +453,61 @@ export function LoginDialog(props: LoginDialogProps = {}) {
         autoFocus={false}
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <DialogHeader>
-          <DialogTitle className="text-xl font-semibold text-center">
-            {mode === "signin" ? "Welcome back" : "Create account"}
-          </DialogTitle>
-          <p className="text-sm text-muted-foreground text-center">
-            {mode === "signin" 
-              ? "Enter your credentials to access your account" 
-              : "Fill in your details to create a new account"
-            }
-          </p>
-          {note && (
-            <p className="text-xs text-center text-foreground mt-1">{note}</p>
-          )}
-        </DialogHeader>
-        
-        {/* Step Indicator (signup only) */}
-        {mode === "signup" && (
-          <div className="flex items-center justify-center space-x-3 text-sm text-muted-foreground mb-4">
-            <div className={`flex items-center ${signupStep === "account" ? "text-primary" : "text-muted-foreground"}`}>
-              <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-medium ${
-                signupStep === "account" ? "border-primary bg-primary text-white" : "border-muted-foreground bg-muted-foreground text-white"
-              }`}>
-                ✓
+        {/* Show header and step indicator only when not completed */}
+        {!signupCompleted ? (
+          <>
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold text-center">
+                {mode === "signin" ? "Welcome back" : "Create account"}
+              </DialogTitle>
+              <p className="text-sm text-muted-foreground text-center">
+                {mode === "signin" 
+                  ? "Enter your credentials to access your account" 
+                  : "Fill in your details to create a new account"
+                }
+              </p>
+              {note && (
+                <p className="text-xs text-center text-foreground mt-1">{note}</p>
+              )}
+            </DialogHeader>
+            
+            {/* Step Indicator (signup only) */}
+            {mode === "signup" && (
+              <div className="flex items-center justify-center space-x-3 text-sm text-muted-foreground mb-4">
+                <div className={`flex items-center ${signupStep === "account" ? "text-primary" : "text-muted-foreground"}`}>
+                  <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-medium ${
+                    signupStep === "account" ? "border-primary bg-primary text-white" : "border-muted-foreground bg-muted-foreground text-white"
+                  }`}>
+                    ✓
+                  </div>
+                  <span className="ml-2">Account</span>
+                </div>
+                <div className="w-10 h-px bg-muted-foreground"></div>
+                <div className={`flex items-center ${signupStep === "profile" ? "text-primary" : ""}`}>
+                  <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-medium ${
+                    signupStep === "profile" ? "border-primary bg-primary text-white" : "border-muted-foreground"
+                  }`}>
+                    2
+                  </div>
+                  <span className="ml-2">Profile</span>
+                </div>
               </div>
-              <span className="ml-2">Account</span>
-            </div>
-            <div className="w-10 h-px bg-muted-foreground"></div>
-            <div className={`flex items-center ${signupStep === "profile" ? "text-primary" : ""}`}>
-              <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-medium ${
-                signupStep === "profile" ? "border-primary bg-primary text-white" : "border-muted-foreground"
-              }`}>
-                2
-              </div>
-              <span className="ml-2">Profile</span>
-            </div>
-          </div>
+            )}
+          </>
+        ) : (
+          /* Show completion header when signup is completed */
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold text-center text-green-600">
+              Congratulations, You Made It!
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground text-center">
+              &ldquo;Proud Of You!&rdquo;
+            </p>
+          </DialogHeader>
         )}
         
+        {/* Show form or completion message */}
+        {!signupCompleted && (
         <form onSubmit={handleAuth} className="space-y-6 pt-2">
           {/* Account Fields (Step 1 only) */}
           {signupStep === "account" && (
@@ -583,9 +612,10 @@ export function LoginDialog(props: LoginDialogProps = {}) {
               email={email}
               onComplete={() => {
                 setShowProfileSetup(false)
+                setSignupCompleted(true)
                 setSuccess("Profile completed! Welcome to the platform!")
+                // Close dialog after showing success
                 setTimeout(() => {
-                  resetForm()
                   setEffectiveOpen(false)
                 }, 1500)
               }}
@@ -661,7 +691,7 @@ export function LoginDialog(props: LoginDialogProps = {}) {
           {mode === "signin" && (
             <div className="text-center">
               <p className="text-sm">
-                Don't have an account?{" "}
+                Don&apos;t have an account?{" "}
               <button type="button" className="font-medium underline underline-offset-4" onClick={handleModeSwitch}>
                   Sign up
                 </button>
@@ -680,6 +710,7 @@ export function LoginDialog(props: LoginDialogProps = {}) {
           </div>
           )}
         </form>
+        )}
       </DialogContent>
     </Dialog>
   )

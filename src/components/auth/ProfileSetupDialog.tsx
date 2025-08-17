@@ -95,11 +95,11 @@ export function ProfileSetupDialog({ open, onComplete, onCancel, email }: Profil
   const isFullNameValid = formData.full_name.trim().length >= 2
   const isSchoolIdValid = formData.school_id === '' || validateSchoolId(formData.school_id)
   const isYearSectionValid = formData.year_section === '' || formData.year_section.trim().length >= 3
-  const isContactNumberValid = validatePhone(formData.contact_number)
+  const isContactNumberValid = formData.contact_number === '' || validatePhone(formData.contact_number)
 
   // Check if form is valid
   const isFormValid = () => {
-    return isFullNameValid && isSchoolIdValid && isYearSectionValid && isContactNumberValid
+    return isFullNameValid && isContactNumberValid
   }
 
   // Handle field blur
@@ -130,7 +130,7 @@ export function ProfileSetupDialog({ open, onComplete, onCancel, email }: Profil
             full_name: capitalizeName(formData.full_name.trim()),
             school_id: formData.school_id.trim() || null,
             year_section: formData.year_section.trim() || null,
-            contact_number: formData.contact_number.trim(),
+            contact_number: formData.contact_number.trim() || null,
             profile_complete: true,
             updated_at: new Date().toISOString()
           })
@@ -195,11 +195,10 @@ export function ProfileSetupDialog({ open, onComplete, onCancel, email }: Profil
             Complete Your Profile
           </DialogTitle>
           <p className="text-sm text-muted-foreground text-center">
-            Almost done! Just a few more details...
+            Almost done! Just a few more details... 
           </p>
           <p className="text-xs text-muted-foreground text-center">
-            <span className="font-medium">Full Name</span> and <span className="font-medium">Contact Number</span> are required. 
-            <br />School ID and Course Year can be skipped if you're faculty/staff.
+            <span className="font-medium">Full Name</span> and <span className="font-medium">Contact Number</span> are required. Other fields are optional.
           </p>
         </DialogHeader>
         
@@ -245,7 +244,7 @@ export function ProfileSetupDialog({ open, onComplete, onCancel, email }: Profil
               )}
             />
             {touched.school_id && !isSchoolIdValid && (
-              <p className="text-xs text-muted-foreground">Skip this field if you're faculty/staff</p>
+              <p className="text-xs text-muted-foreground">Skip if faculty/staff: Please enter a valid GSU school ID or leave blank</p>
             )}
           </div>
 
@@ -263,19 +262,19 @@ export function ProfileSetupDialog({ open, onComplete, onCancel, email }: Profil
               )}
             />
             {touched.year_section && !isYearSectionValid && (
-              <p className="text-xs text-muted-foreground">Skip this field if you're faculty/staff</p>
+              <p className="text-xs text-muted-foreground">Skip if faculty/staff: Please enter your course year and section or leave blank</p>
             )}
           </div>
 
           {/* Contact Number */}
           <div className="space-y-1">
             <FloatingLabelInput
-              label="Contact Number *"
+              label="Contact Number"
               value={formData.contact_number}
               onChange={(e) => handleInputChange('contact_number', e.target.value)}
               onBlur={() => handleBlur('contact_number')}
-              required
               type="tel"
+              required
               placeholder="+639123456789"
               className={cn(
                 "h-12",

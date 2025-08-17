@@ -77,16 +77,51 @@
   .mobile-menu .floating-label-input {
     padding: 8px 12px;
     border-radius: 6px;
+    /* Ensure proper label positioning in mobile menu */
+    position: relative;
   }
   
-/* Simple, clean input centering */
+  /* Override mobile menu padding for better label positioning */
+  .mobile-menu .floating-label-input label {
+    top: 8px !important; /* Force consistent positioning in mobile menu */
+  }
+  
+  .mobile-menu .floating-label-input label.floating {
+    top: -8px !important; /* Force floating position in mobile menu */
+  }
+  
+/* Input styling - positioning now handled inline */
 .floating-label-input input {
-  height: 36px !important; /* Reduced from 48px to 36px */
-  line-height: 36px !important; /* Match the height for proper text centering */
-  padding: 0 !important;
-  margin: 0 !important;
-  text-align: left !important;
-  vertical-align: middle !important;
+  text-align: left;
+  vertical-align: middle;
+}
+
+/* Ensure proper centering on mobile */
+@media (max-width: 768px) {
+  .floating-label-input {
+    display: flex;
+    align-items: center;
+  }
+  
+  .floating-label-input input {
+    flex: 1;
+  }
+}
+
+/* Smooth transitions for responsive design */
+.floating-label-input {
+  transition: padding 0.2s ease-in-out;
+}
+
+/* Ensure consistent behavior across breakpoints */
+@media (min-width: 769px) {
+  .floating-label-input label {
+    top: 12px !important; /* Force desktop positioning */
+  }
+  
+  .floating-label-input label.floating {
+    top: -9px !important; /* Force desktop floating position */
+  }
 }
 
 /* Override browser autocomplete styling */
@@ -106,10 +141,7 @@
   color: inherit !important;
 }
 
-/* Custom precise positioning for floating labels */
-.floating-label-input label.floating {
-  top: -9.2px !important; /* Exactly -2.3 * 4px = -9.2px */
-}
+/* Custom precise positioning for floating labels - now handled inline */
   
   .mobile-menu .floating-label-input label {
     font-size: 12px;
