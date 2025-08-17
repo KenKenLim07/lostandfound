@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useProfileCompletion } from "@/hooks/useProfileCompletion"
 import { ProfileSetupDialog } from "@/components/auth/ProfileSetupDialog"
+import { useSupabase } from "@/hooks/useSupabase"
 import { Loader2 } from "lucide-react"
 
 export type ProfileGuardProps = {
@@ -18,6 +19,19 @@ export function ProfileGuard({
 }: ProfileGuardProps) {
   const { isProfileComplete, loading, error, refreshProfile } = useProfileCompletion()
   const [showProfileSetup, setShowProfileSetup] = useState(false)
+  const [userEmail, setUserEmail] = useState<string>("")
+  const supabase = useSupabase()
+
+  useEffect(() => {
+    // Get user email from session
+    const getUserEmail = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user?.email) {
+        setUserEmail(session.user.email)
+      }
+    }
+    getUserEmail()
+  }, [supabase.auth])
 
   useEffect(() => {
     // Show profile setup if profile is not complete and not loading
@@ -70,6 +84,7 @@ export function ProfileGuard({
       <>
         <ProfileSetupDialog 
           open={showProfileSetup}
+          email={userEmail}
           onComplete={handleProfileComplete}
           onCancel={handleProfileCancel}
         />

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useSupabase } from "@/hooks/useSupabase"
 import Link from "next/link"
 import { SheetClose } from "@/components/ui/sheet"
+import { Home, Shield, FileText, User, Settings } from "lucide-react"
 
 type Props = {
   initialIsLoggedIn?: boolean
@@ -69,6 +70,7 @@ export function MobileNavigationLinks({ initialIsLoggedIn = false, initialIsAdmi
           href="/" 
           className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
         >
+          <Home className="h-4 w-4" />
           Home
         </Link>
       </SheetClose>
@@ -77,6 +79,7 @@ export function MobileNavigationLinks({ initialIsLoggedIn = false, initialIsAdmi
           href="/hall-of-fame" 
           className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
         >
+          <Shield className="h-4 w-4" />
           Campus Guardian
         </Link>
       </SheetClose>
@@ -87,6 +90,7 @@ export function MobileNavigationLinks({ initialIsLoggedIn = false, initialIsAdmi
               href="/my-items" 
               className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
             >
+              <FileText className="h-4 w-4" />
               My Reports
             </Link>
           </SheetClose>
@@ -95,6 +99,7 @@ export function MobileNavigationLinks({ initialIsLoggedIn = false, initialIsAdmi
               href="/profile" 
               className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
             >
+              <User className="h-4 w-4" />
               My Profile
             </Link>
           </SheetClose>
@@ -106,6 +111,7 @@ export function MobileNavigationLinks({ initialIsLoggedIn = false, initialIsAdmi
             href="/dashboard" 
             className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
           >
+            <Settings className="h-4 w-4" />
             Admin
           </Link>
         </SheetClose>

@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button"
 import { FloatingLabelInput } from "@/components/ui/floating-label-input"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
+import { ProfileSetupDialog } from "@/components/auth/ProfileSetupDialog"
 
 export type LoginDialogProps = {
   open?: boolean
@@ -25,8 +26,16 @@ export function LoginDialog(props: LoginDialogProps = {}) {
   const setEffectiveOpen = (next: boolean) => {
     if (onOpenChange) onOpenChange(next)
     if (controlledOpen === undefined) setOpen(next)
+    
+    // Clear forgot password message when dialog closes
+    if (!next) {
+      setForgotPasswordMessage(null)
+    }
   }
   const [mode, setMode] = useState<"signin" | "signup">(initialMode)
+  
+  // Multi-step signup state
+  const [signupStep, setSignupStep] = useState<"account" | "profile" | "complete">("account")
   
   // Form state
   const [email, setEmail] = useState("")
@@ -40,6 +49,11 @@ export function LoginDialog(props: LoginDialogProps = {}) {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [lastAttemptTime, setLastAttemptTime] = useState<number>(0)
+  const [isForgotPasswordPending, setIsForgotPasswordPending] = useState(false)
+  const [forgotPasswordMessage, setForgotPasswordMessage] = useState<string | null>(null)
+  
+  // Profile setup state
+  const [showProfileSetup, setShowProfileSetup] = useState(false)
 
   // Validation state
   const [touched, setTouched] = useState({
@@ -78,6 +92,7 @@ export function LoginDialog(props: LoginDialogProps = {}) {
     if (mode === "signin") {
       return validateEmail(email) && validatePassword(password)
     } else {
+      // Simple validation for signup
       return validateEmail(email) && validatePassword(password) && 
              validateConfirmPassword(password, confirmPassword)
     }
@@ -93,8 +108,10 @@ export function LoginDialog(props: LoginDialogProps = {}) {
     setEmail("")
     setPassword("")
     setConfirmPassword("")
+    setSignupStep("account")
     setError(null)
     setSuccess(null)
+    setForgotPasswordMessage(null)
     setTouched({
       email: false,
       password: false,
@@ -104,22 +121,42 @@ export function LoginDialog(props: LoginDialogProps = {}) {
     setShowConfirmPassword(false)
   }
 
+  // Handle forgot password
+  const handleForgotPassword = async () => {
+    if (!email || !validateEmail(email)) {
+      setError("Please enter a valid email address first")
+      return
+    }
+
+    setIsForgotPasswordPending(true)
+    setError(null)
+    setForgotPasswordMessage(null)
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}${window.location.pathname}`
+      })
+
+      if (error) {
+        throw error
+      }
+
+      setForgotPasswordMessage("Password reset email sent! Please check your inbox.")
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to send reset email"
+      setError(errorMessage)
+    } finally {
+      setIsForgotPasswordPending(false)
+    }
+  }
+
   // Handle mode switch
   const handleModeSwitch = () => {
-    // Reset all form state when switching modes
-    setEmail("")
-    setPassword("")
-    setConfirmPassword("")
+    setMode(prev => (prev === "signin" ? "signup" : "signin"))
+    setSignupStep("account") // Reset to first step when switching to signup
     setError(null)
     setSuccess(null)
-    setTouched({
-      email: false,
-      password: false,
-      confirmPassword: false
-    })
-    setShowPassword(false)
-    setShowConfirmPassword(false)
-    setMode(prev => (prev === "signin" ? "signup" : "signin"))
+    setForgotPasswordMessage(null)
   }
 
   // Handle auth
@@ -166,22 +203,33 @@ export function LoginDialog(props: LoginDialogProps = {}) {
             }, 800)
           }
         } else {
+          // Mobile menu: Simple signup, Dialog: Multi-step signup
+          if (isMobileMenu) {
+            // Simple signup for mobile menu
           const { error } = await supabase.auth.signUp({ email, password })
           if (error) throw error
           
           setSuccess("Account created! Please check your email to confirm.")
           
-          // Close mobile menu if provided
-          if (isMobileMenu && onMobileMenuClose) {
+            // Close mobile menu after showing success
+            if (onMobileMenuClose) {
             setTimeout(() => {
               onMobileMenuClose()
-            }, 1000)
+              }, 1500)
+            }
           } else {
-            // Reset form and close dialog after showing success
-          setTimeout(() => {
-              resetForm()
-            setEffectiveOpen(false)
-            }, 1000)
+            // Multi-step signup flow for dialog
+            if (signupStep === "account") {
+              // Step 1: Create account
+              const { error } = await supabase.auth.signUp({ email, password })
+              if (error) throw error
+              
+              // Show profile setup dialog
+              setShowProfileSetup(true)
+              setSuccess("Account created! Now let's set up your profile.")
+              setError(null)
+              return
+            }
           }
         }
       } catch (err) {
@@ -204,6 +252,8 @@ export function LoginDialog(props: LoginDialogProps = {}) {
     return (
       <div className="space-y-4" key={`mobile-${mode}-${success ? 'success' : 'form'}`}>
         
+        <form onSubmit={handleAuth} className="space-y-4 mobile-menu">
+        
         <div className="text-center">
           <h3 className="text-lg font-semibold">
             {mode === "signin" ? "Welcome back" : "Create account"}
@@ -213,7 +263,6 @@ export function LoginDialog(props: LoginDialogProps = {}) {
           )}
         </div>
         
-        <form onSubmit={handleAuth} className="space-y-4 mobile-menu">
           {/* Email field */}
           <div className="space-y-1">
             <FloatingLabelInput
@@ -226,7 +275,7 @@ export function LoginDialog(props: LoginDialogProps = {}) {
               error={!isEmailValid && touched.email}
               required
               autoComplete="email"
-              className="h-12" // Perfect height for mobile menu
+              className="h-12"
             />
             {!isEmailValid && touched.email && (
               <p className="text-xs text-destructive ml-3">Please enter a valid email address</p>
@@ -246,7 +295,7 @@ export function LoginDialog(props: LoginDialogProps = {}) {
                 error={!isPasswordValid && touched.password}
                 required
                 autoComplete={mode === "signin" ? "current-password" : "new-password"}
-                className="h-12" // Perfect height for mobile menu
+                className="h-12"
               />
               <Button
                 type="button"
@@ -282,7 +331,7 @@ export function LoginDialog(props: LoginDialogProps = {}) {
                   error={!isConfirmPasswordValid && touched.confirmPassword}
                   required
                   autoComplete="new-password"
-                  className="h-12" // Perfect height for mobile menu
+                  className="h-12"
                 />
                 <Button
                   type="button"
@@ -340,6 +389,29 @@ export function LoginDialog(props: LoginDialogProps = {}) {
               mode === "signin" ? "Sign In" : "Create Account"
             )}
           </Button>
+
+          {/* Forgot Password Success Message */}
+          {forgotPasswordMessage && (
+            <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
+              <p className="text-sm text-blue-700 text-center break-words whitespace-normal">
+                {forgotPasswordMessage}
+              </p>
+            </div>
+          )}
+
+          {/* Forgot Password (signin only) */}
+          {mode === "signin" && (
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                disabled={isForgotPasswordPending || !email || !validateEmail(email)}
+                className="text-sm text-primary hover:underline disabled:text-muted-foreground disabled:cursor-not-allowed"
+              >
+                {isForgotPasswordPending ? "Sending..." : "Forgot your password?"}
+              </button>
+            </div>
+          )}
 
           {/* Mode Switch */}
           <div className="text-center">
@@ -384,7 +456,33 @@ export function LoginDialog(props: LoginDialogProps = {}) {
           )}
         </DialogHeader>
         
+        {/* Step Indicator (signup only) */}
+        {mode === "signup" && (
+          <div className="flex items-center justify-center space-x-3 text-sm text-muted-foreground mb-4">
+            <div className={`flex items-center ${signupStep === "account" ? "text-primary" : "text-muted-foreground"}`}>
+              <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-medium ${
+                signupStep === "account" ? "border-primary bg-primary text-white" : "border-muted-foreground bg-muted-foreground text-white"
+              }`}>
+                ✓
+              </div>
+              <span className="ml-2">Account</span>
+            </div>
+            <div className="w-10 h-px bg-muted-foreground"></div>
+            <div className={`flex items-center ${signupStep === "profile" ? "text-primary" : ""}`}>
+              <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-medium ${
+                signupStep === "profile" ? "border-primary bg-primary text-white" : "border-muted-foreground"
+              }`}>
+                2
+              </div>
+              <span className="ml-2">Profile</span>
+            </div>
+          </div>
+        )}
+        
         <form onSubmit={handleAuth} className="space-y-6 pt-2">
+          {/* Account Fields (Step 1 only) */}
+          {signupStep === "account" && (
+            <>
           {/* Email field */}
           <div className="space-y-1">
             <FloatingLabelInput
@@ -397,7 +495,7 @@ export function LoginDialog(props: LoginDialogProps = {}) {
               error={!isEmailValid && touched.email}
               required
               autoComplete="email"
-              className="h-12" // Perfect height for mobile menu
+                  className="h-12"
             />
             {!isEmailValid && touched.email && (
               <p className="text-xs text-destructive ml-3">Please enter a valid email address</p>
@@ -416,8 +514,8 @@ export function LoginDialog(props: LoginDialogProps = {}) {
                 onBlur={() => handleBlur("password")}
                 error={!isPasswordValid && touched.password}
                 required
-                autoComplete={mode === "signin" ? "current-password" : "new-password"}
-                className="h-12" // Perfect height for mobile menu
+                    autoComplete="new-password"
+                    className="h-12"
               />
               <Button
                 type="button"
@@ -439,8 +537,8 @@ export function LoginDialog(props: LoginDialogProps = {}) {
             )}
           </div>
 
-          {/* Confirm Password field (signup only) */}
-          {mode === "signup" && (
+              {/* Confirm Password field */}
+              {mode === "signup" && signupStep === "account" && (
             <div className="space-y-1">
               <div className="relative">
                 <FloatingLabelInput
@@ -453,7 +551,7 @@ export function LoginDialog(props: LoginDialogProps = {}) {
                   error={!isConfirmPasswordValid && touched.confirmPassword}
                   required
                   autoComplete="new-password"
-                  className="h-12" // Perfect height for mobile menu
+                      className="h-12"
                 />
                 <Button
                   type="button"
@@ -474,6 +572,28 @@ export function LoginDialog(props: LoginDialogProps = {}) {
                 <p className="text-xs text-destructive ml-3">Passwords do not match</p>
               )}
             </div>
+              )}
+            </>
+          )}
+
+          {/* Profile Setup Dialog */}
+          {showProfileSetup && (
+            <ProfileSetupDialog
+              open={showProfileSetup}
+              email={email}
+              onComplete={() => {
+                setShowProfileSetup(false)
+                setSuccess("Profile completed! Welcome to the platform!")
+                setTimeout(() => {
+                  resetForm()
+                  setEffectiveOpen(false)
+                }, 1500)
+              }}
+              onCancel={() => {
+                setShowProfileSetup(false)
+                setError("Profile setup cancelled. You can complete it later.")
+              }}
+            />
           )}
 
           {/* Error/Success Messages */}
@@ -487,7 +607,7 @@ export function LoginDialog(props: LoginDialogProps = {}) {
             <div className="p-3 rounded-lg bg-green-50 border border-green-200">
               <p className="text-sm text-green-700 text-center">
                 {success}
-                {isMobileMenu && (
+                {isMobileMenu && signupStep === "complete" && (
                   <span className="block text-xs text-green-600 mt-1">
                     Menu will close automatically...
                   </span>
@@ -505,22 +625,60 @@ export function LoginDialog(props: LoginDialogProps = {}) {
             {isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {mode === "signin" ? "Signing in..." : "Creating account..."}
+                {mode === "signin" ? "Signing in..." : 
+                 signupStep === "account" ? "Creating account..." : "Saving profile..."}
               </>
             ) : (
-              mode === "signin" ? "Sign In" : "Create Account"
+              mode === "signin" ? "Sign In" : 
+              signupStep === "account" ? "Create Account" : "Complete Profile"
             )}
           </Button>
 
-          {/* Mode Switch */}
+          {/* Forgot Password Success Message */}
+          {forgotPasswordMessage && (
+            <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
+              <p className="text-sm text-blue-700 text-center break-words whitespace-normal">
+                {forgotPasswordMessage}
+              </p>
+            </div>
+          )}
+
+          {/* Forgot Password (signin only) */}
+          {mode === "signin" && (
           <div className="text-center">
-            <p className="text-sm">
-              {mode === "signin" ? "Don't have an account? " : "Already have an account? "}
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                disabled={isForgotPasswordPending || !email || !validateEmail(email)}
+                className="text-sm text-primary hover:underline disabled:text-muted-foreground disabled:cursor-not-allowed"
+              >
+                {isForgotPasswordPending ? "Sending..." : "Forgot your password?"}
+              </button>
+            </div>
+          )}
+
+          {/* Mode Switch (only show during initial state) */}
+          {mode === "signin" && (
+            <div className="text-center">
+              <p className="text-sm">
+                Don't have an account?{" "}
               <button type="button" className="font-medium underline underline-offset-4" onClick={handleModeSwitch}>
-                {mode === "signin" ? "Sign up" : "Sign in"}
+                  Sign up
+                </button>
+              </p>
+            </div>
+          )}
+          
+          {mode === "signup" && signupStep === "account" && (
+            <div className="text-center">
+              <p className="text-sm">
+                Already have an account?{" "}
+                <button type="button" className="font-medium underline underline-offset-4" onClick={handleModeSwitch}>
+                  Sign in
               </button>
             </p>
           </div>
+          )}
         </form>
       </DialogContent>
     </Dialog>

@@ -20,6 +20,23 @@ import { CustomTopLoader } from "@/components/system/CustomTopLoader"
 import { ProfileGuard } from "@/components/auth/ProfileGuard"
 import { Loader2 } from "lucide-react"
 
+// Custom CSS for perfect circle button
+const circleButtonStyles = `
+  .perfect-circle-btn {
+    width: 28px !important;
+    height: 28px !important;
+    padding: 0 !important;
+    min-width: 28px !important;
+    min-height: 28px !important;
+    max-width: 28px !important;
+    max-height: 28px !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+`
+
 export default function PostItemPage() {
   const supabase = useSupabase()
   const router = useRouter()
@@ -112,11 +129,11 @@ export default function PostItemPage() {
 
   // Handle file selection and compression
   async function handleFileSelect(file: File) {
+    
     if (!file.type.startsWith('image/')) {
       setError('Please select a valid image file')
       return
     }
-
 
     setError(null)
 
@@ -295,6 +312,9 @@ export default function PostItemPage() {
   return (
     <ProfileGuard>
       <main className="container mx-auto px-3 sm:px-6 py-4">
+        {/* Custom CSS for perfect circle */}
+        <style dangerouslySetInnerHTML={{ __html: circleButtonStyles }} />
+        
         {/* Custom Top Loader for internal loading states */}
         <CustomTopLoader 
           isLoading={isCheckingStatus || isUploading || isCompressing || isPending} 
@@ -410,15 +430,19 @@ export default function PostItemPage() {
                       className="hidden"
                       id="image-upload"
                     />
-                    <label htmlFor="image-upload">
-                      <Button type="button" variant="outline" size="sm" className="cursor-pointer">
-                        Choose File
-                      </Button>
-                    </label>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      className="cursor-pointer"
+                      onClick={() => document.getElementById('image-upload')?.click()}
+                    >
+                      Choose File
+                    </Button>
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    <div className="relative inline-block">
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
                       <Image
                         src={imagePreview}
                         alt="Preview"
@@ -426,18 +450,16 @@ export default function PostItemPage() {
                         height={200}
                         className="rounded-lg object-cover"
                       />
-                      <Button
+                      <button
                         type="button"
-                        variant="destructive"
-                        size="sm"
                         onClick={removeImage}
-                        className="absolute -top-2 -right-2 h-6 w-6 p-0 rounded-full"
+                        className="absolute -top-2 -right-2 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 flex items-center justify-center border-0 shadow-sm perfect-circle-btn"
                       >
-                        <X className="h-3 w-3" />
-                      </Button>
+                        <X className="h-4 w-4" />
+                      </button>
                     </div>
                     {compressionInfo && (
-                      <div className="text-xs text-muted-foreground">
+                      <div className="flex-1 space-y-1 text-xs text-muted-foreground">
                         <p>Original: {formatFileSize(compressionInfo.originalSize)}</p>
                         <p>Compressed: {formatFileSize(compressionInfo.compressedSize)}</p>
                         <p>Reduced by: {compressionInfo.compressionRatio.toFixed(1)}%</p>

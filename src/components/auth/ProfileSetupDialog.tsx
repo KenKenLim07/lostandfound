@@ -12,9 +12,10 @@ export type ProfileSetupDialogProps = {
   open: boolean
   onComplete: () => void
   onCancel?: () => void
+  email?: string // Add email prop for account summary
 }
 
-export function ProfileSetupDialog({ open, onComplete, onCancel }: ProfileSetupDialogProps) {
+export function ProfileSetupDialog({ open, onComplete, onCancel, email }: ProfileSetupDialogProps) {
   const supabase = useSupabase()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
@@ -23,54 +24,82 @@ export function ProfileSetupDialog({ open, onComplete, onCancel }: ProfileSetupD
     full_name: '',
     school_id: '',
     year_section: '',
-    contact_number: '',
-    email: ''
+    contact_number: ''
   })
   
   const [touched, setTouched] = useState({
     full_name: false,
     school_id: false,
     year_section: false,
-    contact_number: false,
-    email: false
+    contact_number: false
   })
 
   // Validation functions
   const validateSchoolId = (schoolId: string) => {
-    // School ID format: YYYY-XXXXX (e.g., 2021-12345)
-    const schoolIdRegex = /^\d{4}-\d{5}$/
+    // School ID format: GSC-YY-XXXX or YYYY-Y-XXXX (e.g., GSC-15-0830, 2022-1-0078)
+    const schoolIdRegex = /^(GSC-\d{2}-\d{4}|\d{4}-\d{1,2}-\d{4})$/
     return schoolIdRegex.test(schoolId)
   }
 
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    return emailRegex.test(email)
+  const validatePhone = (phone: string) => {
+    // Philippine phone number format: +639XXXXXXXXX
+    const phoneRegex = /^\+639\d{9}$/
+    return phoneRegex.test(phone.replace(/\s/g, ''))
   }
 
-  const validatePhone = (phone: string) => {
-    // Philippine phone number format
-    const phoneRegex = /^(\+63|0)9\d{9}$/
-    return phoneRegex.test(phone.replace(/\s/g, ''))
+  // Auto-capitalization functions
+  const capitalizeName = (name: string) => {
+    return name
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ')
+  }
+
+  const capitalizeCourseYearSection = (text: string) => {
+    return text.toUpperCase()
+  }
+
+  // Phone number formatting functions
+  const formatPhoneNumber = (phone: string) => {
+    // If the input already starts with +63, return it as is to prevent duplication
+    if (phone.startsWith('+63')) {
+      return phone
+    }
+    
+    // Remove all non-digit characters
+    const digits = phone.replace(/\D/g, '')
+    
+    // If it starts with 0, replace with +63
+    if (digits.startsWith('0') && digits.length === 11) {
+      return `+63${digits.slice(1)}`
+    }
+    
+    // If it's 9 digits (without country code), add +63
+    if (digits.length === 9) {
+      return `+63${digits}`
+    }
+    
+    // Default: return as is (will be validated)
+    return phone
+  }
+
+  const handlePhoneFocus = () => {
+    // If field is empty, add +63 prefix
+    if (!formData.contact_number) {
+      setFormData(prev => ({ ...prev, contact_number: '+63' }))
+    }
   }
 
   // Get validation states
   const isFullNameValid = formData.full_name.trim().length >= 2
   const isSchoolIdValid = formData.school_id === '' || validateSchoolId(formData.school_id)
-  const isYearSectionValid = formData.year_section.trim().length >= 3
-  const isContactNumberValid = formData.contact_number === '' || validatePhone(formData.contact_number)
-  const isEmailValid = formData.email === '' || validateEmail(formData.email)
+  const isYearSectionValid = formData.year_section === '' || formData.year_section.trim().length >= 3
+  const isContactNumberValid = validatePhone(formData.contact_number)
 
   // Check if form is valid
   const isFormValid = () => {
-    return isFullNameValid && 
-           isSchoolIdValid && 
-           isYearSectionValid && 
-           isContactNumberValid && 
-           isEmailValid &&
-           formData.full_name.trim() !== '' &&
-           formData.school_id.trim() !== '' &&
-           formData.year_section.trim() !== '' &&
-           formData.contact_number.trim() !== ''
+    return isFullNameValid && isSchoolIdValid && isYearSectionValid && isContactNumberValid
   }
 
   // Handle field blur
@@ -98,11 +127,10 @@ export function ProfileSetupDialog({ open, onComplete, onCancel }: ProfileSetupD
         const { error: updateError } = await supabase
           .from('profiles')
           .update({
-            full_name: formData.full_name.trim(),
-            school_id: formData.school_id.trim(),
-            year_section: formData.year_section.trim(),
+            full_name: capitalizeName(formData.full_name.trim()),
+            school_id: formData.school_id.trim() || null,
+            year_section: formData.year_section.trim() || null,
             contact_number: formData.contact_number.trim(),
-            email: formData.email.trim() || null,
             profile_complete: true,
             updated_at: new Date().toISOString()
           })
@@ -126,21 +154,64 @@ export function ProfileSetupDialog({ open, onComplete, onCancel }: ProfileSetupD
 
   // Handle input changes
   const handleInputChange = (field: keyof typeof formData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-    setError(null) // Clear error when user starts typing
+    let processedValue = value
+    
+    // Apply real-time formatting
+    if (field === 'full_name') {
+      processedValue = capitalizeName(value)
+    } else if (field === 'year_section') {
+      processedValue = capitalizeCourseYearSection(value)
+    } else if (field === 'contact_number') {
+      processedValue = formatPhoneNumber(value)
+    }
+    
+    setFormData(prev => ({ ...prev, [field]: processedValue }))
+    setError(null)
   }
 
   return (
     <Dialog open={open} onOpenChange={() => onCancel?.()}>
       <DialogContent className="max-w-md w-full mx-auto p-4">
+        {/* Progress Indicator - TOP */}
+        <div className="flex items-center justify-center space-x-3 text-sm text-muted-foreground mb-4">
+          <div className="flex items-center text-primary">
+            <div className="w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-medium border-primary bg-primary text-white">
+              ✓
+            </div>
+            <span className="ml-2">Account</span>
+          </div>
+          <div className="w-10 h-px bg-muted-foreground"></div>
+          <div className="flex items-center text-primary">
+            <div className="w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-medium border-primary bg-primary text-white">
+              2
+            </div>
+            <span className="ml-2">Profile</span>
+          </div>
+        </div>
+        
         <DialogHeader className="pb-3">
-          <DialogTitle className="flex items-center gap-2 text-lg">
+          <DialogTitle className="flex flex-col items-center gap-2 text-lg justify-center">
             <User className="h-5 w-5 text-primary" />
             Complete Your Profile
           </DialogTitle>
+          <p className="text-sm text-muted-foreground text-center">
+            Almost done! Just a few more details...
+          </p>
+          <p className="text-xs text-muted-foreground text-center">
+            <span className="font-medium">Full Name</span> and <span className="font-medium">Contact Number</span> are required. 
+            <br />School ID and Course Year can be skipped if you're faculty/staff.
+          </p>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Account Summary */}
+          {email && (
+            <div className="p-4 bg-muted/30 rounded-lg mb-4">
+              <p className="text-sm text-muted-foreground text-center mb-2">Account Details</p>
+              <p className="text-sm font-medium text-center">{email}</p>
+            </div>
+          )}
+          
           {/* Full Name */}
           <div className="space-y-1">
             <FloatingLabelInput
@@ -150,62 +221,79 @@ export function ProfileSetupDialog({ open, onComplete, onCancel }: ProfileSetupD
               onBlur={() => handleBlur('full_name')}
               required
               placeholder="Enter your full name"
-              className="h-12"
+              className={cn(
+                "h-12",
+                touched.full_name && !isFullNameValid ? "border-destructive" : ""
+              )}
             />
+            {touched.full_name && !isFullNameValid && (
+              <p className="text-xs text-destructive">Please enter your full name (at least 2 characters)</p>
+            )}
           </div>
 
           {/* School ID */}
           <div className="space-y-1">
             <FloatingLabelInput
-              label="School ID"
+              label="School ID (Skip if faculty/staff)"
               value={formData.school_id}
               onChange={(e) => handleInputChange('school_id', e.target.value)}
               onBlur={() => handleBlur('school_id')}
-              required
-              placeholder="YYYY-XXXXX (e.g., 2021-12345)"
-              className="h-12"
+              placeholder="Enter your school ID (e.g., GSC-15-0830)"
+              className={cn(
+                "h-12",
+                touched.school_id && !isSchoolIdValid ? "border-destructive" : ""
+              )}
             />
+            {touched.school_id && !isSchoolIdValid && (
+              <p className="text-xs text-muted-foreground">Skip this field if you're faculty/staff</p>
+            )}
           </div>
 
-          {/* Year & Section */}
+          {/* Course Year & Section */}
           <div className="space-y-1">
             <FloatingLabelInput
-              label="Year & Section"
+              label="Course Year & Section (Skip if faculty/staff)"
               value={formData.year_section}
               onChange={(e) => handleInputChange('year_section', e.target.value)}
               onBlur={() => handleBlur('year_section')}
-              required
               placeholder="e.g., 3rd Year - BSIT A"
-              className="h-12"
+              className={cn(
+                "h-12",
+                touched.year_section && !isYearSectionValid ? "border-destructive" : ""
+              )}
             />
+            {touched.year_section && !isYearSectionValid && (
+              <p className="text-xs text-muted-foreground">Skip this field if you're faculty/staff</p>
+            )}
           </div>
 
           {/* Contact Number */}
           <div className="space-y-1">
             <FloatingLabelInput
-              label="Contact Number"
+              label="Contact Number *"
               value={formData.contact_number}
               onChange={(e) => handleInputChange('contact_number', e.target.value)}
               onBlur={() => handleBlur('contact_number')}
               required
               type="tel"
-              placeholder="+63 912 345 6789"
-              className="h-12"
+              placeholder="+639123456789"
+              className={cn(
+                "h-12",
+                touched.contact_number && !isContactNumberValid ? "border-destructive" : ""
+              )}
+              onFocus={handlePhoneFocus}
             />
+            {touched.contact_number && !isContactNumberValid && (
+              <p className="text-xs text-destructive">Please enter a valid phone number (+639XXXXXXXXX)</p>
+            )}
           </div>
 
-          {/* Email (Optional) */}
-          <div className="space-y-1">
-            <FloatingLabelInput
-              label="Email (Optional)"
-              value={formData.email}
-              onChange={(e) => handleInputChange('email', e.target.value)}
-              onBlur={() => handleBlur('email')}
-              type="email"
-              placeholder="your.email@example.com"
-              className="h-12"
-            />
-          </div>
+          {/* Error Message */}
+          {error && (
+            <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+              {error}
+            </div>
+          )}
 
           {/* Submit Button */}
           <Button 

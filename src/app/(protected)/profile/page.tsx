@@ -79,7 +79,8 @@ export default function ProfilePage() {
 
   // Validation functions
   const validateSchoolId = (schoolId: string) => {
-    const schoolIdRegex = /^\d{4}-\d{5}$/
+    // School ID format: GSC-YY-XXXX or YYYY-Y-XXXX (e.g., GSC-15-0830, 2022-1-0078)
+    const schoolIdRegex = /^(GSC-\d{2}-\d{4}|\d{4}-\d{1,2}-\d{4})$/
     return schoolIdRegex.test(schoolId)
   }
 
@@ -89,8 +90,58 @@ export default function ProfilePage() {
   }
 
   const validatePhone = (phone: string) => {
-    const phoneRegex = /^(\+63|0)9\d{9}$/
+    // Philippine phone number format: +639XXXXXXXXX
+    const phoneRegex = /^\+639\d{8}$/
     return phoneRegex.test(phone.replace(/\s/g, ''))
+  }
+
+  // Auto-capitalization functions
+  const capitalizeName = (name: string) => {
+    return name
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ')
+  }
+
+  const capitalizeCourseYearSection = (text: string) => {
+    return text.toUpperCase()
+  }
+
+  // Phone number formatting functions
+  const formatPhoneNumber = (phone: string) => {
+    // Remove all non-digit characters
+    const digits = phone.replace(/\D/g, '')
+    
+    // If it starts with 63, add + prefix
+    if (digits.startsWith('63') && digits.length === 11) {
+      return `+${digits}`
+    }
+    
+    // If it starts with 0, replace with +63
+    if (digits.startsWith('0') && digits.length === 11) {
+      return `+63${digits.slice(1)}`
+    }
+    
+    // If it's 9 digits (without country code), add +63
+    if (digits.length === 9) {
+      return `+63${digits}`
+    }
+    
+    // If it's already in +63 format, return as is
+    if (phone.startsWith('+63') && digits.length === 11) {
+      return phone
+    }
+    
+    // Default: return as is (will be validated)
+    return phone
+  }
+
+  const handlePhoneFocus = () => {
+    // If field is empty, add +63 prefix
+    if (!formData.contact_number) {
+      setFormData(prev => ({ ...prev, contact_number: '+63' }))
+    }
   }
 
   // Get validation states
@@ -125,9 +176,9 @@ export default function ProfilePage() {
       const { error: updateError } = await supabase
         .from("profiles")
         .update({
-          full_name: formData.full_name.trim(),
+          full_name: capitalizeName(formData.full_name.trim()),
           school_id: formData.school_id.trim(),
-          year_section: formData.year_section.trim(),
+          year_section: capitalizeCourseYearSection(formData.year_section.trim()),
           contact_number: formData.contact_number.trim(),
           email: formData.email.trim() || null,
           profile_complete: true,
@@ -140,9 +191,9 @@ export default function ProfilePage() {
       // Update local state
       setProfile(prev => prev ? {
         ...prev,
-        full_name: formData.full_name.trim(),
+        full_name: capitalizeName(formData.full_name.trim()),
         school_id: formData.school_id.trim(),
-        year_section: formData.year_section.trim(),
+        year_section: capitalizeCourseYearSection(formData.year_section.trim()),
         contact_number: formData.contact_number.trim(),
         email: formData.email.trim() || null,
         profile_complete: true,
@@ -163,7 +214,18 @@ export default function ProfilePage() {
 
   // Handle input changes
   const handleInputChange = (field: keyof typeof formData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+    let processedValue = value
+    
+    // Apply real-time formatting
+    if (field === 'full_name') {
+      processedValue = capitalizeName(value)
+    } else if (field === 'year_section') {
+      processedValue = capitalizeCourseYearSection(value)
+    } else if (field === 'contact_number') {
+      processedValue = formatPhoneNumber(value)
+    }
+    
+    setFormData(prev => ({ ...prev, [field]: processedValue }))
     setError(null)
     setSuccess(null)
   }
@@ -254,15 +316,15 @@ export default function ProfilePage() {
                       value={formData.school_id}
                       onChange={(e) => handleInputChange('school_id', e.target.value)}
                       required
-                      placeholder="YYYY-XXXXX (e.g., 2021-12345)"
+                      placeholder="GSC-15-0830 or 2022-1-0078"
                       className="h-12"
                     />
                   </div>
 
-                  {/* Year & Section */}
+                  {/* Course Year & Section */}
                   <div className="space-y-1">
                     <FloatingLabelInput
-                      label="Year & Section"
+                      label="Course Year & Section"
                       value={formData.year_section}
                       onChange={(e) => handleInputChange('year_section', e.target.value)}
                       required
@@ -279,8 +341,9 @@ export default function ProfilePage() {
                       onChange={(e) => handleInputChange('contact_number', e.target.value)}
                       required
                       type="tel"
-                      placeholder="+63 912 345 6789"
+                      placeholder="+639123456789"
                       className="h-12"
+                      onFocus={handlePhoneFocus}
                     />
                   </div>
 
@@ -358,7 +421,7 @@ export default function ProfilePage() {
                     <div className="flex items-center gap-3">
                       <GraduationCap className="h-4 w-4 text-muted-foreground" />
                       <div>
-                        <p className="text-sm text-muted-foreground">Year & Section</p>
+                        <p className="text-sm text-muted-foreground">Course Year & Section</p>
                         <p className="font-medium">{profile.year_section || "Not set"}</p>
                       </div>
                     </div>
