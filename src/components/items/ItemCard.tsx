@@ -79,7 +79,7 @@ export function ItemCard(props: ItemCardProps) {
   }, [imageUrl, isMockUrl])
 
   const CardMedia = (
-    <div className="relative aspect-square bg-muted overflow-hidden">
+    <div className="relative aspect-square bg-muted overflow-hidden rounded-lg">
       {imageUrl ? (
         <Image
           src={imageUrl}

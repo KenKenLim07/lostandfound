@@ -9,11 +9,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { compressImage, formatFileSize } from "@/lib/image-utils"
-import { Upload, X, AlertCircle } from "lucide-react"
+import { Upload, X, AlertCircle, Loader2 } from "lucide-react"
 import Image from "next/image"
 import { Skeleton } from "@/components/ui/skeleton"
 import { postItem } from "./actions"
-import { CustomTopLoader } from "@/components/system/CustomTopLoader"
 import { ProfileGuard } from "@/components/auth/ProfileGuard"
 
 // Custom CSS for perfect circle button
@@ -31,6 +30,8 @@ const circleButtonStyles = `
     align-items: center !important;
     justify-content: center !important;
   }
+
+
 `
 
 export default function PostItemPage() {
@@ -227,14 +228,6 @@ export default function PostItemPage() {
   if (isLoadingUser || isCheckingStatus) {
     return (
       <main className="container mx-auto px-3 sm:px-6 py-4">
-        {/* Custom Top Loader for loading states */}
-        <CustomTopLoader 
-          isLoading={true} 
-          color="#000000"
-          height={3}
-          duration={300}
-        />
-        
         <div className="max-w-xl mx-auto">
           {/* Header skeleton */}
           <header className="mb-4 space-y-2">
@@ -299,14 +292,6 @@ export default function PostItemPage() {
   if (isBlocked) {
     return (
       <main className="container mx-auto px-3 sm:px-6 py-4">
-        {/* Custom Top Loader for blocked state */}
-        <CustomTopLoader 
-          isLoading={false} 
-          color="#000000"
-          height={3}
-          duration={300}
-        />
-        
         <div className="max-w-xl mx-auto">
           <div className="text-center space-y-4">
             <div className="flex justify-center">
@@ -341,14 +326,6 @@ export default function PostItemPage() {
       <main className="container mx-auto px-3 sm:px-6 py-4">
         {/* Custom CSS for perfect circle */}
         <style dangerouslySetInnerHTML={{ __html: circleButtonStyles }} />
-        
-        {/* Custom Top Loader for internal loading states */}
-        <CustomTopLoader 
-          isLoading={isCheckingStatus || isUploading || isCompressing || isPending} 
-          color="#000000"
-          height={3}
-          duration={300}
-        />
         
         <div className="max-w-xl mx-auto">
           {/* Header */}
@@ -528,37 +505,22 @@ export default function PostItemPage() {
             <Button
               type="submit"
               disabled={isPending || isUploading || isCompressing}
-              className="w-full h-10"
+              className="w-full h-10 relative overflow-hidden"
             >
               {isPending || isUploading ? (
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-2">
-                    <Skeleton className="h-4 w-4 rounded-full animate-pulse" />
-                    <Skeleton className="h-4 w-20" />
-                  </div>
+                <div className="flex items-center gap-2 relative z-10">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Posting...</span>
                 </div>
               ) : (
                 "Post Item"
               )}
+              
+
             </Button>
           </form>
 
-          {/* Upload Progress */}
-          {isUploading && (
-            <div className="mt-4 space-y-3">
-              <div className="flex justify-between items-center">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-4 w-8" />
-              </div>
-              <div className="space-y-2">
-                <Skeleton className="h-2 w-full rounded-full" />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <Skeleton className="h-3 w-12" />
-                  <Skeleton className="h-3 w-16" />
-                </div>
-              </div>
-            </div>
-          )}
+
         </div>
       </main>
     </ProfileGuard>

@@ -323,7 +323,7 @@ export default function MyItemsPage() {
                     <div className="flex-1 min-w-0 space-y-2">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <User className="h-3 w-3 flex-shrink-0" />
-                        <span className="truncate">{item.title || "Untitled"}</span>
+                        <span className="truncate">You</span>
                       </div>
                       
                       {item.location && (

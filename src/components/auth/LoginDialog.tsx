@@ -456,43 +456,43 @@ export function LoginDialog(props: LoginDialogProps = {}) {
         {/* Show header and step indicator only when not completed */}
         {!signupCompleted ? (
           <>
-            <DialogHeader>
-              <DialogTitle className="text-xl font-semibold text-center">
-                {mode === "signin" ? "Welcome back" : "Create account"}
-              </DialogTitle>
-              <p className="text-sm text-muted-foreground text-center">
-                {mode === "signin" 
-                  ? "Enter your credentials to access your account" 
-                  : "Fill in your details to create a new account"
-                }
-              </p>
-              {note && (
-                <p className="text-xs text-center text-foreground mt-1">{note}</p>
-              )}
-            </DialogHeader>
-            
-            {/* Step Indicator (signup only) */}
-            {mode === "signup" && (
-              <div className="flex items-center justify-center space-x-3 text-sm text-muted-foreground mb-4">
-                <div className={`flex items-center ${signupStep === "account" ? "text-primary" : "text-muted-foreground"}`}>
-                  <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-medium ${
-                    signupStep === "account" ? "border-primary bg-primary text-white" : "border-muted-foreground bg-muted-foreground text-white"
-                  }`}>
-                    ✓
-                  </div>
-                  <span className="ml-2">Account</span>
-                </div>
-                <div className="w-10 h-px bg-muted-foreground"></div>
-                <div className={`flex items-center ${signupStep === "profile" ? "text-primary" : ""}`}>
-                  <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-medium ${
-                    signupStep === "profile" ? "border-primary bg-primary text-white" : "border-muted-foreground"
-                  }`}>
-                    2
-                  </div>
-                  <span className="ml-2">Profile</span>
-                </div>
+        <DialogHeader>
+          <DialogTitle className="text-xl font-semibold text-center">
+            {mode === "signin" ? "Welcome back" : "Create account"}
+          </DialogTitle>
+          <p className="text-sm text-muted-foreground text-center">
+            {mode === "signin" 
+              ? "Enter your credentials to access your account" 
+              : "Fill in your details to create a new account"
+            }
+          </p>
+          {note && (
+            <p className="text-xs text-center text-foreground mt-1">{note}</p>
+          )}
+        </DialogHeader>
+        
+        {/* Step Indicator (signup only) */}
+        {mode === "signup" && (
+          <div className="flex items-center justify-center space-x-3 text-sm text-muted-foreground mb-4">
+            <div className={`flex items-center ${signupStep === "account" ? "text-primary" : "text-muted-foreground"}`}>
+              <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-medium ${
+                signupStep === "account" ? "border-primary bg-primary text-white" : "border-muted-foreground bg-muted-foreground text-white"
+              }`}>
+                ✓
               </div>
-            )}
+              <span className="ml-2">Account</span>
+            </div>
+            <div className="w-10 h-px bg-muted-foreground"></div>
+            <div className={`flex items-center ${signupStep === "profile" ? "text-primary" : ""}`}>
+              <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-medium ${
+                signupStep === "profile" ? "border-primary bg-primary text-white" : "border-muted-foreground"
+              }`}>
+                2
+              </div>
+              <span className="ml-2">Profile</span>
+            </div>
+          </div>
+        )}
           </>
         ) : (
           /* Show completion header when signup is completed */
