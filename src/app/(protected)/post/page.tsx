@@ -93,12 +93,12 @@ export default function PostItemPage() {
 
         if (!isMounted) return
 
-                if (profileError) {
+        if (profileError) {
           console.error("Error checking user status:", profileError?.message ?? profileError)
           setError("Failed to verify your account status. Please try again.")
           return
         }
-        
+
         if (profile?.blocked) {
           setIsBlocked(true)
           setError("Your account has been blocked. You cannot post new items. Please contact an administrator if you believe this is an error.")

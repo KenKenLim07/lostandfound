@@ -1,3 +1,5 @@
+
+
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
@@ -307,10 +309,10 @@ export default function PublicHomePage() {
       }
 
       // Not logged in → open login dialog
-      try {
-        sessionStorage.setItem("intent_after_login", "/post")
-      } catch {}
-      setLoginOpen(true)
+        try {
+          sessionStorage.setItem("intent_after_login", "/post")
+        } catch {}
+        setLoginOpen(true)
     } catch {
       try {
         sessionStorage.setItem("intent_after_login", "/post")
@@ -414,11 +416,11 @@ export default function PublicHomePage() {
               <Skeleton className="h-4 w-24" />
             </div>
             {/* Grid skeletons */}
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-1">
-              {Array.from({ length: 6 }).map((_, i) => (
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-1">
+            {Array.from({ length: 6 }).map((_, i) => (
                 <ItemCardSkeleton key={i} />
-              ))}
-            </div>
+            ))}
+          </div>
           </>
         ) : filteredItems.length === 0 ? (
           <div className="text-center py-8">

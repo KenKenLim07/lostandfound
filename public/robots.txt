@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://lost-and-found-liart.vercel.app/sitemap.xml
+
+# Disallow admin areas
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /api/
+
+# Allow public pages
+Allow: /
+Allow: /hall-of-fame
+Allow: /items
+Allow: /search 

@@ -195,7 +195,7 @@ export function ProfileSetupDialog({ open, onComplete, onCancel, email }: Profil
             Complete Your Profile
           </DialogTitle>
           <p className="text-sm text-muted-foreground text-center">
-            Almost done! Just a few more details... 
+            Almost done! Just a few more details...
           </p>
           <p className="text-xs text-muted-foreground text-center">
             <span className="font-medium">Full Name</span> and <span className="font-medium">Contact Number</span> are required. Other fields are optional.

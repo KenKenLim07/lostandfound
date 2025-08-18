@@ -35,7 +35,7 @@ export function ProfileGuard({
   const handleProfileComplete = () => {
     setSetupDismissed(false)
     setTimeout(() => {
-      refreshProfile()
+    refreshProfile()
     }, 100)
   }
 
@@ -43,9 +43,9 @@ export function ProfileGuard({
   if (loading) {
     return (
       <>{fallback || (
-        <div className="flex items-center justify-center min-h-[200px]">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
+      <div className="flex items-center justify-center min-h-[200px]">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
             <span>Checking profile...</span>
           </div>
         </div>
@@ -70,15 +70,15 @@ export function ProfileGuard({
     return (
       <>
         {!setupDismissed && (
-          <ProfileSetupDialog 
+        <ProfileSetupDialog 
             open={true}
-            email={userEmail}
-            onComplete={handleProfileComplete}
+          email={userEmail}
+          onComplete={handleProfileComplete}
             onCancel={() => {
               setSetupDismissed(true)
               router.replace("/")
             }}
-          />
+        />
         )}
         {fallback || (
           <div className="flex items-center justify-center min-h-[200px] p-6">

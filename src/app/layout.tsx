@@ -27,8 +27,68 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Mosqueda Lost & Found",
-  description: "Lost & Found app for Mosqueda Campus",
+  title: "Mosqueda Lost & Found - GSU Campus Item Recovery System",
+  description: "Official Lost & Found platform for Guimaras State University Mosqueda Campus. Find lost items, report found belongings, and help our CST community reconnect. Serving students, faculty, and staff with secure item recovery.",
+  keywords: [
+    "lost and found",
+    "GSU Mosqueda Campus",
+    "Guimaras State University",
+    "CST campus",
+    "item recovery",
+    "lost items",
+    "found belongings",
+    "campus lost and found",
+    "Mosqueda campus",
+    "Philippines lost and found"
+  ],
+  authors: [{ name: "GSU Mosqueda Campus" }],
+  creator: "GSU Mosqueda Campus",
+  publisher: "Guimaras State University",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  metadataBase: new URL('https://lost-and-found-liart.vercel.app'),
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: "Mosqueda Lost & Found - GSU Campus Item Recovery",
+    description: "Official Lost & Found platform for Guimaras State University Mosqueda Campus. Find lost items, report found belongings, and help our CST community reconnect.",
+    url: 'https://lost-and-found-liart.vercel.app',
+    siteName: 'Mosqueda Lost & Found',
+    locale: 'en_US',
+    type: 'website',
+    images: [
+      {
+        url: '/og-image.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'Mosqueda Lost & Found - GSU Campus',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: "Mosqueda Lost & Found - GSU Campus Item Recovery",
+    description: "Official Lost & Found platform for Guimaras State University Mosqueda Campus",
+    images: ['/og-image.jpg'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  verification: {
+    google: 'your-google-verification-code', // Add this when you get it from Google Search Console
+  },
 };
 
 export const viewport = {
@@ -61,6 +121,53 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="application-name" content="Mosqueda Lost & Found" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Lost & Found" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="msapplication-config" content="/browserconfig.xml" />
+        <meta name="msapplication-TileColor" content="#0f172a" />
+        <meta name="msapplication-tap-highlight" content="no" />
+        <meta name="theme-color" content="#0f172a" />
+        
+        <link rel="apple-touch-icon" href="/icon-192.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/icon-32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/icon-16.png" />
+        <link rel="mask-icon" href="/icon-192.png" color="#0f172a" />
+        
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              "name": "Mosqueda Lost & Found",
+              "description": "Official Lost & Found platform for Guimaras State University Mosqueda Campus",
+              "url": "https://lost-and-found-liart.vercel.app",
+              "potentialAction": {
+                "@type": "SearchAction",
+                "target": "https://lost-and-found-liart.vercel.app/search?q={search_term_string}",
+                "query-input": "required name=search_term_string"
+              },
+              "publisher": {
+                "@type": "Organization",
+                "name": "Guimaras State University",
+                "url": "https://www.gsu.edu.ph",
+                "address": {
+                  "@type": "PostalAddress",
+                  "addressLocality": "Mosqueda",
+                  "addressRegion": "Guimaras",
+                  "addressCountry": "PH"
+                }
+              }
+            })
+          }}
+        />
+      </head>
       <body className={`${inter.variable} ${jetbrainsMono.variable} antialiased min-h-screen flex flex-col`}>
         {/* Global top loading bar */}
         <TopLoader />
