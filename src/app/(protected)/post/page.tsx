@@ -89,16 +89,16 @@ export default function PostItemPage() {
           .from("profiles")
           .select("blocked")
           .eq("id", userId)
-          .single()
+          .maybeSingle()
 
         if (!isMounted) return
 
-        if (profileError) {
-          console.error("Error checking user status:", profileError)
+                if (profileError) {
+          console.error("Error checking user status:", profileError?.message ?? profileError)
           setError("Failed to verify your account status. Please try again.")
           return
         }
-
+        
         if (profile?.blocked) {
           setIsBlocked(true)
           setError("Your account has been blocked. You cannot post new items. Please contact an administrator if you believe this is an error.")
@@ -188,7 +188,7 @@ export default function PostItemPage() {
           const { error: uploadError } = await supabase.storage
             .from(bucket)
             .upload(fileName, compressedFile, { upsert: false })
-
+          
           if (uploadError) throw uploadError
           const { data: publicUrl } = supabase.storage.from(bucket).getPublicUrl(fileName)
           image_url = publicUrl.publicUrl
@@ -241,8 +241,8 @@ export default function PostItemPage() {
             <div className="space-y-2">
               <Skeleton className="h-4 w-20" />
               <div className="grid grid-cols-2 gap-2">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
               </div>
             </div>
             
@@ -267,7 +267,7 @@ export default function PostItemPage() {
             {/* Location skeleton */}
             <div className="space-y-2">
               <Skeleton className="h-4 w-20" />
-              <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
             </div>
             
             {/* Image Upload skeleton */}
@@ -322,25 +322,7 @@ export default function PostItemPage() {
   }
 
   return (
-    <ProfileGuard
-      fallback={(
-        <main className="container mx-auto px-3 sm:px-6 py-4">
-          <div className="max-w-xl mx-auto">
-            <div className="space-y-4">
-              <div className="h-6 w-48 bg-muted rounded" />
-              <div className="h-4 w-80 bg-muted rounded" />
-              <div className="h-10 w-full bg-muted rounded" />
-              <div className="h-10 w-full bg-muted rounded" />
-              <div className="h-10 w-full bg-muted rounded" />
-              <div className="h-10 w-full bg-muted rounded" />
-              <div className="h-10 w-full bg-muted rounded" />
-              <div className="h-10 w-full bg-muted rounded" />
-              <div className="h-10 w-full bg-muted rounded" />
-            </div>
-          </div>
-        </main>
-      )}
-    >
+    <ProfileGuard>
       <main className="container mx-auto px-3 sm:px-6 py-4">
         {/* Custom CSS for perfect circle */}
         <style dangerouslySetInnerHTML={{ __html: circleButtonStyles }} />
@@ -430,7 +412,7 @@ export default function PostItemPage() {
               />
             </div>
 
-                        {/* Image Upload */}
+            {/* Image Upload */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">Item Image (Optional)</Label>
               <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center">
@@ -473,7 +455,7 @@ export default function PostItemPage() {
                       onClick={() => document.getElementById('image-upload')?.click()}
                     >
                         Choose File
-                    </Button>
+                      </Button>
                   </div>
                 ) : (
                   <div className="flex items-center gap-4">

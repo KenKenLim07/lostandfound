@@ -16,11 +16,28 @@ import { CampusGuardianDialog } from "@/components/leaderboard/CampusGuardianDia
 import { PostingRulesDialog } from "@/components/posting/PostingRulesDialog"
 import { useSupabase } from "@/hooks/useSupabase"
 import { hasAgreedToPostingRules } from "@/lib/posting-rules"
+import { ProfileSetupDialog } from "@/components/auth/ProfileSetupDialog"
 
 const HOME_CACHE_KEY = "home_items_v1"
 const HOME_CACHE_TTL_MS = 60_000
 const LEADERBOARD_CACHE_KEY = "leaderboard_v1"
 const LEADERBOARD_CACHE_TTL_MS = 300_000 // 5 minutes
+
+const PROFILE_CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
+function readProfileCompleteCache(userId: string): boolean | null {
+  try {
+    const raw = sessionStorage.getItem(`profile_complete:${userId}`)
+    if (!raw) return null
+    const { v, ts } = JSON.parse(raw) as { v: boolean; ts: number }
+    if (Date.now() - ts > PROFILE_CACHE_TTL_MS) return null
+    return !!v
+  } catch { return null }
+}
+function writeProfileCompleteCache(userId: string, value: boolean) {
+  try {
+    sessionStorage.setItem(`profile_complete:${userId}` , JSON.stringify({ v: !!value, ts: Date.now() }))
+  } catch {}
+}
 
 type Item = Pick<Tables<"items">, "id" | "title" | "type" | "description" | "date" | "location" | "image_url" | "status" | "created_at" | "user_id"> & {
   profile?: {
@@ -43,6 +60,11 @@ export default function PublicHomePage() {
   // Login dialog control
   const [loginOpen, setLoginOpen] = useState(false)
   const [rulesOpen, setRulesOpen] = useState(false)
+
+  // Profile setup control
+  const [showProfileSetup, setShowProfileSetup] = useState(false)
+  const [userEmail, setUserEmail] = useState<string>("")
+  const [pendingPostIntent, setPendingPostIntent] = useState(false)
 
   // Preload campus guardian data
   useEffect(() => {
@@ -217,21 +239,38 @@ export default function PublicHomePage() {
     })
   }, [items, searchTerm, filter])
 
+  async function proceedToPost() {
+    // Posting rules flow
+    try {
+      const hasAgreed = hasAgreedToPostingRules()
+      if (hasAgreed) {
+        router.push("/post")
+      } else {
+        setRulesOpen(true)
+      }
+    } catch {
+      setRulesOpen(true)
+    }
+  }
+
   async function handleReportClick() {
     try {
       const { data } = await supabase.auth.getSession()
       if (data.session) {
-        // Check if user is blocked before redirecting
+        const session = data.session
+        const uid = session.user.id
+        setUserEmail(session.user.email || "")
+
+        // Check if user is blocked before continuing
         const { data: profile, error: profileError } = await supabase
           .from("profiles")
-          .select("blocked")
-          .eq("id", data.session.user.id)
+          .select("blocked, profile_complete")
+          .eq("id", uid)
           .single()
         
         if (profileError) {
-          console.error("Error checking user status:", profileError)
-          setRulesOpen(true)
-          return
+          // If status check fails, default to rules → post flow
+          return proceedToPost()
         }
         
         if (profile?.blocked) {
@@ -239,32 +278,58 @@ export default function PublicHomePage() {
           return
         }
 
-        // Check if user has already agreed to the posting rules
-        try {
-          const hasAgreed = hasAgreedToPostingRules()
-          if (hasAgreed) {
-            // User has already agreed, go directly to post page
-            router.push("/post")
-          } else {
-            // User hasn't agreed yet, show rules dialog
-            setRulesOpen(true)
-          }
-        } catch (error) {
-          console.warn("Failed to check rules agreement from localStorage:", error)
-          // Fallback: show rules dialog
-        setRulesOpen(true)
+        // Profile-complete precheck with cache
+        const cached = readProfileCompleteCache(uid)
+        if (cached === true) {
+          // Navigate immediately; revalidate in background (do not block)
+          proceedToPost()
+          ;(async () => {
+            const { data: row } = await supabase
+              .from("profiles")
+              .select("profile_complete")
+              .eq("id", uid)
+              .single()
+            if (row) writeProfileCompleteCache(uid, !!row.profile_complete)
+          })()
+          return
         }
-      } else {
-        try {
-          sessionStorage.setItem("intent_after_login", "/post")
-        } catch {}
-        setLoginOpen(true)
+
+        // No fresh cache: decide based on DB value
+        if (profile?.profile_complete) {
+          writeProfileCompleteCache(uid, true)
+          return proceedToPost()
+        }
+
+        // Not complete → show setup here, then continue after
+        setPendingPostIntent(true)
+        setShowProfileSetup(true)
+        return
       }
+
+      // Not logged in → open login dialog
+      try {
+        sessionStorage.setItem("intent_after_login", "/post")
+      } catch {}
+      setLoginOpen(true)
     } catch {
       try {
         sessionStorage.setItem("intent_after_login", "/post")
       } catch {}
       setLoginOpen(true)
+    }
+  }
+
+  function handleProfileSetupComplete() {
+    setShowProfileSetup(false)
+    // Mark cache and continue posting flow
+    ;(async () => {
+      const { data } = await supabase.auth.getSession()
+      const uid = data.session?.user.id
+      if (uid) writeProfileCompleteCache(uid, true)
+    })()
+    if (pendingPostIntent) {
+      setPendingPostIntent(false)
+      proceedToPost()
     }
   }
 
@@ -310,6 +375,14 @@ export default function PublicHomePage() {
         showTrigger={false}
         initialMode="signin"
         note="Please sign in or create an account to report a lost or found item."
+      />
+
+      {/* Profile setup (controlled) */}
+      <ProfileSetupDialog
+        open={showProfileSetup}
+        email={userEmail}
+        onComplete={handleProfileSetupComplete}
+        onCancel={() => setShowProfileSetup(false)}
       />
 
       {/* Posting rules dialog */}

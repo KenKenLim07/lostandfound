@@ -312,6 +312,17 @@ export function ProfileSetupDialog({ open, onComplete, onCancel, email }: Profil
               </>
             )}
           </Button>
+
+          {/* Skip for now */}
+          <div className="pt-2 text-center">
+            <button
+              type="button"
+              onClick={() => onCancel?.()}
+              className="text-xs text-muted-foreground hover:underline"
+            >
+              Skip for now
+            </button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
