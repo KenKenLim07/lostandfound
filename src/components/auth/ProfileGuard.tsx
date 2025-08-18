@@ -52,15 +52,17 @@ export function ProfileGuard({
     setShowProfileSetup(false)
   }
 
-  // Show loading state
+  // Show loading state (prefer provided fallback over spinner)
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[200px]">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Loading profile...</span>
+      <>{fallback || (
+        <div className="flex items-center justify-center min-h-[200px]">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Loading profile...</span>
+          </div>
         </div>
-      </div>
+      )}</>
     )
   }
 

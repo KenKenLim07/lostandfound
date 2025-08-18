@@ -8,7 +8,7 @@ export type Profile = Tables<"profiles">
 
 export function useProfileCompletion() {
   const [isProfileComplete, setIsProfileComplete] = useState<boolean | null>(null)
-  const [profile, setProfile] = useState<Profile | null>(null)
+  const [profile, setProfile] = useState<Partial<Profile> | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   
@@ -28,9 +28,9 @@ export function useProfileCompletion() {
           return
         }
         
-        const { data: profile, error: profileError } = await supabase
+        const { data: row, error: profileError } = await supabase
           .from('profiles')
-          .select('*')
+          .select('profile_complete')
           .eq('id', session.user.id)
           .single()
           
@@ -41,8 +41,11 @@ export function useProfileCompletion() {
           return
         }
         
-        setProfile(profile)
-        setIsProfileComplete(profile?.profile_complete || false)
+        setProfile(row as Partial<Profile>)
+        {
+        const profileComplete = (row as { profile_complete: boolean | null } | null)?.profile_complete ?? false
+        setIsProfileComplete(!!profileComplete)
+        }
         
       } catch (err) {
         console.error('Profile completion check error:', err)
@@ -62,15 +65,18 @@ export function useProfileCompletion() {
       
       if (!session) return
       
-      const { data: profile, error } = await supabase
+      const { data: row, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('profile_complete')
         .eq('id', session.user.id)
         .single()
         
-      if (!error && profile) {
-        setProfile(profile)
-        setIsProfileComplete(profile.profile_complete || false)
+      if (!error && row) {
+        setProfile(row as Partial<Profile>)
+        {
+        const profileComplete = (row as { profile_complete: boolean | null } | null)?.profile_complete ?? false
+        setIsProfileComplete(!!profileComplete)
+      }
       }
     } catch (err) {
       console.error('Profile refresh error:', err)

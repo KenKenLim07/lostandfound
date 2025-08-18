@@ -322,7 +322,25 @@ export default function PostItemPage() {
   }
 
   return (
-    <ProfileGuard>
+    <ProfileGuard
+      fallback={(
+        <main className="container mx-auto px-3 sm:px-6 py-4">
+          <div className="max-w-xl mx-auto">
+            <div className="space-y-4">
+              <div className="h-6 w-48 bg-muted rounded" />
+              <div className="h-4 w-80 bg-muted rounded" />
+              <div className="h-10 w-full bg-muted rounded" />
+              <div className="h-10 w-full bg-muted rounded" />
+              <div className="h-10 w-full bg-muted rounded" />
+              <div className="h-10 w-full bg-muted rounded" />
+              <div className="h-10 w-full bg-muted rounded" />
+              <div className="h-10 w-full bg-muted rounded" />
+              <div className="h-10 w-full bg-muted rounded" />
+            </div>
+          </div>
+        </main>
+      )}
+    >
       <main className="container mx-auto px-3 sm:px-6 py-4">
         {/* Custom CSS for perfect circle */}
         <style dangerouslySetInnerHTML={{ __html: circleButtonStyles }} />
