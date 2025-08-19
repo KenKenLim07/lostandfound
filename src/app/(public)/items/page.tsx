@@ -38,6 +38,13 @@ export default function AllItemsPage() {
     return createClient<Database>(url, key)
   }, [])
 
+  // Always start at the top when entering this page
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" })
+    }
+  }, [])
+
   // Debounce search
   const [debouncedSearch, setDebouncedSearch] = useState("")
   useEffect(() => {

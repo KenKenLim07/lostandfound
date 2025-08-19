@@ -12,12 +12,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Trash2, CheckCircle, Eye, Package, MapPin, Calendar, User, ArrowLeft } from "lucide-react"
+import { Trash2, CheckCircle, Eye, Package, MapPin, Calendar, User, ArrowLeft, Pencil } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
+import { Textarea } from "@/components/ui/textarea"
 
 type Item = Pick<Tables<"items">, "id" | "title" | "type" | "description" | "date" | "location" | "image_url" | "status" | "created_at" | "returned_party" | "returned_year_section" | "returned_at">
+
+type ProfileSuggestion = {
+  name: string
+  year_section: string | null
+}
+
+type EditableItemFields = Pick<Tables<"items">, "title" | "description" | "date" | "location" | "type"> & { id: string }
 
 export default function MyItemsPage() {
   const supabase = useSupabase()
@@ -30,6 +38,8 @@ export default function MyItemsPage() {
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+
   // Dialog states
   const [returnDialog, setReturnDialog] = useState<{
     open: boolean
@@ -38,6 +48,18 @@ export default function MyItemsPage() {
   const [returnedParty, setReturnedParty] = useState("")
   const [returnedYearSection, setReturnedYearSection] = useState("")
   const [returnedDate, setReturnedDate] = useState("")
+
+  // Suggestions state
+  const [suggestions, setSuggestions] = useState<ProfileSuggestion[]>([])
+  const [isFetchingSuggestions, setIsFetchingSuggestions] = useState(false)
+  const [showSuggestions, setShowSuggestions] = useState(false)
+
+  // Edit Dialog states
+  const [editDialog, setEditDialog] = useState<{ open: boolean; item: EditableItemFields | null }>({ open: false, item: null })
+  const [editTitle, setEditTitle] = useState("")
+  const [editDescription, setEditDescription] = useState("")
+  const [editDate, setEditDate] = useState("")
+  const [editLocation, setEditLocation] = useState("")
 
   // Show success message and clear it after 3 seconds
   const showSuccessMessage = (message: string) => {
@@ -50,6 +72,8 @@ export default function MyItemsPage() {
     setReturnedParty("")
     setReturnedYearSection("")
     setReturnedDate(new Date().toISOString().split('T')[0]) // Default to today
+    setSuggestions([])
+    setShowSuggestions(false)
   }
 
   // Open return dialog with default values
@@ -58,6 +82,66 @@ export default function MyItemsPage() {
     setReturnedParty("")
     setReturnedYearSection("")
     setReturnDialog({ open: true, item })
+    setShowSuggestions(true)
+  }
+
+  function openEditDialog(item: Item) {
+    setEditDialog({ open: true, item: { id: item.id, title: item.title || "", description: item.description || "", date: item.date || "", location: item.location || "", type: item.type } })
+    setEditTitle(item.title || "")
+    setEditDescription(item.description || "")
+    setEditDate(item.date || "")
+    setEditLocation(item.location || "")
+  }
+
+  function resetEditDialog() {
+    setEditDialog({ open: false, item: null })
+    setEditTitle("")
+    setEditDescription("")
+    setEditDate("")
+    setEditLocation("")
+  }
+
+  async function saveEdits() {
+    if (!editDialog.item) return
+    const id = editDialog.item.id
+    const trimmedTitle = editTitle.trim()
+    const trimmedDesc = editDescription.trim()
+    const trimmedLoc = editLocation.trim()
+
+    const payload: Partial<Tables<"items">> = {
+      title: trimmedTitle === "" ? null : trimmedTitle,
+      description: trimmedDesc === "" ? null : trimmedDesc,
+      // Only send date if provided; otherwise leave unchanged
+      date: editDate !== "" ? editDate : undefined,
+      location: trimmedLoc === "" ? null : trimmedLoc,
+    }
+
+    startTransition(async () => {
+      try {
+        const { error } = await supabase
+          .from("items")
+          .update(payload)
+          .eq("id", id)
+        if (error) throw error
+
+        // update local state without introducing incompatible nulls for non-nullable fields
+        setItems(prev => prev.map(i => {
+          if (i.id !== id) return i
+          return {
+            ...i,
+            title: trimmedTitle === "" ? i.title : trimmedTitle,
+            description: trimmedDesc === "" ? i.description : trimmedDesc,
+            date: editDate === "" ? i.date : editDate,
+            location: trimmedLoc === "" ? i.location : trimmedLoc,
+          }
+        }))
+        setSuccessMessage("Post updated successfully")
+        resetEditDialog()
+      } catch (err) {
+        console.error("Failed to update item:", err)
+        alert(`Failed to update: ${err instanceof Error ? err.message : "Unknown error"}`)
+      }
+    })
   }
 
   useEffect(() => {
@@ -70,6 +154,7 @@ export default function MyItemsPage() {
           router.replace("/")
           return
         }
+        setCurrentUserId(user.id)
 
         const { data, error } = await supabase
           .from("items")
@@ -99,6 +184,97 @@ export default function MyItemsPage() {
       isMounted = false
     }
   }, [supabase, router])
+
+  // Seed suggestions with recent names used by the current user when dialog opens
+  useEffect(() => {
+    if (!returnDialog.open || !currentUserId) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const { data, error } = await supabase
+          .from("items")
+          .select("returned_party, returned_year_section")
+          .eq("user_id", currentUserId)
+          .not("returned_party", "is", null)
+          .order("returned_at", { ascending: false })
+          .limit(12)
+        if (error) throw error
+
+        const unique: Record<string, ProfileSuggestion> = {}
+        for (const row of data || []) {
+          const key = (row.returned_party || "").trim().toLowerCase()
+          if (!key) continue
+          if (!unique[key]) {
+            unique[key] = { name: row.returned_party as string, year_section: (row.returned_year_section as string) || null }
+          }
+        }
+        if (!cancelled) {
+          setSuggestions(Object.values(unique).slice(0, 8))
+        }
+      } catch {
+        // ignore
+      }
+    })()
+    return () => { cancelled = true }
+  }, [returnDialog.open, currentUserId, supabase])
+
+  // Debounced server-side search for names: try API (profiles via service role), fallback to items.returned_party
+  useEffect(() => {
+    if (!returnDialog.open) return
+    const term = returnedParty.trim()
+    if (term.length < 2) return
+    let cancelled = false
+    setIsFetchingSuggestions(true)
+
+    const t = setTimeout(async () => {
+      try {
+        // Try server API first
+        const apiRes = await fetch(`/api/suggest-names?q=${encodeURIComponent(term)}`)
+        if (apiRes.ok) {
+          const json = await apiRes.json() as { suggestions: ProfileSuggestion[] }
+          if (!cancelled && json.suggestions && json.suggestions.length > 0) {
+            setSuggestions(json.suggestions.slice(0, 8))
+            setIsFetchingSuggestions(false)
+            return
+          }
+        }
+      } catch {
+        // ignore and fallback
+      }
+
+      // Fallback to client Supabase search on items.returned_party (RLS-friendly)
+      try {
+        const { data, error } = await supabase
+          .from("items")
+          .select("returned_party, returned_year_section, returned_at")
+          .not("returned_party", "is", null)
+          .ilike("returned_party", `%${term}%`)
+          .order("returned_at", { ascending: false })
+          .limit(24)
+        if (error) throw error
+        if (!cancelled) {
+          const unique: Record<string, ProfileSuggestion> = {}
+          for (const row of data || []) {
+            const key = (row.returned_party as string | null)?.trim().toLowerCase()
+            if (!key) continue
+            if (!unique[key]) {
+              unique[key] = { name: row.returned_party as string, year_section: (row.returned_year_section as string) || null }
+            }
+          }
+          setSuggestions(Object.values(unique).slice(0, 8))
+        }
+      } catch {
+        // ignore
+      } finally {
+        if (!cancelled) setIsFetchingSuggestions(false)
+      }
+    }, 250)
+
+    return () => {
+      cancelled = true
+      clearTimeout(t)
+    }
+  }, [returnedParty, supabase, returnDialog.open])
 
   async function markAsReturned(item: Item) {
     if (!returnedParty.trim()) return
@@ -381,6 +557,17 @@ export default function MyItemsPage() {
                       </Link>
                     </Button>
                     
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-shrink-0"
+                      onClick={() => openEditDialog(item)}
+                      disabled={isPending}
+                    >
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                    
                     {item.status !== "returned" && (
                       <Button
                         size="sm"
@@ -438,19 +625,51 @@ export default function MyItemsPage() {
               <Label htmlFor="returned-party">
                 {returnDialog.item?.type === "lost" ? "Returned by" : "Returned to"}
               </Label>
+              <div className="relative">
               <Input
                 id="returned-party"
                 value={returnedParty}
-                onChange={(e) => setReturnedParty(e.target.value)}
+                  onChange={(e) => {
+                    setReturnedParty(e.target.value)
+                    setShowSuggestions(true)
+                  }}
                 placeholder="Enter full name"
                 className="h-10"
                 autoFocus
+                  onFocus={() => setShowSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && returnedParty.trim() && returnDialog.item) {
                     markAsReturned(returnDialog.item)
                   }
                 }}
               />
+                {showSuggestions && suggestions.length > 0 && (
+                  <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow max-h-48 overflow-auto">
+                    <div className="py-1 text-xs text-muted-foreground px-2 sticky top-0 bg-popover/90 backdrop-blur">
+                      Suggestions{isFetchingSuggestions ? " (searching...)" : ""}
+                    </div>
+                    {suggestions.map((s, idx) => (
+                      <button
+                        key={`${s.name}-${idx}`}
+                        type="button"
+                        className="w-full text-left px-3 py-2 hover:bg-accent hover:text-accent-foreground"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          setReturnedParty(s.name)
+                          setReturnedYearSection(s.year_section || "")
+                          setShowSuggestions(false)
+                        }}
+                      >
+                        <div className="font-medium text-sm">{s.name}</div>
+                        {s.year_section && (
+                          <div className="text-xs text-muted-foreground">{s.year_section}</div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Year and Section */}
@@ -501,6 +720,44 @@ export default function MyItemsPage() {
               >
                 {isPending ? "Saving..." : "Mark Returned"}
               </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog
+        open={editDialog.open}
+        onOpenChange={(open) => {
+          if (!open) {
+            resetEditDialog()
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Post</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-title">Title</Label>
+              <Input id="edit-title" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="h-10" placeholder="Enter a short descriptive title" />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea id="edit-description" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Add details that help identify or describe the item" />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-date">Date {editDialog.item?.type === "lost" ? "Lost" : "Found"}</Label>
+              <Input id="edit-date" type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} className="h-10" />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-location">Location</Label>
+              <Input id="edit-location" value={editLocation} onChange={(e) => setEditLocation(e.target.value)} className="h-10" placeholder="Where was it lost/found?" />
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <Button type="button" variant="outline" onClick={resetEditDialog} disabled={isPending}>Cancel</Button>
+              <Button type="button" onClick={saveEdits} disabled={isPending}>Save</Button>
             </div>
           </div>
         </DialogContent>

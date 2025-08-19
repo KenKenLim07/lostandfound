@@ -61,14 +61,14 @@ export default function ItemDetailsPage({ params }: { params: Promise<{ id: stri
     if (fromHome === 'home') {
       router.push('/')
     } else if (fromHome === 'items') {
-      router.push('/items')
+      router.push('/items', { scroll: true })
     } else {
       // Fallback: try to go back in browser history
       if (window.history.length > 1) {
         router.back()
       } else {
         // If no history, default to items page
-        router.push('/items')
+        router.push('/items', { scroll: true })
       }
     }
   }
