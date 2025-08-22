@@ -12,16 +12,16 @@ function ReturnedStripSkeleton() {
       <div className="mb-2 px-2">
         <Skeleton className="h-6 w-40" />
       </div>
-              <div className="flex gap-2 overflow-hidden pl-2">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="w-40 shrink-0 rounded-xl border bg-white shadow-xs p-2">
-              <Skeleton className="h-20 w-full rounded-md" />
-              <div className="mt-2 space-y-1">
-                <Skeleton className="h-3 w-24" />
-                <Skeleton className="h-3 w-28" />
-              </div>
+      <div className="flex gap-2 overflow-hidden pl-2">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="w-40 shrink-0 rounded-xl border bg-white shadow-xs p-2">
+            <Skeleton className="h-20 w-full rounded-md" />
+            <div className="mt-2 space-y-1">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-3 w-28" />
             </div>
-          ))}
+          </div>
+        ))}
         </div>
       </section>
   )
@@ -32,7 +32,7 @@ function GridSkeleton({ title }: { title: string }) {
     <section className="container mx-auto px-0.5 sm:px-4 py-2">
       <div className="mb-2 px-2">
         <div className="text-lg font-bold text-foreground/80 tracking-tight">{title}</div>
-      </div>
+        </div>
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-1">
             {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="rounded-xl border p-2">
