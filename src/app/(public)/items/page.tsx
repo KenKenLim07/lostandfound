@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@supabase/supabase-js"
 import type { Database, Tables } from "@/types/database"
 import { ItemCard } from "@/components/items/ItemCard"
@@ -23,6 +23,7 @@ const PAGE_SIZE = 24
 
 export default function AllItemsPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [items, setItems] = useState<Item[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
@@ -36,6 +37,18 @@ export default function AllItemsPage() {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
     const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     return createClient<Database>(url, key)
+  }, [])
+
+  // Read query params once on mount
+  useEffect(() => {
+    const type = searchParams.get("type")
+    const status = searchParams.get("status")
+    if (type === "lost" || type === "found") {
+      setFilter(type)
+    } else if (status === "returned") {
+      setFilter("returned")
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Always start at the top when entering this page
@@ -82,7 +95,6 @@ export default function AllItemsPage() {
     const { data, error } = await query
     if (error) throw error
 
-    // Fetch profile data for each item
     const itemsWithProfiles: Item[] = await Promise.all(
       (data || []).map(async (item) => {
         if (item.user_id) {
@@ -135,6 +147,13 @@ export default function AllItemsPage() {
     return () => io.disconnect()
   }, [hasMore, isLoading, isLoadingMore, cursor, debouncedSearch, filter, fetchPage])
 
+  const heading = useMemo(() => {
+    if (filter === "lost") return "Lost Items"
+    if (filter === "found") return "Found Items"
+    if (filter === "returned") return "Returned Items"
+    return "All Items"
+  }, [filter])
+
   return (
     <main className="container mx-auto px-0.5 sm:px-4 py-4">
       <header className="mb-6">
@@ -148,7 +167,7 @@ export default function AllItemsPage() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-        <h1 className="text-xl font-semibold">All Items</h1>
+        <h1 className="text-xl font-semibold">{heading}</h1>
         <p className="text-muted-foreground text-sm">Browse all posted lost and found items.</p>
           </div>
         </div>

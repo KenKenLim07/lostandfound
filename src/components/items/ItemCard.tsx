@@ -44,6 +44,7 @@ export type ItemCardProps = {
   createdAt?: string | null
   href?: string
   className?: string
+  priority?: boolean
 }
 
 export function ItemCard(props: ItemCardProps) {
@@ -58,6 +59,7 @@ export function ItemCard(props: ItemCardProps) {
     createdAt,
     href,
     className,
+    priority: propPriority,
   } = props
 
   const typePillClasses = type === "lost" ? "bg-red-600 text-white" : "bg-green-600 text-white"
@@ -66,6 +68,9 @@ export function ItemCard(props: ItemCardProps) {
   
   const [imageLoaded, setImageLoaded] = useState(false)
   const [isMobileDevice] = useState(() => isMobile())
+
+  // Use prop priority or fall back to mobile device logic
+  const shouldPrioritize = propPriority ?? isMobileDevice
 
   // Preload image to prevent blinking on navigation back
   useEffect(() => {
@@ -92,7 +97,7 @@ export function ItemCard(props: ItemCardProps) {
             // Mobile: Use different transition timing
             isMobileDevice ? "transition-opacity duration-100" : "transition-opacity duration-200"
           )}
-          priority={isMobileDevice} // Prioritize on mobile
+          priority={shouldPrioritize} // Prioritize on mobile
           loading={isMobileDevice ? "eager" : "lazy"} // Force eager loading on mobile
           onLoad={(e) => {
             // Smooth fade-in when image loads

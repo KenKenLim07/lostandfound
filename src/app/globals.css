@@ -272,53 +272,6 @@
 }
 
 @layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222.2 84% 4.9%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222.2 84% 4.9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-  }
-}
-
-@layer base {
   * {
     @apply border-border;
   }
@@ -365,5 +318,82 @@
   img {
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
+  }
+}
+
+/* Floating label input styles */
+.floating-label-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.floating-label-input input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.floating-label-input label {
+  position: absolute;
+  left: 3px;
+  padding: 0 4px;
+  font-size: 14px;
+  pointer-events: none;
+  transition: top 0.2s ease-in-out, font-size 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+.floating-label-input label.floating {
+  font-size: 12px;
+  color: hsl(var(--foreground));
+}
+
+/* Mobile menu specific overrides */
+.mobile-menu .floating-label-input {
+  padding: 8px 0;
+}
+
+.mobile-menu .floating-label-input label {
+  top: 8px !important; /* Force consistent positioning in mobile menu */
+}
+
+.mobile-menu .floating-label-input label.floating {
+  top: -8px !important; /* Force floating position in mobile menu */
+}
+
+/* Desktop-specific media query */
+@media (min-width: 768px) {
+  .floating-label-input label {
+    top: 12px !important; /* Force consistent positioning on desktop */
+  }
+  
+  .floating-label-input label.floating {
+    top: -2px !important; /* Force floating position on desktop */
+  }
+}
+
+/* Scrollbar utilities */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .scrollbar-hide {
+    scroll-behavior: auto;
+  }
+  
+  .transition-all,
+  .transition-shadow,
+  .transition-opacity {
+    transition: none !important;
   }
 }

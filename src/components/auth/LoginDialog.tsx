@@ -288,6 +288,7 @@ export function LoginDialog(props: LoginDialogProps = {}) {
               required
               autoComplete="email"
               className="h-12"
+              labelBgClassName="bg-white"
             />
             {!isEmailValid && touched.email && (
               <p className="text-xs text-destructive ml-3">Please enter a valid email address</p>
@@ -308,6 +309,7 @@ export function LoginDialog(props: LoginDialogProps = {}) {
                 required
                 autoComplete={mode === "signin" ? "current-password" : "new-password"}
                 className="h-12"
+                labelBgClassName="bg-white"
               />
               <Button
                 type="button"
@@ -344,6 +346,7 @@ export function LoginDialog(props: LoginDialogProps = {}) {
                   required
                   autoComplete="new-password"
                   className="h-12"
+                  labelBgClassName="bg-white"
                 />
                 <Button
                   type="button"
@@ -449,7 +452,7 @@ export function LoginDialog(props: LoginDialogProps = {}) {
         </DialogTrigger>
       )}
       <DialogContent 
-        className="sm:max-w-md" 
+        className="sm:max-w-md rounded-2xl border bg-white dark:bg-white backdrop-blur-none shadow-2xl ring-1 ring-border/50 p-6 sm:p-7" 
         autoFocus={false}
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
@@ -457,35 +460,35 @@ export function LoginDialog(props: LoginDialogProps = {}) {
         {!signupCompleted ? (
           <>
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold text-center">
+          <DialogTitle className="text-2xl md:text-3xl font-semibold tracking-tight text-center">
             {mode === "signin" ? "Welcome back" : "Create account"}
           </DialogTitle>
-          <p className="text-sm text-muted-foreground text-center">
+          <p className="text-sm md:text-base text-muted-foreground text-center mt-1">
             {mode === "signin" 
               ? "Enter your credentials to access your account" 
               : "Fill in your details to create a new account"
             }
           </p>
           {note && (
-            <p className="text-xs text-center text-foreground mt-1">{note}</p>
+            <p className="text-xs md:text-sm text-center text-foreground/80 mt-2">{note}</p>
           )}
         </DialogHeader>
         
         {/* Step Indicator (signup only) */}
         {mode === "signup" && (
-          <div className="flex items-center justify-center space-x-3 text-sm text-muted-foreground mb-4">
+          <div className="flex items-center justify-center space-x-3 text-sm text-muted-foreground mb-2">
             <div className={`flex items-center ${signupStep === "account" ? "text-primary" : "text-muted-foreground"}`}>
-              <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-medium ${
-                signupStep === "account" ? "border-primary bg-primary text-white" : "border-muted-foreground bg-muted-foreground text-white"
+              <div className={`w-7 h-7 rounded-full border flex items-center justify-center text-xs font-medium shadow-xs ${
+                signupStep === "account" ? "border-primary/40 bg-primary text-white" : "border-border/80 bg-muted text-foreground"
               }`}>
                 ✓
               </div>
               <span className="ml-2">Account</span>
             </div>
-            <div className="w-10 h-px bg-muted-foreground"></div>
+            <div className="w-10 h-px bg-border"></div>
             <div className={`flex items-center ${signupStep === "profile" ? "text-primary" : ""}`}>
-              <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-medium ${
-                signupStep === "profile" ? "border-primary bg-primary text-white" : "border-muted-foreground"
+              <div className={`w-7 h-7 rounded-full border flex items-center justify-center text-xs font-medium shadow-xs ${
+                signupStep === "profile" ? "border-primary/40 bg-primary text-white" : "border-border/80"
               }`}>
                 2
               </div>
@@ -497,10 +500,10 @@ export function LoginDialog(props: LoginDialogProps = {}) {
         ) : (
           /* Show completion header when signup is completed */
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold text-center text-green-600">
+            <DialogTitle className="text-2xl font-semibold text-center text-green-600">
               Congratulations, You Made It!
             </DialogTitle>
-            <p className="text-sm text-muted-foreground text-center">
+            <p className="text-sm md:text-base text-muted-foreground text-center mt-1">
               &ldquo;Proud Of You!&rdquo;
             </p>
           </DialogHeader>
@@ -525,6 +528,7 @@ export function LoginDialog(props: LoginDialogProps = {}) {
               required
               autoComplete="email"
                   className="h-12"
+              labelBgClassName="bg-white"
             />
             {!isEmailValid && touched.email && (
               <p className="text-xs text-destructive ml-3">Please enter a valid email address</p>
@@ -545,6 +549,7 @@ export function LoginDialog(props: LoginDialogProps = {}) {
                 required
                     autoComplete="new-password"
                     className="h-12"
+                labelBgClassName="bg-white"
               />
               <Button
                 type="button"
@@ -581,6 +586,7 @@ export function LoginDialog(props: LoginDialogProps = {}) {
                   required
                   autoComplete="new-password"
                       className="h-12"
+                  labelBgClassName="bg-white"
                 />
                 <Button
                   type="button"

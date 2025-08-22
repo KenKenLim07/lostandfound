@@ -83,13 +83,17 @@ export function AuthStatus() {
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-sm text-muted-foreground">{email}</span>
+      <span className="text-sm text-foreground/80 px-2 py-1 rounded-full bg-white/60 dark:bg-neutral-900/60 backdrop-blur ring-1 ring-border/60 shadow-xs">
+        {email}
+      </span>
       <Button
         variant="ghost"
         size="sm"
         onClick={handleSignOut}
         disabled={isLoading}
-        className="h-8 px-2"
+        className="h-8 px-2 rounded-full hover:bg-foreground/10"
+        aria-label="Sign out"
+        title="Sign out"
       >
         <LogOut className="h-4 w-4" />
       </Button>

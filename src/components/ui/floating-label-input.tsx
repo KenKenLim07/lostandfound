@@ -7,10 +7,11 @@ export interface FloatingLabelInputProps extends React.InputHTMLAttributes<HTMLI
   label: string
   error?: boolean
   icon?: React.ReactNode
+	labelBgClassName?: string
 }
 
 const FloatingLabelInput = React.forwardRef<HTMLInputElement, FloatingLabelInputProps>(
-  ({ className, label, error, icon, type, id, value = "", ...props }, ref) => {
+	({ className, label, error, icon, type, id, value = "", labelBgClassName = "bg-background", ...props }, ref) => {
     const [isFocused, setIsFocused] = React.useState(false)
     const inputRef = React.useRef<HTMLInputElement | null>(null)
 
@@ -43,12 +44,11 @@ const FloatingLabelInput = React.forwardRef<HTMLInputElement, FloatingLabelInput
     return (
       <div 
         className={cn(
-          "relative border-2 rounded-md cursor-text transition-colors floating-label-input",
+					"relative border-2 rounded-md cursor-text transition-colors floating-label-input",
           "border-input",
           error && "border-destructive",
-          isFocused && "border-blue-500", // Custom focus state with your preferred color
-          // Responsive padding: more padding on desktop, less on mobile
-          "py-3 md:py-4",
+					isFocused && "border-blue-500",
+					"py-3 md:py-4",
           className
         )}
         onClick={() => inputRef.current?.focus()}
@@ -61,19 +61,18 @@ const FloatingLabelInput = React.forwardRef<HTMLInputElement, FloatingLabelInput
         <label
           htmlFor={id}
           className={cn(
-            "absolute left-3 px-1 text-sm pointer-events-none",
+						"absolute left-3 px-1 text-sm pointer-events-none",
             icon && "left-10",
             shouldFloat
-              ? "text-xs text-foreground bg-background floating" // Add floating class for mobile menu CSS
-              : "text-muted-foreground",
-            // Responsive positioning using Tailwind classes
-            shouldFloat 
-              ? "-top-2" 
-              : "top-2 md:top-3" // top-2 (8px) on mobile, top-3 (12px) on desktop
-          )}
-          style={{
-            transition: 'top 0.2s ease-in-out, font-size 0.2s ease-in-out, color 0.2s ease-in-out'
-          }}
+							? cn("text-xs text-foreground floating", labelBgClassName)
+							: "text-muted-foreground",
+						shouldFloat 
+							? "-top-2" 
+							: "top-2 md:top-3"
+					)}
+					style={{
+						transition: 'top 0.2s ease-in-out, font-size 0.2s ease-in-out, color 0.2s ease-in-out'
+					}}
         >
           {label}
         </label>
@@ -81,19 +80,15 @@ const FloatingLabelInput = React.forwardRef<HTMLInputElement, FloatingLabelInput
           type={type}
           id={id}
           className={cn(
-            "bg-transparent focus:outline-none text-base md:text-sm text-foreground placeholder-transparent",
+						"bg-transparent focus:outline-none text-base md:text-sm text-foreground placeholder-transparent",
             icon && "pl-7",
-            "mobile-menu:h-9 mobile-menu:text-sm",
-            // Ensure proper height and centering on all screen sizes
-            "h-10 md:h-11", // h-10 (40px) on mobile, h-11 (44px) on desktop
-            "leading-none", // Remove line-height to prevent vertical centering issues
-            // Center the input vertically within the container
-            "absolute top-1/2 transform -translate-y-1/2",
-            // Create visual margin by making input narrower than container
-            "left-3 right-3", // 12px margin on left and right
-            // Adjust positioning for icon
-            icon ? "pl-7 pr-3" : "px-0"
-          )}
+						"mobile-menu:h-9 mobile-menu:text-sm",
+						"h-10 md:h-11",
+						"leading-none",
+						"absolute top-1/2 transform -translate-y-1/2",
+						"left-3 right-3",
+						icon ? "pl-7 pr-3" : "px-0"
+					)}
           placeholder={label}
           ref={(node) => {
             if (typeof ref === 'function') {
