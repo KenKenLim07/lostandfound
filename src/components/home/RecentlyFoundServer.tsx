@@ -1,4 +1,4 @@
-import Link from "next/link"
+
 import { createClient } from "@supabase/supabase-js"
 import type { Database, Tables } from "@/types/database"
 import ItemsGridClient, { GridItem } from "@/components/home/ItemsGridClient"
@@ -35,9 +35,8 @@ export default async function RecentlyFoundServer() {
   }))
   return (
     <section className="container mx-auto px-0.5 sm:px-4 py-2">
-      <div className="pl-2 flex items-center justify-between mb-2">
-        <h2 className="text-base font-semibold tracking-tight">Recently Found</h2>
-        <Link href="/items?type=found" className="text-sm text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 rounded">View all found</Link>
+      <div className="pl-2 mb-2">
+        <h2 className="text-lg font-bold text-foreground/80 tracking-tight">Recently Found</h2>
       </div>
       {grid.length === 0 ? (
         <div className="text-center py-6 text-sm text-muted-foreground">No recent found items.</div>
