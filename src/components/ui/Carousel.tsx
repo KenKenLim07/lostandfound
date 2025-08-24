@@ -25,6 +25,7 @@ export function Carousel({
 }: CarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isTransitioning, setIsTransitioning] = useState(false)
+  const [leftImageIndex, setLeftImageIndex] = useState(0) // Only stagger left position
 
 
   const nextSlide = useCallback(() => {
@@ -61,8 +62,6 @@ export function Carousel({
 
   const visibleIndices = getVisibleIndices()
   
-  // Debug logging
-
 
   if (images.length === 0) {
     return (
@@ -77,7 +76,12 @@ export function Carousel({
       {/* Main carousel container */}
       <div className="relative h-48 sm:h-56 overflow-hidden">
         <div className="flex items-center justify-center h-full perspective-1000">
-          <AnimatePresence mode="sync" onExitComplete={() => setIsTransitioning(false)}>
+          <AnimatePresence mode="sync" onExitComplete={() => {
+            setIsTransitioning(false)
+            // Update left image index only after animation completes
+            const newLeftIndex = (currentIndex - 1 + images.length) % images.length
+            setLeftImageIndex(newLeftIndex)
+          }}>
                       {visibleIndices.map((index, position) => {
             const isCenter = position === 1
             const isLeft = position === 0
@@ -85,25 +89,21 @@ export function Carousel({
 
             return (
               <motion.div
-                key={`${index}-${position}`}
-                className="absolute cursor-pointer transform-style-preserve-3d"
-                // CARD DIMENSIONS
-                // Center card: 192px × 160px (larger, more prominent)
-                // Side cards: 160px × 128px (smaller, less prominent)
-                style={{
-                  width: isCenter ? "192px" : "160px",
-                  height: isCenter ? "160px" : "128px",
-                }}
+                key={`transition-${currentIndex}-${position}-${index}`}
+                className={`absolute cursor-pointer transform-style-preserve-3d ${
+                  isCenter 
+                    ? 'w-36 h-30 sm:w-48 sm:h-40' 
+                    : 'w-30 h-24 sm:w-40 sm:h-32'
+                }`}
                 
                 // INITIAL ANIMATION STATE (starting position)
-                // Left card: starts at -160px (left position)
-                // Center card: starts at +96px (60% coverage of the right card like a subtle curtain)
-                // Right card: starts at +160px (right position, mostly visible behind center card)
+                // Mobile: Left card: starts at -120px, Center card: starts at +72px, Right card: starts at +120px
+                // Desktop: Left card: starts at -160px, Center card: starts at +96px, Right card: starts at +160px
                 // Scale: Center starts smaller (0.9), sides start tiny (0.7)
                 // Z-index: Center on top (20), sides below (5)
                 // 3D Rotation: Cards rotate based on their position for depth
                 initial={{
-                  x: isLeft ? "-160px" : isCenter ? "96px" : "160px",
+                  x: isLeft ? "-120px" : isCenter ? "72px" : "120px",
                   scale: isCenter ? 0.9 : 0.7,
                   opacity: 1,
                   zIndex: isCenter ? 20 : 5,
@@ -111,14 +111,13 @@ export function Carousel({
                 }}
                 
                 // ANIMATED STATE (final position)
-                // Left card: stays at -160px (left position)
-                // Center card: moves to 0px (center position) - reveals the right card as it slides left from +120px
-                // Right card: stays at +160px (right position) - becomes more visible as center card moves
+                // Mobile: Left card: stays at -120px, Center card: moves to 0px, Right card: stays at +120px
+                // Desktop: Left card: stays at -160px, Center card: moves to 0px, Right card: stays at +160px
                 // Scale: Center grows to 1.1 (10% larger), sides stay at 0.8
                 // Z-index: Center stays on top (20), sides stay below (5)
                 // 3D Rotation: Cards rotate to their final positions with smooth transitions
                 animate={{
-                  x: isLeft ? "-160px" : isRight ? "160px" : "0px",
+                  x: isLeft ? "-120px" : isRight ? "120px" : "0px",
                   scale: isCenter ? 1.1 : 0.8,
                   opacity: 1,
                   zIndex: isCenter ? 20 : 5,
@@ -126,20 +125,19 @@ export function Carousel({
                 }}
                 
                 // EXIT ANIMATION (when card leaves)
-                // Left card: slides to -160px (left position - stays in place)
-                // Center card: slides to -160px (full range to left position) + SCALES DOWN to left card size + DIMENSIONS shrink to left card size
-                // Right card: slides to 0px (full range to center) + SCALES UP to center card size + DIMENSIONS grow to center card size
+                // Mobile: Left card: slides to -120px, Center card: slides to -120px, Right card: slides to 0px
+                // Desktop: Left card: slides to -160px, Center card: slides to -160px, Right card: slides to 0px
                 // Scale: Left stays at 0.8, Center scales down to 0.8, Right scales up to 1.1
-                // Dimensions: Left stays 160×128, Center shrinks to 160×128, Right grows to 192×160
-                // Z-index: Center (moving to left) gets highest priority (25), Left stays at (20), Right (moving to center) gets (20)
+                // Dimensions: Left stays 120×96, Center shrinks to 120×96, Right grows to 144×120
+                // Z-index: Center (moving to left) gets lower priority (10), Left stays at (5), Right (moving to center) gets highest priority (25)
                 // 3D Rotation: Cards rotate to their exit positions with smooth transitions
                 exit={{
-                  x: isLeft ? "-160px" : isRight ? "0px" : "-160px",
-                  width: isLeft ? "160px" : isCenter ? "160px" : isRight ? "192px" : "160px",
-                  height: isLeft ? "128px" : isCenter ? "128px" : isRight ? "160px" : "128px",
+                  x: isLeft ? "-120px" : isRight ? "0px" : "-120px",
+                  width: isLeft ? "120px" : isCenter ? "120px" : isRight ? "144px" : "120px",
+                  height: isLeft ? "96px" : isCenter ? "96px" : isRight ? "120px" : "96px",
                   scale: isLeft ? 0.8 : isCenter ? 0.8 : isRight ? 1.1 : 0.8,
                   opacity: 1,
-                  zIndex: isCenter ? 25 : isLeft ? 20 : isRight ? 20 : 5,
+                  zIndex: isLeft ? 5 : isCenter ? 10 : isRight ? 25 : 5,
                   rotateY: isLeft ? "-10deg" : isRight ? "0deg" : "-10deg",
                   transition: {
                     type: "spring",
@@ -226,8 +224,8 @@ export function Carousel({
                     {/* draggable={false}: prevents image dragging during carousel interaction */}
                     <div className="relative w-full h-3/4 overflow-hidden">
                       <Image
-                        src={images[index]}
-                        alt={`Carousel item ${index + 1}`}
+                        src={images[position === 0 ? leftImageIndex : index]}
+                        alt={`Carousel item ${(position === 0 ? leftImageIndex : index) + 1}`}
                         layout="fill"
                         objectFit="cover"
                       />

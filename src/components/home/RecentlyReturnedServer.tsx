@@ -1,11 +1,9 @@
 "use client"
 
-import Link from "next/link"
-import Image from "next/image"
 import { createClient } from "@supabase/supabase-js"
-import type { Database, Tables } from "@/types/database"
+import type { Database } from "@/types/database"
 import { Carousel } from "@/components/ui/Carousel"
-import { useEffect, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
 
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -13,40 +11,53 @@ function getSupabase() {
   return createClient<Database>(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
 }
 
-type Item = Pick<Tables<"items">, "id" | "title" | "image_url" | "status" | "returned_at" | "created_at" | "returned_party"> 
+// Custom hook for fetching recently returned items
+function useRecentlyReturnedItems() {
+  return useQuery({
+    queryKey: ['recently-returned'],
+    queryFn: async () => {
+      const supabase = getSupabase()
+      const { data } = await supabase
+        .from("items")
+        .select("id, title, image_url, status, returned_at, created_at, returned_party")
+        .eq("status", "returned")
+        .order("returned_at", { ascending: false, nullsFirst: false })
+        .limit(12)
+      
+      return data || []
+    },
+    // Cache for 5 minutes, keep in cache for 10 minutes
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  })
+}
 
 export default function RecentlyReturnedServer() {
-  const [items, setItems] = useState<Item[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    async function fetchItems() {
-  const supabase = getSupabase()
-  const { data } = await supabase
-    .from("items")
-    .select("id, title, image_url, status, returned_at, created_at, returned_party")
-    .eq("status", "returned")
-    .order("returned_at", { ascending: false, nullsFirst: false })
-    .limit(12)
+  const { data: items = [], isLoading, error } = useRecentlyReturnedItems()
   
-      setItems(data || [])
-      setIsLoading(false)
-    }
-
-    fetchItems()
-  }, [])
-  
-  // Extract image URLs and titles for carousel
+  // Extract image URLs and titles for carousel - only items with images
   const carouselData = items
-    .slice(0, 8)
-    .filter(item => item.image_url)
+    .filter(item => {
+      // More comprehensive filtering to catch all invalid image cases
+      const hasValidImage = item.image_url && 
+                           typeof item.image_url === 'string' && 
+                           item.image_url.trim() !== '' && 
+                           item.image_url !== 'null' && 
+                           item.image_url !== 'undefined'
+      return hasValidImage
+    })
+    .slice(0, 8) // Limit to 8 items
     .map(item => ({
+      id: item.id, // Keep the ID for proper click handling
       image: item.image_url,
       title: item.title
     }))
   
   const carouselImages = carouselData.map(item => item.image!).filter(Boolean)
   const carouselTitles = carouselData.map(item => item.title).filter((title): title is string => Boolean(title))
+  
+  // Only show carousel if we have at least 3 items with images
+  const hasEnoughImages = carouselImages.length >= 3
   
   // Add fallback images and titles if we don't have enough
   const dummyData = [
@@ -60,12 +71,13 @@ export default function RecentlyReturnedServer() {
   const dummyImages = dummyData.map(item => item.image)
   const dummyTitles = dummyData.map(item => item.title)
   
-  const finalImages = carouselImages.length >= 3 ? carouselImages : dummyImages
-  const finalTitles = carouselTitles.length >= 3 ? carouselTitles : dummyTitles
+  const finalImages = hasEnoughImages ? carouselImages : dummyImages
+  const finalTitles = hasEnoughImages ? carouselTitles : dummyTitles
   
   const handleCardClick = (index: number) => {
-    if (items[index]) {
-      window.open(`/items/${items[index].id}?from=home`, '_blank')
+    if (hasEnoughImages && carouselData[index]) {
+      // Only open item page if we have real data (not dummy data)
+      window.open(`/items/${carouselData[index].id}?from=home`, '_blank')
     }
   }
   
@@ -82,6 +94,17 @@ export default function RecentlyReturnedServer() {
     )
   }
 
+  if (error) {
+    return (
+      <section className="container mx-auto px-0.5 sm:px-4 py-2">
+        <div className="mb-2 px-2">
+          <h2 className="text-lg font-bold text-foreground/80 tracking-tight">Recently Returned</h2>
+        </div>
+        <div className="pl-2 text-sm text-muted-foreground">Unable to load recent returns.</div>
+      </section>
+    )
+  }
+
   return (
     <section className="container mx-auto px-0.5 sm:px-4 py-2">
       <div className="mb-2 px-2">
@@ -89,6 +112,8 @@ export default function RecentlyReturnedServer() {
       </div>
       {items.length === 0 ? (
         <div className="pl-2 text-sm text-muted-foreground">No recent returns.</div>
+      ) : !hasEnoughImages ? (
+        <div className="pl-2 text-sm text-muted-foreground">No recent returns with images available.</div>
       ) : (
         <div className="px-2">
           <Carousel 
