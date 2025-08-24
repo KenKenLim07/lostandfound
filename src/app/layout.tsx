@@ -13,7 +13,6 @@ import type { Database } from "@/types/database";
 import { ReportItemLink } from "@/components/ReportItemLink";
 import { MobileMenuProvider } from "@/components/navigation/MobileMenuProvider";
 import { FooterRulesReset } from "@/components/ui/footer-rules-reset";
-import { QueryProvider } from "@/components/providers/QueryProvider";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -208,9 +207,7 @@ export default async function RootLayout({
           </div>
         </header>
         <main className="flex-1 flex flex-col">
-          <QueryProvider>
-            {children}
-          </QueryProvider>
+        {children}
         </main>
         <footer className="border-t bg-muted/50">
           <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">

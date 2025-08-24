@@ -12,15 +12,16 @@ function ReturnedStripSkeleton() {
       <div className="mb-2 px-2">
         <Skeleton className="h-6 w-40" />
       </div>
-      <div className="px-2">
-        <div className="relative h-48 sm:h-64 overflow-hidden rounded-xl bg-muted">
-          <Skeleton className="h-full w-full" />
+      <div className="flex gap-2 overflow-hidden pl-2">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="w-40 shrink-0 rounded-xl border bg-white shadow-xs p-2">
+            <Skeleton className="h-20 w-full rounded-md" />
+            <div className="mt-2 space-y-1">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-3 w-28" />
             </div>
-        <div className="flex justify-center mt-4 space-x-2">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="w-2 h-2 rounded-full" />
+          </div>
         ))}
-        </div>
         </div>
       </section>
   )
