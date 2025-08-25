@@ -186,17 +186,12 @@ export function RecentReturnedCarousel({ items, className = "" }: RecentReturned
                   </div>
                 )}
                 
-                {/* Stronger gradient overlay for better text readability */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
-                
-                {/* Item info overlay with better positioning and readability */}
-                <div className="absolute bottom-0 left-0 right-0 p-1 text-white">
-                  <h3 className="font-bold text-lg line-clamp-1 text-white drop-shadow-lg">
+                {/* Bottom caption bar inside border (non-overlay look) */}
+                <div className="absolute bottom-0 left-0 right-0 bg-black/40 backdrop-blur-xs rounded-b-2xl border-border px-3 py-1">
+                                     <h3 className="font-semibold text-sm line-clamp-1 text-white">
                     {items[currentIndex].title || "Untitled"}
                   </h3>
-                  <p className="text-xs font-medium text-green-300 drop-shadow-lg">
-                    Returned{items[currentIndex].returned_party ? ` to ${items[currentIndex].returned_party}` : ""}
-                  </p>
+
                 </div>
               </div>
             </Link>
