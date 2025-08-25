@@ -23,7 +23,7 @@ export function RecentReturnedCarousel({ items, className = "" }: RecentReturned
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
-  const autoplayRef = useRef<NodeJS.Timeout>()
+  const autoplayRef = useRef<NodeJS.Timeout | null>(null)
 
   // Handle infinite loop
   const getIndex = useCallback((index: number) => {

@@ -29,14 +29,6 @@ export default function RotatingCarousel({
 
   const totalImages = images.length
 
-  if (totalImages === 0) {
-    return (
-      <div className={cn("flex items-center justify-center h-64 bg-muted rounded-lg", className)}>
-        <p className="text-muted-foreground">No images to display</p>
-      </div>
-    )
-  }
-
   const nextSlide = useCallback(() => {
     setCurrentIndex((prev) => (prev + 1) % totalImages)
   }, [totalImages])
@@ -49,7 +41,7 @@ export default function RotatingCarousel({
     setCurrentIndex(index)
   }, [])
 
-  const handleDragEnd = useCallback((event: any, info: PanInfo) => {
+  const handleDragEnd = useCallback((event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     setIsDragging(false)
     const threshold = 50
 
@@ -89,6 +81,14 @@ export default function RotatingCarousel({
   const toggleAutoplay = useCallback(() => {
     setIsAutoplayActive((prev) => !prev)
   }, [])
+
+  if (totalImages === 0) {
+    return (
+      <div className={cn("flex items-center justify-center h-64 bg-muted rounded-lg", className)}>
+        <p className="text-muted-foreground">No images to display</p>
+      </div>
+    )
+  }
 
   // Calculate positions for the 3 visible cards
   const getCardPosition = (index: number) => {
