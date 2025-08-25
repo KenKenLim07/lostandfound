@@ -22,10 +22,8 @@ interface RecentReturnedCarouselProps {
 export function RecentReturnedCarousel({ items, className = "" }: RecentReturnedCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
-  const [isTransitioning, setIsTransitioning] = useState(false)
-  const [slideDirection, setSlideDirection] = useState<'left' | 'right'>('right')
   const containerRef = useRef<HTMLDivElement>(null)
-  const autoplayRef = useRef<NodeJS.Timeout | null>(null)
+  const autoplayRef = useRef<NodeJS.Timeout>()
 
   // Handle infinite loop
   const getIndex = useCallback((index: number) => {
@@ -34,36 +32,16 @@ export function RecentReturnedCarousel({ items, className = "" }: RecentReturned
   }, [items.length])
 
   const goToNext = useCallback(() => {
-    if (isTransitioning) return // Prevent rapid transitions
-    setIsTransitioning(true)
-    setSlideDirection('right')
-    // Use setTimeout to ensure slideDirection is set before index change
-    setTimeout(() => {
-      setCurrentIndex(prev => getIndex(prev + 1))
-    }, 0)
-  }, [getIndex, isTransitioning])
+    setCurrentIndex(prev => getIndex(prev + 1))
+  }, [getIndex])
 
   const goToPrevious = useCallback(() => {
-    if (isTransitioning) return // Prevent rapid transitions
-    setIsTransitioning(true)
-    setSlideDirection('left')
-    // Use setTimeout to ensure slideDirection is set before index change
-    setTimeout(() => {
-      setCurrentIndex(prev => getIndex(prev - 1))
-    }, 0)
-  }, [getIndex, isTransitioning])
+    setCurrentIndex(prev => getIndex(prev - 1))
+  }, [getIndex])
 
   const goToIndex = useCallback((index: number) => {
-    if (isTransitioning || index === currentIndex) return // Prevent unnecessary transitions
-    setIsTransitioning(true)
-    // Determine slide direction based on index position
-    const direction = index > currentIndex ? 'right' : 'left'
-    setSlideDirection(direction)
-    // Use setTimeout to ensure slideDirection is set before index change
-    setTimeout(() => {
-      setCurrentIndex(index)
-    }, 0)
-  }, [isTransitioning, currentIndex])
+    setCurrentIndex(index)
+  }, [])
 
   // Autoplay functionality
   useEffect(() => {
@@ -130,8 +108,11 @@ export function RecentReturnedCarousel({ items, className = "" }: RecentReturned
     return (
       <div className={`relative ${className}`}>
         <div className="flex justify-center">
-          <div className="w-full max-w-[280px] sm:max-w-md mx-auto border-2 border-border bg-card rounded-2xl overflow-hidden">
-            <div className="relative aspect-[4/3] w-full overflow-hidden">
+          <Link 
+            href={`/items/${item.id}?from=home`}
+            className="group block w-full max-w-[280px] sm:max-w-md mx-auto"
+          >
+            <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl bg-muted/20">
               {item.image_url ? (
                 <Image
                   src={item.image_url}
@@ -147,17 +128,15 @@ export function RecentReturnedCarousel({ items, className = "" }: RecentReturned
                 </div>
               )}
             </div>
-            <div className="px-4 py-2 bg-card border-t border-border">
-              <Link 
-                href={`/items/${item.id}?from=home`}
-                className="block"
-              >
-                <h3 className="font-semibold text-lg line-clamp-2 text-foreground text-center">
-                  {item.title || "Untitled"}
-                </h3>
-              </Link>
+            <div className="mt-4 text-center">
+              <h3 className="font-medium text-foreground line-clamp-1">
+                {item.title || "Untitled"}
+              </h3>
+              <p className="text-sm text-green-600 mt-1">
+                Returned{item.returned_party ? ` to ${item.returned_party}` : ""}
+              </p>
             </div>
-          </div>
+          </Link>
         </div>
       </div>
     )
@@ -172,36 +151,25 @@ export function RecentReturnedCarousel({ items, className = "" }: RecentReturned
     >
       {/* Main Carousel Container */}
       <div className="relative overflow-hidden rounded-3xl bg-muted/5 px-4 sm:px-0">
-        <AnimatePresence 
-          mode="wait" 
-          initial={false}
-          onExitComplete={() => setIsTransitioning(false)}
-        >
+        <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={currentIndex}
-            initial={{ 
-              opacity: 0, 
-              x: slideDirection === 'right' ? 100 : -100 
-            }}
-            animate={{ 
-              opacity: 1, 
-              x: 0 
-            }}
-            exit={{ 
-              opacity: 0, 
-              x: slideDirection === 'right' ? -100 : 100 
-            }}
+            initial={{ opacity: 0, x: 100 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -100 }}
             transition={{
               duration: 0.6,
               ease: [0.25, 0.46, 0.45, 0.94],
               opacity: { duration: 0.4 },
               x: { duration: 0.6, ease: [0.16, 1, 0.3, 1] }
             }}
-            className="relative w-full max-w-[280px] sm:max-w-md mx-auto rounded-2xl border-2 border-border bg-card overflow-hidden"
+            className="relative aspect-[16/9] w-full max-w-[280px] sm:max-w-md mx-auto rounded-2xl"
           >
-            <div className="flex flex-col h-full">
-              {/* Image Section */}
-              <div className="relative aspect-[4/3] w-full overflow-hidden">
+            <Link 
+              href={`/items/${items[currentIndex].id}?from=home`}
+              className="block h-full w-full"
+            >
+              <div className="relative h-full w-full overflow-hidden rounded-2xl">
                 {items[currentIndex].image_url ? (
                   <Image
                     src={items[currentIndex].image_url}
@@ -217,46 +185,43 @@ export function RecentReturnedCarousel({ items, className = "" }: RecentReturned
                     <div className="text-muted-foreground text-sm">No image</div>
                   </div>
                 )}
-              </div>
-              
-              {/* Title Section - Attached to image */}
-              <div className="px-4 py-2 bg-card border-t border-border">
-                <Link 
-                  href={`/items/${items[currentIndex].id}?from=home`}
-                  className="block"
-                >
-                  <h3 className="font-semibold text-lg line-clamp-2 text-foreground text-center">
+                
+                {/* Stronger gradient overlay for better text readability */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+                
+                {/* Item info overlay with better positioning and readability */}
+                <div className="absolute bottom-0 left-0 right-0 p-1 text-white">
+                  <h3 className="font-bold text-lg line-clamp-1 text-white drop-shadow-lg">
                     {items[currentIndex].title || "Untitled"}
                   </h3>
-                </Link>
+                  <p className="text-xs font-medium text-green-300 drop-shadow-lg">
+                    Returned{items[currentIndex].returned_party ? ` to ${items[currentIndex].returned_party}` : ""}
+                  </p>
+                </div>
               </div>
-            </div>
+            </Link>
           </motion.div>
         </AnimatePresence>
 
-
-
-        {/* Touch/Drag Area - Enhanced for mobile */}
+        {/* Touch/Drag Area */}
         <motion.div
           ref={containerRef}
-          className="absolute inset-0 cursor-grab active:cursor-grabbing touch-pan-y"
+          className="absolute inset-0 cursor-grab active:cursor-grabbing"
           drag="x"
           dragConstraints={{ left: 0, right: 0 }}
           dragElastic={0.1}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
           whileDrag={{ scale: 0.98 }}
-          style={{ touchAction: 'pan-y' }}
         />
 
         {/* Navigation Buttons */}
-        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-4 opacity-100 transition-opacity duration-300">
+        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
           <Button
             variant="ghost"
             size="sm"
             onClick={goToPrevious}
-            disabled={isTransitioning}
-            className="h-10 w-10 rounded-full bg-black/20 backdrop-blur-sm text-white hover:bg-black/40 transition-all duration-300 ease-out border-0 p-0 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+            className="h-10 w-10 rounded-full bg-black/20 backdrop-blur-sm text-white hover:bg-black/40 transition-all duration-300 ease-out border-0 p-0 shadow-lg hover:shadow-xl"
             aria-label="Previous item"
           >
             <ChevronLeft className="h-5 w-5" />
@@ -266,8 +231,7 @@ export function RecentReturnedCarousel({ items, className = "" }: RecentReturned
             variant="ghost"
             size="sm"
             onClick={goToNext}
-            disabled={isTransitioning}
-            className="h-10 w-10 rounded-full bg-black/20 backdrop-blur-sm text-white hover:bg-black/40 transition-all duration-300 ease-out border-0 p-0 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+            className="h-10 w-10 rounded-full bg-black/20 backdrop-blur-sm text-white hover:bg-black/40 transition-all duration-300 ease-out border-0 p-0 shadow-lg hover:shadow-xl"
             aria-label="Next item"
           >
             <ChevronRight className="h-5 w-5" />
@@ -278,25 +242,27 @@ export function RecentReturnedCarousel({ items, className = "" }: RecentReturned
       </div>
 
       {/* Thumbnail Navigation */}
-      <div className="flex justify-center items-center lg:mt-1 space-x-2 lg:space-x-3 overflow-x-auto px-4 py-2 rounded-2xl scrollbar-hide snap-x snap-mandatory">
+      <div className="flex justify-center items-center lg:mt-1 space-x-2 lg:space-x-3 overflow-x-auto px-4 py-2 rounded-2xl">
         {items.map((item, index) => (
           <button
             key={item.id}
             onClick={() => goToIndex(index)}
-                            className={`relative group/thumb transition-all duration-500 ease-out shrink-0 snap-start ${
+                            className={`relative group/thumb transition-all duration-500 ease-out ${
               index === currentIndex
                 ? "scale-110"
                 : "hover:scale-105"
             }`}
           >
-            <div className="relative h-12 w-12 lg:h-16 lg:w-16 overflow-hidden rounded-xl bg-muted/20 flex items-center justify-center transition-all duration-500 ease-out">
+            <div className={`relative h-12 w-12 lg:h-16 lg:w-16 overflow-hidden rounded-xl bg-muted/20 flex items-center justify-center transition-all duration-500 ease-out ${
+              index === currentIndex ? "border-2 border-black" : ""
+            }`}>
               {item.image_url ? (
                 <Image
                   src={item.image_url}
                   alt={item.title || "Returned item"}
                   fill
                   className={`object-cover transition-all duration-500 ease-out ${
-                    index === currentIndex ? "scale-125" : "group-hover/thumb:scale-110"
+                    index === currentIndex ? "scale-125" : "group-hover/thumb:scale-110 blur-[1.5px]"
                   }`}
                   sizes="64px"
                 />
